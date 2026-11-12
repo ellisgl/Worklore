@@ -9,9 +9,8 @@
             <unique-constraint name="uniq_app_user_email" columns="email"/>
         </unique-constraints>
 
-        <id name="id" type="integer">
-            <generator strategy="IDENTITY"/>
-        </id>
+        <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
+        <id name="id" type="uuid"/>
 
         <field name="email" type="string" length="180"/>
         <field name="roles" type="json"/>

@@ -44,7 +44,7 @@ final readonly class CreateUserCommand
             return Command::INVALID;
         }
 
-        $io->success(\sprintf('Created user #%d %s [%s].', $user->getId(), $user->getEmail(), implode(', ', $user->getRoles())));
+        $io->success(\sprintf('Created user %s (%s) [%s].', $user->getEmail(), $user->getId(), implode(', ', $user->getRoles())));
 
         return Command::SUCCESS;
     }

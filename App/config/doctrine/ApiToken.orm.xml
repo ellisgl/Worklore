@@ -13,9 +13,8 @@
             <index name="idx_api_token_refresh_expires" columns="refresh_expires_at"/>
         </indexes>
 
-        <id name="id" type="integer">
-            <generator strategy="IDENTITY"/>
-        </id>
+        <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
+        <id name="id" type="uuid"/>
 
         <field name="accessTokenHash" column="access_token_hash" type="string" length="64"/>
         <field name="accessExpiresAt" column="access_expires_at" type="datetime_immutable"/>

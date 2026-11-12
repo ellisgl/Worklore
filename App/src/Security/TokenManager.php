@@ -85,7 +85,7 @@ final readonly class TokenManager
             ->setParameter('accessExpires', $now->modify("+{$this->accessTtl} seconds"), 'datetime_immutable')
             ->setParameter('refresh', $hashes['refresh'])
             ->setParameter('refreshExpires', $now->modify("+{$this->refreshTtl} seconds"), 'datetime_immutable')
-            ->setParameter('id', $token->getId())
+            ->setParameter('id', $token->getId(), 'uuid')
             ->setParameter('oldHash', $oldHash)
             ->getQuery()
             ->execute();

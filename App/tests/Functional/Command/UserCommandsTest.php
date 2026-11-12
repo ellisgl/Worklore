@@ -15,6 +15,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Uid\UuidV7;
 
 final class UserCommandsTest extends KernelTestCase
 {
@@ -43,6 +44,8 @@ final class UserCommandsTest extends KernelTestCase
         $tester->assertCommandIsSuccessful();
         $user = $this->users->findOneByEmail('new.user@example.com');
         self::assertNotNull($user);
+        self::assertInstanceOf(UuidV7::class, $user->getId(), 'IDs are UUIDv7');
+        self::assertStringContainsString($user->getId()->toRfc4122(), $tester->getDisplay());
         self::assertSame('new.user@example.com', $user->getEmail(), 'Email is stored lowercased');
         self::assertSame(['ROLE_USER'], $user->getRoles());
         self::assertNotSame(self::PASSWORD, $user->getPassword(), 'Password must be hashed');
