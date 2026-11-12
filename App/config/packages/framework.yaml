@@ -5,6 +5,10 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # API JSON uses snake_case keys (e.g. access_token) mapped to camelCase PHP properties
+    serializer:
+        name_converter: 'serializer.name_converter.camel_case_to_snake_case'
+
     #esi: true
     #fragments: true
 

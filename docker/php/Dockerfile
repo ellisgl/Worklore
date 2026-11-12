@@ -1,12 +1,9 @@
 ARG PHP_VERSION=8.5
 FROM php:${PHP_VERSION}-fpm-alpine
 
-ARG UID=1000
-ARG GID=1000
-
 # Runtime libs + tools Composer/Symfony need
 RUN apk add --no-cache \
-        git unzip shadow \
+        git unzip \
         icu-libs libzip postgresql-libs
 
 # PHP extensions
@@ -25,8 +22,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 RUN cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 COPY php.ini $PHP_INI_DIR/conf.d/zz-app.ini
 
-# Match www-data to the host user so files written to ./App stay owned by you
-RUN usermod -u ${UID} www-data && groupmod -g ${GID} www-data
+# Docker runs rootless on this host: container root == your host user.
+# Run FPM workers as root so files they write (var/cache, var/log) stay owned by you.
+COPY fpm-pool.conf /usr/local/etc/php-fpm.d/zz-user.conf
 
 ENV COMPOSER_HOME=/tmp/composer
 WORKDIR /var/www/html
+CMD ["php-fpm", "--allow-to-run-as-root"]

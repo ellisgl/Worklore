@@ -7,6 +7,9 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Token lifetimes in seconds
+    app.auth.access_token_ttl: 900        # 15 minutes
+    app.auth.refresh_token_ttl: 2592000   # 30 days
 
 services:
     # default configuration for services in *this* file

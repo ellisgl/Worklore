@@ -15,17 +15,19 @@ services:
       context: ./docker/php
       args:
         PHP_VERSION: ${PHP_VERSION}
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
     volumes:
       - ./App:/var/www/html
     environment:
+      # Read by App/.env to build DATABASE_URL
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?serverVersion=18&charset=utf8
+      # Read by App/.env.test
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB}
+      POSTGRES_TEST_USER: ${POSTGRES_TEST_USER}
+      POSTGRES_TEST_PASSWORD: ${POSTGRES_TEST_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,10 +41,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB}
+      POSTGRES_TEST_USER: ${POSTGRES_TEST_USER}
+      POSTGRES_TEST_PASSWORD: ${POSTGRES_TEST_PASSWORD}
     # PostgreSQL 18+ images keep data under /var/lib/postgresql/<major>/docker,
     # so the mount point is the parent directory.
     volumes:
       - ./Data:/var/lib/postgresql
+      # Creates the test role/database on first initialization of an empty Data/
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
