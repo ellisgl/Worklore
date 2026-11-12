@@ -1,0 +1,48 @@
+services:
+  nginx:
+    image: nginx:${NGINX_VERSION}-alpine
+    ports:
+      - "${HTTP_PORT}:80"
+    volumes:
+      - ./App:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    restart: unless-stopped
+
+  php:
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+    volumes:
+      - ./App:/var/www/html
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:${POSTGRES_VERSION}-alpine
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # PostgreSQL 18+ images keep data under /var/lib/postgresql/<major>/docker,
+    # so the mount point is the parent directory.
+    volumes:
+      - ./Data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
