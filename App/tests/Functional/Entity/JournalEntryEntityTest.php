@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
-use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
@@ -52,7 +51,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $user = new User('a@example.com');
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Journal entry title cannot be blank');
+        $this->expectExceptionMessageIs('Journal entry title cannot be blank');
         new JournalEntryEntity($this->project($user), $user, '   ', 'Body');
     }
 
@@ -61,7 +60,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $user = new User('a@example.com');
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Journal entry cannot be blank');
+        $this->expectExceptionMessageIs('Journal entry cannot be blank');
         new JournalEntryEntity($this->project($user), $user, 'Kickoff', '   ');
     }
 
@@ -90,7 +89,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        self::assertSame(0, $this->em->getRepository(JournalEntryEntity::class)->count([]));
+        self::assertSame(0, $this->em->getRepository(JournalEntryEntity::class)->count());
     }
 
     public function testDeletingTagRemovesItFromEntries(): void

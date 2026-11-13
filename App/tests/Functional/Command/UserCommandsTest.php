@@ -9,7 +9,6 @@ use App\Identity\Security\TokenManager;
 use App\Identity\User;
 use App\Identity\UserManager;
 use App\Identity\UserRepository;
-use App\Shared\UserId;
 use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -46,7 +45,6 @@ final class UserCommandsTest extends KernelTestCase
         $tester->assertCommandIsSuccessful();
         $user = $this->users->findOneByEmail('new.user@example.com');
         self::assertNotNull($user);
-        self::assertInstanceOf(UserId::class, $user->id);
         self::assertInstanceOf(UuidV7::class, $user->id->uuid, 'IDs are UUIDv7');
         self::assertStringContainsString($user->id->toRfc4122(), $tester->getDisplay());
         self::assertSame('new.user@example.com', $user->email, 'Email is stored lowercased');
@@ -306,7 +304,7 @@ final class UserCommandsTest extends KernelTestCase
 
         $tester->assertCommandIsSuccessful();
         self::assertStringContainsString('Purged 1 expired session(s)', $tester->getDisplay());
-        self::assertSame(1, self::getContainer()->get(ApiTokenRepository::class)->count([]));
+        self::assertSame(1, self::getContainer()->get(ApiTokenRepository::class)->count());
         self::assertNotNull($tokenManager->findValidByAccessToken($fresh->accessToken));
     }
 

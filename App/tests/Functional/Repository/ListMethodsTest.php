@@ -14,7 +14,6 @@ use App\Journal\JournalEntryEntity;
 use App\Journal\JournalEntryRepository;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
-use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

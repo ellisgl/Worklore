@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use SensitiveParameter;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -111,7 +112,7 @@ final readonly class UserManager
     }
 
     /**
-     * @param list<Assert\Constraint> $constraints
+     * @param list<Constraint> $constraints
      */
     private function assertValid(mixed $value, array $constraints): void
     {

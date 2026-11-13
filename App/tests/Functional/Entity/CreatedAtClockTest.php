@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
-use App\Company\ProductEntity;
-use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\TagEntity;
 use Closure;
 use DateTimeImmutable;
 use DateTimeZone;

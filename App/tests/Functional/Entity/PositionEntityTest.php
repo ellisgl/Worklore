@@ -123,7 +123,7 @@ final class PositionEntityTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        self::assertSame(0, $this->em->getRepository(PositionEntity::class)->count([]));
+        self::assertSame(0, $this->em->getRepository(PositionEntity::class)->count());
     }
 
     private function position(?DateTimeImmutable $start = null, string $title = 'Developer'): PositionEntity

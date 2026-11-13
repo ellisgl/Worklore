@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
-use App\Company\ProductEntity;
-use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\TagEntity;
 use Closure;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -87,7 +83,7 @@ final class NameLengthTest extends KernelTestCase
         }
         $this->em->flush();
 
-        $record = end($entities);
+        $record = $entities[array_key_last($entities)];
         $this->em->clear();
         $loaded = $this->em->find($record::class, $record->id);
         self::assertSame($name, ($loaded->name ?? $loaded->title)->value);

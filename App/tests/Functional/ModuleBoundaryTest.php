@@ -6,7 +6,6 @@ namespace App\Tests\Functional;
 
 use App\Company\CompanyEntity;
 use App\Identity\User;
-use App\Shared\Owner;
 use Doctrine\ORM\EntityManagerInterface;
 use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -69,8 +68,7 @@ final class ModuleBoundaryTest extends KernelTestCase
 
         $owner = $em->find(CompanyEntity::class, $company->id)->owner;
 
-        self::assertInstanceOf(Owner::class, $owner);
-        self::assertInstanceOf(User::class, $owner, 'Doctrine resolves Owner to User');
+        self::assertSame(User::class, $owner::class, 'Doctrine resolves Owner to User');
         self::assertTrue($user->id->equals($owner->ownerId()));
     }
 }

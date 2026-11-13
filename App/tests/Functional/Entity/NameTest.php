@@ -25,7 +25,7 @@ final class NameTest extends KernelTestCase
     public function testBlankIsRejectedWithTheLabel(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Company name cannot be blank');
+        $this->expectExceptionMessageIs('Company name cannot be blank');
         Name::of('   ', 'Company name');
     }
 
@@ -34,7 +34,7 @@ final class NameTest extends KernelTestCase
         self::assertSame(Name::MAX_LENGTH, mb_strlen(Name::of(str_repeat('é', Name::MAX_LENGTH))->value));
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Tag name cannot be longer than 255 characters');
+        $this->expectExceptionMessageIs('Tag name cannot be longer than 255 characters');
         Name::of(str_repeat('é', Name::MAX_LENGTH + 1), 'Tag name');
     }
 

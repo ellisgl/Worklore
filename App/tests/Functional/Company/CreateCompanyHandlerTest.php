@@ -57,7 +57,7 @@ final class CreateCompanyHandlerTest extends KernelTestCase
         $e = $this->dispatchExpectingFailure(new CreateCompany(CompanyId::generate(), $this->owner->id, ' acme '));
 
         self::assertInstanceOf(CompanyNameTaken::class, $e);
-        self::assertSame(1, $this->em->getRepository(CompanyEntity::class)->count([]));
+        self::assertSame(1, $this->em->getRepository(CompanyEntity::class)->count());
     }
 
     public function testInvalidNameFailsAndSavesNothing(): void

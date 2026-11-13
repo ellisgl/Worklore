@@ -48,7 +48,7 @@ final class AuthControllerTest extends ApiTestCase
 
     public function testLoginEmailIsCaseInsensitive(): void
     {
-        $this->createUser('user@example.com');
+        $this->createUser();
 
         $this->login('  User@Example.COM ');
 
@@ -249,7 +249,7 @@ final class AuthControllerTest extends ApiTestCase
 
         self::assertTrue($this->accessTokenWorks($phone['access_token']));
 
-        $response = $this->jsonRequest('POST', '/api/auth/refresh', ['refresh_token' => $laptop['refresh_token']]);
+        $this->jsonRequest('POST', '/api/auth/refresh', ['refresh_token' => $laptop['refresh_token']]);
         self::assertResponseIsSuccessful('Other sessions must survive a logout');
     }
 

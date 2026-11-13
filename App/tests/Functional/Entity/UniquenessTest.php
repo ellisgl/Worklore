@@ -124,7 +124,7 @@ final class UniquenessTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        self::assertSame(0, $this->em->getRepository(TagEntity::class)->count([]));
+        self::assertSame(0, $this->em->getRepository(TagEntity::class)->count());
     }
 
     private function user(string $email): User

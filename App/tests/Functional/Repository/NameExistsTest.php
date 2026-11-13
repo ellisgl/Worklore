@@ -9,7 +9,6 @@ use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
-use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -86,7 +85,7 @@ final class NameExistsTest extends KernelTestCase
 
     public function testTagNameCheckIgnoresCaseLikeTheConstraint(): void
     {
-        [$user, $area] = $this->userWithCategory();
+        [, $area] = $this->userWithCategory();
         $this->persist($area->addTag('PHP'));
         $this->em->flush();
 
@@ -97,7 +96,7 @@ final class NameExistsTest extends KernelTestCase
 
     public function testTagNameTakenInCategory(): void
     {
-        [$user, $area] = $this->userWithCategory();
+        [, $area] = $this->userWithCategory();
         $this->persist($area->addTag('backend'));
         $this->em->flush();
 
@@ -118,7 +117,7 @@ final class NameExistsTest extends KernelTestCase
 
     public function testArchivedTagStillHoldsItsName(): void
     {
-        [$user, $area] = $this->userWithCategory();
+        [, $area] = $this->userWithCategory();
         $this->persist($area->addTag('backend')->archive(new DateTimeImmutable()));
         $this->em->flush();
 
@@ -127,7 +126,7 @@ final class NameExistsTest extends KernelTestCase
 
     public function testTagCanKeepItsOwnNameWhenExcluded(): void
     {
-        [$user, $area] = $this->userWithCategory();
+        [, $area] = $this->userWithCategory();
         $backend = $this->persist($area->addTag('backend'));
         $this->persist($area->addTag('frontend'));
         $this->em->flush();

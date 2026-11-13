@@ -29,9 +29,9 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $acme = $this->persist(new CompanyEntity($user, 'Acme'));
         // Inserted out of order on purpose
-        $this->position($acme, $user, 'Senior Developer', '2022-06-01');
-        $this->position($acme, $user, 'Intern', '2018-06-01');
-        $this->position($acme, $user, 'Developer', '2019-03-01');
+        $this->position($acme, 'Senior Developer', '2022-06-01');
+        $this->position($acme, 'Intern', '2018-06-01');
+        $this->position($acme, 'Developer', '2019-03-01');
         $this->em->flush();
         $this->em->clear();
 
@@ -48,8 +48,8 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $acme = $this->persist(new CompanyEntity($user, 'Acme'));
         $globex = $this->persist(new CompanyEntity($user, 'Globex'));
-        $this->position($acme, $user, 'Developer');
-        $this->position($globex, $user, 'Manager');
+        $this->position($acme, 'Developer');
+        $this->position($globex, 'Manager');
         $this->em->flush();
 
         self::assertSame(['Developer'], $this->titles($this->positions->getAllPositionsByCompany($user, $acme)));
@@ -60,7 +60,7 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $me = $this->persist(new User('me@example.com'));
         $other = $this->persist(new User('other@example.com'));
         $acme = $this->persist(new CompanyEntity($me, 'Acme'));
-        $this->position($acme, $me, 'Developer');
+        $this->position($acme, 'Developer');
         $this->em->flush();
 
         self::assertSame([], $this->positions->getAllPositionsByCompany($other, $acme));
@@ -70,8 +70,8 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $acme = $this->persist(new CompanyEntity($user, 'Acme'));
-        $this->position($acme, $user, 'Developer', '2019-03-01');
-        $this->position($acme, $user, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
+        $this->position($acme, 'Developer', '2019-03-01');
+        $this->position($acme, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
         $this->em->flush();
 
         self::assertSame(['Developer'], $this->titles($this->positions->getAllPositionsByCompany($user, $acme)));
@@ -81,8 +81,8 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $acme = $this->persist(new CompanyEntity($user, 'Acme'));
-        $this->position($acme, $user, 'Developer', '2019-03-01');
-        $this->position($acme, $user, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
+        $this->position($acme, 'Developer', '2019-03-01');
+        $this->position($acme, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
         $this->em->flush();
 
         self::assertSame(
@@ -100,7 +100,7 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         self::assertSame([], $this->positions->getAllPositionsByCompany($user, $acme));
     }
 
-    private function position(CompanyEntity $company, User $user, string $title, string $start = '2024-01-15'): PositionEntity
+    private function position(CompanyEntity $company, string $title, string $start = '2024-01-15'): PositionEntity
     {
         return $this->persist($company->addPosition($title, new DateTimeImmutable($start)));
     }
