@@ -39,7 +39,7 @@ final class JournalEntryEntity
         private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
-        $this->name = self::normalizeTitle($title);
+        $this->title = self::normalizeTitle($title);
         $this->entry = self::normalizeEntry($entry);
         $this->tags = new ArrayCollection();
         $project->addJournalEntry($this);
@@ -103,9 +103,9 @@ final class JournalEntryEntity
         return $this;
     }
 
-    public function setTitle(string $name): self
+    public function setTitle(string $title): self
     {
-        $this->name = self::normalizeTitle($name);
+        $this->title = self::normalizeTitle(title);
 
         return $this;
     }
