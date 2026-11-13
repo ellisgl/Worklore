@@ -37,6 +37,10 @@
             <join-column name="user_id" on-delete="CASCADE"/>
         </many-to-one>
 
+        <many-to-one field="project" target-entity="App\Company\ProjectEntity">
+            <join-column name="project_id" on-delete="CASCADE"/>
+        </many-to-one>
+
         <many-to-many field="tags" target-entity="App\Taxonomy\TagEntity">
             <join-table name="journal_entry_tag">
                 <join-columns>

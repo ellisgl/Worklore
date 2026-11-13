@@ -17,7 +17,7 @@ use Doctrine\Common\Collections\ReadableCollection;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Doctrine mapping: src/Journal/Config/JournalEntity.orm.xml.
+ * Doctrine mapping: src/Journal/Config/JournalEntryEntity.orm.xml.
  */
 final class JournalEntryEntity
 {
@@ -34,12 +34,12 @@ final class JournalEntryEntity
     public function __construct(
         private(set) readonly ProjectEntity $project,
         private(set) readonly User $user,
-        string $name,
+        string $title,
         ?string $entry = null,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
-        $this->name = self::normalizeName($name);
+        $this->name = self::normalizeTitle($title);
         $this->entry = self::normalizeEntry($entry);
         $this->tags = new ArrayCollection();
         $project->addJournalEntry($this);
@@ -48,6 +48,11 @@ final class JournalEntryEntity
     public function getId(): Uuid
     {
         return $this->id;
+    }
+
+    public function getProject(): ProjectEntity
+    {
+        return $this->project;
     }
 
     /**
@@ -63,37 +68,16 @@ final class JournalEntryEntity
         return $this->tags->contains($tag);
     }
 
-    public function addTag(TagEntity $tag): self
-    {
-        if (!$this->tags->contains($tag)) {
-            $this->tags->add($tag);
-        }
-
-        return $this;
-    }
-
-    public function removeTag(TagEntity $tag): self
-    {
-        $this->tags->removeElement($tag);
-
-        return $this;
-    }
-
     public function isArchived(): bool
     {
         return null !== $this->archivedAt;
     }
 
-    public function setName(string $name): self
+    public function addTag(TagEntity $tag): self
     {
-        $this->name = self::normalizeName($name);
-
-        return $this;
-    }
-
-    public function setEntry(?string $entry): self
-    {
-        $this->entry = self::normalizeEntry($entry);
+        if (!$this->tags->contains($tag)) {
+            $this->tags->add($tag);
+        }
 
         return $this;
     }
@@ -105,6 +89,27 @@ final class JournalEntryEntity
         return $this;
     }
 
+    public function removeTag(TagEntity $tag): self
+    {
+        $this->tags->removeElement($tag);
+
+        return $this;
+    }
+
+    public function setEntry(?string $entry): self
+    {
+        $this->entry = self::normalizeEntry($entry);
+
+        return $this;
+    }
+
+    public function setTitle(string $name): self
+    {
+        $this->name = self::normalizeTitle($name);
+
+        return $this;
+    }
+
     public function unarchive(): self
     {
         $this->archivedAt = null;
@@ -112,14 +117,14 @@ final class JournalEntryEntity
         return $this;
     }
 
-    private static function normalizeName(string $name): string
+    private static function normalizeTitle(string $title): string
     {
-        $name = trim($name);
-        if ('' === $name) {
-            throw new InvalidArgumentException('Journal entry cannot be blank');
+        $title = trim($title);
+        if ('' === $title) {
+            throw new InvalidArgumentException('Journal entry title cannot be blank');
         }
 
-        return $name;
+        return $title;
     }
 
     /**
