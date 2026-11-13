@@ -8,13 +8,13 @@ use App\Entity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\TagEntity;
 use DateMalformedStringException;
-use \DateTimeImmutable;
-use \DateTimeZone;
-use \InvalidArgumentException;
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
-use \LogicException;
+use LogicException;
 use Symfony\Component\Uid\Uuid;
 
 /**
