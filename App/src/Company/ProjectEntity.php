@@ -45,9 +45,10 @@ final class ProjectEntity
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
+        ?ProjectId $id = null,
     ) {
         $this->owner = $product->owner;
-        $this->id = ProjectId::generate();
+        $this->id = $id ?? ProjectId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Project name');
         $this->overview = self::normalizeOverview($overview);

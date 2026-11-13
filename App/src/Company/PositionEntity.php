@@ -45,9 +45,10 @@ final class PositionEntity
         DateTimeImmutable $startDate,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
+        ?PositionId $id = null,
     ) {
         $this->owner = $company->owner;
-        $this->id = PositionId::generate();
+        $this->id = $id ?? PositionId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Position title');
         $this->period = Period::startingOn($startDate);

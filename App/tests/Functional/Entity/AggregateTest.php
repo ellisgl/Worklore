@@ -6,7 +6,10 @@ namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
+use App\Company\PositionId;
 use App\Company\ProductEntity;
+use App\Company\ProductId;
+use App\Company\ProjectId;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
@@ -114,6 +117,20 @@ final class AggregateTest extends KernelTestCase
         self::assertTrue($product->getProjects()->contains($project));
         self::assertTrue($company->getPositions()->contains($position));
         self::assertTrue($category->getTags()->contains($tag));
+    }
+
+    public function testFactoriesUseAGivenId(): void
+    {
+        $company = new CompanyEntity($this->user, 'Acme');
+        [$productId, $projectId, $positionId] = [ProductId::generate(), ProjectId::generate(), PositionId::generate()];
+
+        $product = $company->addProduct('Widget', id: $productId);
+        $project = $product->addProject('Launch', id: $projectId);
+        $position = $company->addPosition('Dev', new DateTimeImmutable('2024-01-01'), id: $positionId);
+
+        self::assertSame($productId, $product->id);
+        self::assertSame($projectId, $project->id);
+        self::assertSame($positionId, $position->id);
     }
 
     public function testMovingATagUpdatesBothCategories(): void

@@ -43,9 +43,10 @@ final class ProductEntity
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
+        ?ProductId $id = null,
     ) {
         $this->owner = $company->owner;
-        $this->id = ProductId::generate();
+        $this->id = $id ?? ProductId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Product name');
         $this->overview = self::normalizeOverview($overview);
@@ -64,10 +65,13 @@ final class ProductEntity
     /**
      * Starts a project for this product. Persisting the company (or this
      * product) saves it.
+     *
+     * Pass $id when the caller needs it up front (a command whose handler
+     * returns nothing).
      */
-    public function addProject(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): ProjectEntity
+    public function addProject(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null, ?ProjectId $id = null): ProjectEntity
     {
-        $project = new ProjectEntity($this, $name, $overview, $createdAt);
+        $project = new ProjectEntity($this, $name, $overview, $createdAt, $id);
         $this->projects->add($project);
 
         return $project;

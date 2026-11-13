@@ -67,10 +67,13 @@ final class CompanyEntity
 
     /**
      * Adds a product to this company. Persisting the company saves it.
+     *
+     * Pass $id when the caller needs it up front (a command whose handler
+     * returns nothing).
      */
-    public function addProduct(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): ProductEntity
+    public function addProduct(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null, ?ProductId $id = null): ProductEntity
     {
-        $product = new ProductEntity($this, $name, $overview, $createdAt);
+        $product = new ProductEntity($this, $name, $overview, $createdAt, $id);
         $this->products->add($product);
 
         return $product;
@@ -90,10 +93,13 @@ final class CompanyEntity
     /**
      * Records a position the owner held (or holds) here. Persisting the
      * company saves it.
+     *
+     * Pass $id when the caller needs it up front (a command whose handler
+     * returns nothing).
      */
-    public function addPosition(string $title, DateTimeImmutable $startDate, ?string $overview = null, ?DateTimeImmutable $createdAt = null): PositionEntity
+    public function addPosition(string $title, DateTimeImmutable $startDate, ?string $overview = null, ?DateTimeImmutable $createdAt = null, ?PositionId $id = null): PositionEntity
     {
-        $position = new PositionEntity($this, $title, $startDate, $overview, $createdAt);
+        $position = new PositionEntity($this, $title, $startDate, $overview, $createdAt, $id);
         $this->positions->add($position);
 
         return $position;
