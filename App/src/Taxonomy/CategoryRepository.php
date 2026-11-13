@@ -17,8 +17,8 @@ use Doctrine\Persistence\ManagerRegistry;
  *
  * Every lookup is scoped to a user, so endpoints answer 404 instead of
  * revealing someone else's records. By-id lookups return archived records too
- * (e.g. to unarchive them); list methods leave out archived records, and tags
- * of an archived category, unless $includeArchived.
+ * (e.g. to unarchive them). Lists are read through the query classes
+ * (App\Taxonomy\Query).
  *
  * @extends ServiceEntityRepository<CategoryEntity>
  */
@@ -76,57 +76,6 @@ class CategoryRepository extends ServiceEntityRepository
         }
 
         return null !== $qb->getQuery()->getOneOrNullResult();
-    }
-
-    /**
-     * The user's tags, sorted by category name and then tag name. The category
-     * is fetched in the same query, so reading $tag->category doesn't trigger
-     * a query per tag.
-     *
-     * @return list<TagEntity>
-     */
-    public function getAllTagsByOwner(Owner $owner, bool $includeArchived = false): array
-    {
-        $qb = $this->tags()
-            ->innerJoin('t.category', 'c')
-            ->addSelect('c')
-            ->where('t.owner = :owner')
-            ->setParameter('owner', $owner)
-            ->orderBy('c.name', 'ASC')
-            ->addOrderBy('c.id', 'ASC')     // keeps same-named categories' tags together
-            ->addOrderBy('t.name', 'ASC')
-            ->addOrderBy('t.id', 'ASC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('t.archivedAt IS NULL')
-               ->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
-    }
-
-    /**
-     * The user's tags in one category, sorted by name.
-     *
-     * @return list<TagEntity>
-     */
-    public function getAllTagsByCategory(Owner $owner, CategoryEntity $category, bool $includeArchived = false): array
-    {
-        $qb = $this->tags()
-            ->innerJoin('t.category', 'c')
-            ->where('t.owner = :owner')
-            ->andWhere('t.category = :category')
-            ->setParameter('owner', $owner)
-            ->setParameter('category', $category)
-            ->orderBy('t.name', 'ASC')
-            ->addOrderBy('t.id', 'ASC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('t.archivedAt IS NULL')
-                ->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
     }
 
     /**

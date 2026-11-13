@@ -13,7 +13,6 @@ use App\Company\ProjectId;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryId;
-use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
 use App\Taxonomy\TagId;
 use App\Tests\Functional\FindsEntities;
@@ -84,8 +83,7 @@ final class AggregateTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $user = self::findOrFail($this->em, User::class, $this->user->id);
-        self::assertCount(2, self::getContainer()->get(CategoryRepository::class)->getAllTagsByCategory($user, $category));
+        self::assertCount(2, self::findOrFail($this->em, CategoryEntity::class, $category->id)->getTags());
     }
 
     /**

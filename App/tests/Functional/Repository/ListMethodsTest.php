@@ -10,9 +10,6 @@ use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Journal\JournalEntryRepository;
-use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\CategoryRepository;
-use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -80,43 +77,6 @@ final class ListMethodsTest extends KernelTestCase
         self::assertNull($repo->findOneByIdForOwner($entry->id, $this->persist(new User('other@example.com'))));
     }
 
-    // ---- tags -------------------------------------------------------------
-
-    public function testTagsByCategory(): void
-    {
-        $area = $this->persist(new CategoryEntity($this->user, 'Area'));
-        $skill = $this->persist(new CategoryEntity($this->user, 'Skill'));
-        $this->persist($area->addTag('frontend'));
-        $this->persist($area->addTag('backend'));
-        $this->persist($area->addTag('old')->archive(new DateTimeImmutable()));
-        $this->persist($skill->addTag('php'));
-        $this->em->flush();
-
-        $repo = $this->repo(CategoryRepository::class);
-        self::assertSame(['backend', 'frontend'], $this->names($repo->getAllTagsByCategory($this->user, $area)));
-        self::assertSame(['backend', 'frontend', 'old'], $this->names($repo->getAllTagsByCategory($this->user, $area, includeArchived: true)));
-
-        $area->archive(new DateTimeImmutable());
-        $this->em->flush();
-        self::assertSame([], $repo->getAllTagsByCategory($this->user, $area), 'Archived category hides its tags');
-    }
-
-    public function testSameNamesSortInCreationOrder(): void
-    {
-        // Category names aren't unique; the id tie-breaker (UUIDv7, time
-        // ordered) keeps each category's tags together, oldest category first.
-        $first = $this->persist(new CategoryEntity($this->user, 'Area'));
-        $second = $this->persist(new CategoryEntity($this->user, 'Area'));
-        $this->persist($second->addTag('a-second'));
-        $this->persist($first->addTag('z-first'));
-        $this->persist($first->addTag('b-first'));
-        $this->em->flush();
-
-        $tags = $this->repo(CategoryRepository::class)->getAllTagsByOwner($this->user);
-
-        self::assertSame(['b-first', 'z-first', 'a-second'], $this->names($tags));
-    }
-
     // ---- helpers ----------------------------------------------------------
 
     private function product(): ProductEntity
@@ -142,16 +102,6 @@ final class ListMethodsTest extends KernelTestCase
         self::assertInstanceOf($class, $service);
 
         return $service;
-    }
-
-    /**
-     * @param list<CompanyEntity|ProductEntity|ProjectEntity|CategoryEntity|TagEntity> $records
-     *
-     * @return list<string>
-     */
-    private function names(array $records): array
-    {
-        return array_map(static fn (CompanyEntity|ProductEntity|ProjectEntity|CategoryEntity|TagEntity $r) => $r->name->value, $records);
     }
 
     /**

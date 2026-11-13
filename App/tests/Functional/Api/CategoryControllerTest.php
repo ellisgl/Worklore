@@ -105,7 +105,7 @@ final class CategoryControllerTest extends ApiTestCase
     public function testAnotherUsersOrAnUnknownCategoryIsNotFound(): void
     {
         $other = $this->otherUser();
-        $theirs = $this->post('/api/categories', ['name' => 'Theirs'], $other);
+        $theirs = $this->postCategory(['name' => 'Theirs'], $other);
 
         foreach ([$theirs, (string) CategoryId::generate()] as $categoryId) {
             foreach ([['GET', ''], ['PATCH', ''], ['POST', '/archive'], ['POST', '/unarchive']] as [$method, $suffix]) {
@@ -186,20 +186,20 @@ final class CategoryControllerTest extends ApiTestCase
      */
     private function createCategory(string $name, ?string $description = null): string
     {
-        return $this->post('/api/categories', ['name' => $name, 'description' => $description], $this->auth);
+        return $this->postCategory(['name' => $name, 'description' => $description], $this->auth);
     }
 
     /**
-     * POSTs a create request and returns the new id.
+     * Creates a category as the given user and returns its id.
      *
      * @param array<string, mixed>  $body
      * @param array<string, string> $auth
      *
      * @throws JsonException
      */
-    private function post(string $uri, array $body, array $auth): string
+    private function postCategory(array $body, array $auth): string
     {
-        $response = $this->jsonRequest('POST', $uri, $body, $auth);
+        $response = $this->jsonRequest('POST', '/api/categories', $body, $auth);
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
 
         return $this->field($response, 'id');
