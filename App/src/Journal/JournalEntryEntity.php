@@ -21,6 +21,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class JournalEntryEntity
 {
+    public const int MAX_TITLE_LENGTH = 255;
+
     private(set) Uuid $id;
     private(set) string $title;
     private(set) string $entry;
@@ -124,6 +126,9 @@ final class JournalEntryEntity
         $title = trim($title);
         if ('' === $title) {
             throw new InvalidArgumentException('Journal entry title cannot be blank');
+        }
+        if (mb_strlen($title) > self::MAX_TITLE_LENGTH) {
+            throw new InvalidArgumentException(\sprintf('Journal entry title cannot be longer than %d characters', self::MAX_TITLE_LENGTH));
         }
 
         return $title;

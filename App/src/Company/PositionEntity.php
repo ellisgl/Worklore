@@ -20,6 +20,9 @@ use Symfony\Component\Uid\Uuid;
  */
 final class PositionEntity
 {
+    public const int MAX_TITLE_LENGTH = 255;
+    public const int MAX_REASON_LEFT_LENGTH = 255;
+
     private(set) Uuid $id;
     private(set) string $title;
     private(set) ?string $overview;
@@ -95,8 +98,9 @@ final class PositionEntity
     {
         $endDate = self::dateOnly($endDate);
         self::assertChronological($this->startDate, $endDate);
+        $reasonLeft = self::normalizeReasonLeft($reasonLeft);
         $this->endDate = $endDate;
-        $this->reasonLeft = self::normalizeText($reasonLeft);
+        $this->reasonLeft = $reasonLeft;
 
         return $this;
     }
@@ -110,7 +114,7 @@ final class PositionEntity
             throw new LogicException('A current position has no reason for leaving; use end()');
         }
 
-        $this->reasonLeft = self::normalizeText($reasonLeft);
+        $this->reasonLeft = self::normalizeReasonLeft($reasonLeft);
 
         return $this;
     }
@@ -151,6 +155,9 @@ final class PositionEntity
         if ('' === $title) {
             throw new InvalidArgumentException('Position title cannot be blank');
         }
+        if (mb_strlen($title) > self::MAX_TITLE_LENGTH) {
+            throw new InvalidArgumentException(\sprintf('Position title cannot be longer than %d characters', self::MAX_TITLE_LENGTH));
+        }
 
         return $title;
     }
@@ -161,6 +168,16 @@ final class PositionEntity
     private static function normalizeText(?string $text): ?string
     {
         return null === $text ? null : (trim($text) ?: null);
+    }
+
+    private static function normalizeReasonLeft(?string $reasonLeft): ?string
+    {
+        $reasonLeft = self::normalizeText($reasonLeft);
+        if (null !== $reasonLeft && mb_strlen($reasonLeft) > self::MAX_REASON_LEFT_LENGTH) {
+            throw new InvalidArgumentException(\sprintf('Reason for leaving cannot be longer than %d characters', self::MAX_REASON_LEFT_LENGTH));
+        }
+
+        return $reasonLeft;
     }
 
     /**

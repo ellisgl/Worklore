@@ -22,6 +22,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class ProjectEntity
 {
+    public const int MAX_NAME_LENGTH = 255;
+
     private(set) Uuid $id;
     private(set) string $name;
     private(set) ?string $overview;
@@ -155,6 +157,9 @@ final class ProjectEntity
         $name = trim($name);
         if ('' === $name) {
             throw new InvalidArgumentException('Project name cannot be blank');
+        }
+        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
+            throw new InvalidArgumentException(\sprintf('Project name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
         }
 
         return $name;

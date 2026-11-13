@@ -19,6 +19,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class CategoryEntity
 {
+    public const int MAX_NAME_LENGTH = 255;
+
     private(set) Uuid $id;
     private(set) string $name;
     private(set) ?string $description;
@@ -119,6 +121,9 @@ final class CategoryEntity
         $name = trim($name);
         if ('' === $name) {
             throw new InvalidArgumentException('Category name cannot be blank');
+        }
+        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
+            throw new InvalidArgumentException(\sprintf('Category name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
         }
 
         return $name;

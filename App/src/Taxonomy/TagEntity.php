@@ -16,6 +16,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class TagEntity
 {
+    public const int MAX_NAME_LENGTH = 255;
+
     private(set) Uuid $id;
     private(set) string $name;
     private(set) CategoryEntity $category;
@@ -96,6 +98,9 @@ final class TagEntity
         $name = trim($name);
         if ('' === $name) {
             throw new InvalidArgumentException('Tag name cannot be blank');
+        }
+        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
+            throw new InvalidArgumentException(\sprintf('Tag name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
         }
 
         return $name;
