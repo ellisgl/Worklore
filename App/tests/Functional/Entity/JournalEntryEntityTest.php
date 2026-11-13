@@ -28,7 +28,7 @@ final class JournalEntryEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $project = $this->project($user);
-        $tag = new TagEntity(new CategoryEntity($user, 'Area'), $user, 'backend');
+        $tag = (new CategoryEntity($user, 'Area'))->addTag('backend');
         $entry = (new JournalEntryEntity($project, $user, '  Kickoff  ', '  Agreed on the scope.  '))->addTag($tag);
 
         self::assertCount(1, $project->getJournalEntries(), 'Constructor adds the entry to the project');
@@ -96,7 +96,7 @@ final class JournalEntryEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $project = $this->project($user);
-        $tag = new TagEntity(new CategoryEntity($user, 'Area'), $user, 'backend');
+        $tag = (new CategoryEntity($user, 'Area'))->addTag('backend');
         $entry = (new JournalEntryEntity($project, $user, 'Kickoff', 'Body'))->addTag($tag);
         $this->persistAll($user, $project->product->company, $project->product, $project, $tag->category, $tag, $entry);
 
@@ -111,7 +111,7 @@ final class JournalEntryEntityTest extends KernelTestCase
 
     private function project(User $user): ProjectEntity
     {
-        return new ProjectEntity(new ProductEntity(new CompanyEntity($user, 'Acme'), $user, 'Widget'), $user, 'Launch');
+        return (new CompanyEntity($user, 'Acme'))->addProduct('Widget')->addProject('Launch');
     }
 
     private function persistAll(object ...$entities): void

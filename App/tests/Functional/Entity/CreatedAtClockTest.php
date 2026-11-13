@@ -31,12 +31,12 @@ final class CreatedAtClockTest extends KernelTestCase
     {
         yield 'user' => [static fn (User $u, ?\DateTimeImmutable $at) => new User('b@example.com', $at)];
         yield 'company' => [static fn (User $u, ?\DateTimeImmutable $at) => new CompanyEntity($u, 'Acme', null, $at)];
-        yield 'product' => [static fn (User $u, ?\DateTimeImmutable $at) => new ProductEntity(new CompanyEntity($u, 'Acme'), $u, 'Widget', null, $at)];
-        yield 'project' => [static fn (User $u, ?\DateTimeImmutable $at) => new ProjectEntity(new ProductEntity(new CompanyEntity($u, 'Acme'), $u, 'Widget'), $u, 'Launch', null, $at)];
-        yield 'position' => [static fn (User $u, ?\DateTimeImmutable $at) => new PositionEntity(new CompanyEntity($u, 'Acme'), $u, 'Dev', new \DateTimeImmutable('2024-01-01'), null, $at)];
-        yield 'journal entry' => [static fn (User $u, ?\DateTimeImmutable $at) => new JournalEntryEntity(new ProjectEntity(new ProductEntity(new CompanyEntity($u, 'Acme'), $u, 'Widget'), $u, 'Launch'), $u, 'Kickoff', 'Body', $at)];
+        yield 'product' => [static fn (User $u, ?\DateTimeImmutable $at) => (new CompanyEntity($u, 'Acme'))->addProduct('Widget', null, $at)];
+        yield 'project' => [static fn (User $u, ?\DateTimeImmutable $at) => (new CompanyEntity($u, 'Acme'))->addProduct('Widget')->addProject('Launch', null, $at)];
+        yield 'position' => [static fn (User $u, ?\DateTimeImmutable $at) => (new CompanyEntity($u, 'Acme'))->addPosition('Dev', new \DateTimeImmutable('2024-01-01'), null, $at)];
+        yield 'journal entry' => [static fn (User $u, ?\DateTimeImmutable $at) => new JournalEntryEntity((new CompanyEntity($u, 'Acme'))->addProduct('Widget')->addProject('Launch'), $u, 'Kickoff', 'Body', $at)];
         yield 'category' => [static fn (User $u, ?\DateTimeImmutable $at) => new CategoryEntity($u, 'Area', null, $at)];
-        yield 'tag' => [static fn (User $u, ?\DateTimeImmutable $at) => new TagEntity(new CategoryEntity($u, 'Area'), $u, 'php', $at)];
+        yield 'tag' => [static fn (User $u, ?\DateTimeImmutable $at) => (new CategoryEntity($u, 'Area'))->addTag('php', $at)];
     }
 
     #[DataProvider('entityProvider')]

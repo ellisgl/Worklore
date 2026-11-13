@@ -50,12 +50,23 @@ final class CategoryEntity
     }
 
     /**
-     * Keeps the inverse side in sync. Called by TagEntity's constructor and
-     * TagEntity::setCategory(); use those, not this.
+     * Adds a tag to this category. Persisting the category saves it.
+     */
+    public function addTag(string $name, ?DateTimeImmutable $createdAt = null): TagEntity
+    {
+        $tag = new TagEntity($this, $name, $createdAt);
+        $this->tags->add($tag);
+
+        return $tag;
+    }
+
+    /**
+     * Keeps the list in sync when a tag moves here. Called by
+     * TagEntity::setCategory(); use that, not this.
      *
      * @internal
      */
-    public function addTag(TagEntity $tag): void
+    public function attachTag(TagEntity $tag): void
     {
         if ($tag->category !== $this) {
             throw new LogicException('Tag belongs to a different category');
@@ -69,7 +80,7 @@ final class CategoryEntity
     /**
      * @internal Called by TagEntity::setCategory().
      */
-    public function removeTag(TagEntity $tag): void
+    public function detachTag(TagEntity $tag): void
     {
         if ($tag->category === $this) {
             throw new LogicException('Use TagEntity::setCategory() to move a tag out of a category');

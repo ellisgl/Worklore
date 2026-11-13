@@ -24,10 +24,10 @@ final class PositionEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
-        (new PositionEntity($company, $user, 'Developer', new \DateTimeImmutable('2019-03-01')))
+        ($company->addPosition('Developer', new \DateTimeImmutable('2019-03-01')))
             ->end(new \DateTimeImmutable('2022-05-31'), 'Promoted');
-        new PositionEntity($company, $user, 'Senior Developer', new \DateTimeImmutable('2022-06-01'));
-        new PositionEntity($company, $user, 'Intern', new \DateTimeImmutable('2018-06-01'));
+        $company->addPosition('Senior Developer', new \DateTimeImmutable('2022-06-01'));
+        $company->addPosition('Intern', new \DateTimeImmutable('2018-06-01'));
 
         self::assertCount(3, $company->getPositions(), 'Constructor adds the position to the company');
 
@@ -110,7 +110,7 @@ final class PositionEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
-        $position = new PositionEntity($company, $user, 'Developer', new \DateTimeImmutable('2024-01-15'));
+        $position = $company->addPosition('Developer', new \DateTimeImmutable('2024-01-15'));
         foreach ([$user, $company, $position] as $entity) {
             $this->em->persist($entity);
         }
@@ -127,6 +127,6 @@ final class PositionEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
 
-        return new PositionEntity(new CompanyEntity($user, 'Acme'), $user, $title, $start ?? new \DateTimeImmutable('2024-01-15'));
+        return (new CompanyEntity($user, 'Acme'))->addPosition($title, $start ?? new \DateTimeImmutable('2024-01-15'));
     }
 }

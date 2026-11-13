@@ -17,6 +17,8 @@ use function Symfony\Component\Clock\now;
 final class TagEntity
 {
     private(set) TagId $id;
+    /** The aggregate owner, copied from the category; stored for owner-scoped queries */
+    private(set) readonly User $user;
     private(set) Name $name;
     /** Case-insensitive form of $name, for uniq_tag_category_name; see Name::key() */
     private string $nameKey;
@@ -25,21 +27,19 @@ final class TagEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @throws OwnershipMismatchException if the category belongs to another user
+     * @internal Create through CategoryEntity::addTag(), which adds it to the
+     *           category's list; the owner is taken from the category.
      */
     public function __construct(
         CategoryEntity $category,
-        private(set) readonly User $user,
         string $name,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        OwnershipMismatchException::assertSameUser($category->user, $user, 'category');
-
+        $this->user = $category->user;
         $this->id = TagId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->category = $category;
-        $category->addTag($this);
     }
 
     /**
@@ -58,8 +58,8 @@ final class TagEntity
         OwnershipMismatchException::assertSameUser($category->user, $this->user, 'category');
 
         $this->category = $category;
-        $previous->removeTag($this);
-        $category->addTag($this);
+        $previous->detachTag($this);
+        $category->attachTag($this);
 
         return $this;
     }

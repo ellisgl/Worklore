@@ -4,7 +4,7 @@
     xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
     https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
-    <entity name="App\Company\PositionEntity" table="position" repository-class="App\Company\PositionRepository">
+    <entity name="App\Company\PositionEntity" table="position">
         <indexes>
             <!-- Positions are listed per company, newest start date first -->
             <index name="idx_position_company_start" columns="company_id,start_date"/>

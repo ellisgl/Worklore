@@ -5,21 +5,22 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
 use App\Company\ProductEntity;
-use App\Company\ProjectEntity;
-use App\Shared\OwnershipMismatchException;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
+use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\TagEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Records owned by different users can't be linked: not as parent/child, and
- * not through tags.
+ * Records owned by different users can't be linked.
+ *
+ * Inside an aggregate this holds by construction: children are created by
+ * their root and take its owner. Across aggregates (a journal entry's
+ * project, tags on products, projects and entries, a tag moving category)
+ * it's checked.
  */
 final class OwnershipTest extends KernelTestCase
 {
@@ -34,22 +35,28 @@ final class OwnershipTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{\Closure(User $me, User $other): mixed}>
+     * @return iterable<string, array{\Closure(User $owner): object}>
      */
-    public static function crossUserParentProvider(): iterable
+    public static function childProvider(): iterable
     {
-        yield 'product under their company' => [static fn (User $me, User $other) => new ProductEntity(new CompanyEntity($other, 'Theirs'), $me, 'Widget')];
-        yield 'position at their company' => [static fn (User $me, User $other) => new PositionEntity(new CompanyEntity($other, 'Theirs'), $me, 'Dev', new \DateTimeImmutable('2024-01-01'))];
-        yield 'project under their product' => [static fn (User $me, User $other) => new ProjectEntity(self::product($other), $me, 'Launch')];
-        yield 'journal entry in their project' => [static fn (User $me, User $other) => new JournalEntryEntity(new ProjectEntity(self::product($other), $other, 'Launch'), $me, 'Title', 'Body')];
-        yield 'tag in their category' => [static fn (User $me, User $other) => new TagEntity(new CategoryEntity($other, 'Area'), $me, 'php')];
+        yield 'product' => [static fn (User $owner) => self::product($owner)];
+        yield 'project' => [static fn (User $owner) => self::product($owner)->addProject('Launch')];
+        yield 'position' => [static fn (User $owner) => (new CompanyEntity($owner, 'Acme'))->addPosition('Dev', new \DateTimeImmutable('2024-01-01'))];
+        yield 'tag' => [static fn (User $owner) => (new CategoryEntity($owner, 'Area'))->addTag('php')];
     }
 
-    #[DataProvider('crossUserParentProvider')]
-    public function testCannotCreateUnderAnotherUsersParent(\Closure $create): void
+    #[DataProvider('childProvider')]
+    public function testChildrenTakeTheirRootsOwner(\Closure $create): void
     {
+        self::assertSame($this->me, $create($this->me)->user);
+    }
+
+    public function testCannotWriteAJournalEntryInAnotherUsersProject(): void
+    {
+        $theirProject = self::product($this->other)->addProject('Launch');
+
         $this->expectException(OwnershipMismatchException::class);
-        $create($this->me, $this->other);
+        new JournalEntryEntity($theirProject, $this->me, 'Title', 'Body');
     }
 
     /**
@@ -58,14 +65,14 @@ final class OwnershipTest extends KernelTestCase
     public static function taggableProvider(): iterable
     {
         yield 'product' => [static fn (User $me) => self::product($me)];
-        yield 'project' => [static fn (User $me) => new ProjectEntity(self::product($me), $me, 'Launch')];
-        yield 'journal entry' => [static fn (User $me) => new JournalEntryEntity(new ProjectEntity(self::product($me), $me, 'Launch'), $me, 'Title', 'Body')];
+        yield 'project' => [static fn (User $me) => self::product($me)->addProject('Launch')];
+        yield 'journal entry' => [static fn (User $me) => new JournalEntryEntity(self::product($me)->addProject('Launch'), $me, 'Title', 'Body')];
     }
 
     #[DataProvider('taggableProvider')]
     public function testCannotAddAnotherUsersTag(\Closure $create): void
     {
-        $theirTag = new TagEntity(new CategoryEntity($this->other, 'Area'), $this->other, 'php');
+        $theirTag = (new CategoryEntity($this->other, 'Area'))->addTag('php');
 
         $this->expectException(OwnershipMismatchException::class);
         $create($this->me)->addTag($theirTag);
@@ -74,7 +81,7 @@ final class OwnershipTest extends KernelTestCase
     #[DataProvider('taggableProvider')]
     public function testCanAddOwnTag(\Closure $create): void
     {
-        $myTag = new TagEntity(new CategoryEntity($this->me, 'Area'), $this->me, 'php');
+        $myTag = (new CategoryEntity($this->me, 'Area'))->addTag('php');
 
         $record = $create($this->me)->addTag($myTag);
 
@@ -83,7 +90,7 @@ final class OwnershipTest extends KernelTestCase
 
     public function testCannotMoveTagIntoAnotherUsersCategory(): void
     {
-        $tag = new TagEntity(new CategoryEntity($this->me, 'Area'), $this->me, 'php');
+        $tag = (new CategoryEntity($this->me, 'Area'))->addTag('php');
 
         $this->expectException(OwnershipMismatchException::class);
         $tag->setCategory(new CategoryEntity($this->other, 'Theirs'));
@@ -92,7 +99,7 @@ final class OwnershipTest extends KernelTestCase
     public function testFailedTagMoveLeavesTagWhereItWas(): void
     {
         $area = new CategoryEntity($this->me, 'Area');
-        $tag = new TagEntity($area, $this->me, 'php');
+        $tag = $area->addTag('php');
 
         try {
             $tag->setCategory(new CategoryEntity($this->other, 'Theirs'));
@@ -106,25 +113,25 @@ final class OwnershipTest extends KernelTestCase
     public function testSameUserLoadedSeparatelyStillMatches(): void
     {
         // The check compares ids, so a lazy reference to the same user passes
-        // even though it isn't the same object as the loaded company's user.
+        // even though it isn't the same object as the loaded project's user.
         $em = self::getContainer()->get('doctrine')->getManager();
         \assert($em instanceof EntityManagerInterface);
-        $company = new CompanyEntity($this->me, 'Acme');
+        $project = self::product($this->me)->addProject('Launch');
         $em->persist($this->me);
-        $em->persist($company);
+        $em->persist($project->product->company);
         $em->flush();
         $em->clear();
 
-        $company = $em->find(CompanyEntity::class, $company->id);
+        $project = $em->find($project::class, $project->id);
         $sameUser = $em->getReference(User::class, $this->me->id);
 
-        $product = new ProductEntity($company, $sameUser, 'Widget');
+        $entry = new JournalEntryEntity($project, $sameUser, 'Kickoff', 'Body');
 
-        self::assertSame($company, $product->company);
+        self::assertSame($project, $entry->project);
     }
 
     private static function product(User $owner): ProductEntity
     {
-        return new ProductEntity(new CompanyEntity($owner, 'Acme'), $owner, 'Widget');
+        return (new CompanyEntity($owner, 'Acme'))->addProduct('Widget');
     }
 }

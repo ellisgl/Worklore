@@ -4,7 +4,7 @@
     xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
     https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
-    <entity name="App\Taxonomy\TagEntity" table="tag" repository-class="App\Taxonomy\TagRepository">
+    <entity name="App\Taxonomy\TagEntity" table="tag">
         <unique-constraints>
             <!-- Tag names are unique within their category, ignoring case
                  (archived ones included) -->

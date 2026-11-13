@@ -7,17 +7,14 @@ namespace App\Tests\Functional\Repository;
 use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
 use App\Company\PositionEntity;
-use App\Company\PositionRepository;
 use App\Company\ProductEntity;
-use App\Company\ProductRepository;
 use App\Company\ProjectEntity;
-use App\Company\ProjectRepository;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Journal\JournalEntryRepository;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
-use App\Taxonomy\TagRepository;
+use App\Taxonomy\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -58,13 +55,13 @@ final class ListMethodsTest extends KernelTestCase
     {
         $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));
         $globex = $this->persist(new CompanyEntity($this->user, 'Globex'));
-        $this->persist(new ProductEntity($acme, $this->user, 'Widget'));
-        $this->persist(new ProductEntity($acme, $this->user, 'Gadget'));
-        $this->persist((new ProductEntity($acme, $this->user, 'Retired'))->archive(new \DateTimeImmutable()));
-        $this->persist(new ProductEntity($globex, $this->user, 'Other'));
+        $this->persist($acme->addProduct('Widget'));
+        $this->persist($acme->addProduct('Gadget'));
+        $this->persist($acme->addProduct('Retired')->archive(new \DateTimeImmutable()));
+        $this->persist($globex->addProduct('Other'));
         $this->em->flush();
 
-        $repo = $this->repo(ProductRepository::class);
+        $repo = $this->repo(CompanyRepository::class);
         self::assertSame(['Gadget', 'Widget'], $this->names($repo->getAllProductsByCompany($this->user, $acme)));
         self::assertSame(['Gadget', 'Retired', 'Widget'], $this->names($repo->getAllProductsByCompany($this->user, $acme, includeArchived: true)));
     }
@@ -72,10 +69,10 @@ final class ListMethodsTest extends KernelTestCase
     public function testArchivedCompanyHidesItsProducts(): void
     {
         $acme = $this->persist((new CompanyEntity($this->user, 'Acme'))->archive(new \DateTimeImmutable()));
-        $this->persist(new ProductEntity($acme, $this->user, 'Widget'));
+        $this->persist($acme->addProduct('Widget'));
         $this->em->flush();
 
-        $repo = $this->repo(ProductRepository::class);
+        $repo = $this->repo(CompanyRepository::class);
         self::assertSame([], $repo->getAllProductsByCompany($this->user, $acme));
         self::assertSame(['Widget'], $this->names($repo->getAllProductsByCompany($this->user, $acme, includeArchived: true)));
     }
@@ -85,21 +82,21 @@ final class ListMethodsTest extends KernelTestCase
     public function testProjectsSortedByNameAndScopedToProduct(): void
     {
         $widget = $this->product();
-        $gadget = $this->persist(new ProductEntity($widget->company, $this->user, 'Gadget'));
-        $this->persist(new ProjectEntity($widget, $this->user, 'Launch'));
-        $this->persist(new ProjectEntity($widget, $this->user, 'Beta'));
-        $this->persist(new ProjectEntity($gadget, $this->user, 'Other'));
+        $gadget = $this->persist($widget->company->addProduct('Gadget'));
+        $this->persist($widget->addProject('Launch'));
+        $this->persist($widget->addProject('Beta'));
+        $this->persist($gadget->addProject('Other'));
         $this->em->flush();
 
-        self::assertSame(['Beta', 'Launch'], $this->names($this->repo(ProjectRepository::class)->getAllProjectsByProduct($this->user, $widget)));
+        self::assertSame(['Beta', 'Launch'], $this->names($this->repo(CompanyRepository::class)->getAllProjectsByProduct($this->user, $widget)));
     }
 
     public function testArchivedProductOrCompanyHidesItsProjects(): void
     {
         $widget = $this->product();
-        $this->persist(new ProjectEntity($widget, $this->user, 'Launch'));
+        $this->persist($widget->addProject('Launch'));
         $this->em->flush();
-        $repo = $this->repo(ProjectRepository::class);
+        $repo = $this->repo(CompanyRepository::class);
 
         $widget->archive(new \DateTimeImmutable());
         $this->em->flush();
@@ -162,11 +159,11 @@ final class ListMethodsTest extends KernelTestCase
     public function testArchivedCompanyHidesItsPositions(): void
     {
         $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));
-        $this->persist(new PositionEntity($acme, $this->user, 'Dev', new \DateTimeImmutable('2024-01-01')));
+        $this->persist($acme->addPosition('Dev', new \DateTimeImmutable('2024-01-01')));
         $acme->archive(new \DateTimeImmutable());
         $this->em->flush();
 
-        $repo = $this->repo(PositionRepository::class);
+        $repo = $this->repo(CompanyRepository::class);
         self::assertSame([], $repo->getAllPositionsByCompany($this->user, $acme));
         self::assertCount(1, $repo->getAllPositionsByCompany($this->user, $acme, includeArchived: true));
     }
@@ -176,15 +173,15 @@ final class ListMethodsTest extends KernelTestCase
         $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));
         $globex = $this->persist(new CompanyEntity($this->user, 'Globex'));
         $gone = $this->persist((new CompanyEntity($this->user, 'Gone'))->archive(new \DateTimeImmutable()));
-        $this->persist(new PositionEntity($acme, $this->user, 'Consultant', new \DateTimeImmutable('2023-01-01')));
-        $this->persist(new PositionEntity($globex, $this->user, 'Lead', new \DateTimeImmutable('2024-01-01')));
-        $this->persist((new PositionEntity($acme, $this->user, 'Junior', new \DateTimeImmutable('2020-01-01')))->end(new \DateTimeImmutable('2022-12-31')));
-        $this->persist((new PositionEntity($acme, $this->user, 'Hidden', new \DateTimeImmutable('2021-01-01')))->archive(new \DateTimeImmutable()));
-        $this->persist(new PositionEntity($gone, $this->user, 'At archived company', new \DateTimeImmutable('2022-01-01')));
+        $this->persist($acme->addPosition('Consultant', new \DateTimeImmutable('2023-01-01')));
+        $this->persist($globex->addPosition('Lead', new \DateTimeImmutable('2024-01-01')));
+        $this->persist($acme->addPosition('Junior', new \DateTimeImmutable('2020-01-01'))->end(new \DateTimeImmutable('2022-12-31')));
+        $this->persist($acme->addPosition('Hidden', new \DateTimeImmutable('2021-01-01'))->archive(new \DateTimeImmutable()));
+        $this->persist($gone->addPosition('At archived company', new \DateTimeImmutable('2022-01-01')));
         $this->em->flush();
         $this->em->clear();
 
-        $current = $this->repo(PositionRepository::class)->getCurrentPositionsByUser($this->em->find(User::class, $this->user->id));
+        $current = $this->repo(CompanyRepository::class)->getCurrentPositionsByUser($this->em->find(User::class, $this->user->id));
 
         self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title->value, $current));
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($current[0]->company), 'Company is fetched in the same query');
@@ -196,13 +193,13 @@ final class ListMethodsTest extends KernelTestCase
     {
         $area = $this->persist(new CategoryEntity($this->user, 'Area'));
         $skill = $this->persist(new CategoryEntity($this->user, 'Skill'));
-        $this->persist(new TagEntity($area, $this->user, 'frontend'));
-        $this->persist(new TagEntity($area, $this->user, 'backend'));
-        $this->persist((new TagEntity($area, $this->user, 'old'))->archive(new \DateTimeImmutable()));
-        $this->persist(new TagEntity($skill, $this->user, 'php'));
+        $this->persist($area->addTag('frontend'));
+        $this->persist($area->addTag('backend'));
+        $this->persist($area->addTag('old')->archive(new \DateTimeImmutable()));
+        $this->persist($skill->addTag('php'));
         $this->em->flush();
 
-        $repo = $this->repo(TagRepository::class);
+        $repo = $this->repo(CategoryRepository::class);
         self::assertSame(['backend', 'frontend'], $this->names($repo->getAllTagsByCategory($this->user, $area)));
         self::assertSame(['backend', 'frontend', 'old'], $this->names($repo->getAllTagsByCategory($this->user, $area, includeArchived: true)));
 
@@ -217,12 +214,12 @@ final class ListMethodsTest extends KernelTestCase
         // ordered) keeps each category's tags together, oldest category first.
         $first = $this->persist(new CategoryEntity($this->user, 'Area'));
         $second = $this->persist(new CategoryEntity($this->user, 'Area'));
-        $this->persist(new TagEntity($second, $this->user, 'a-second'));
-        $this->persist(new TagEntity($first, $this->user, 'z-first'));
-        $this->persist(new TagEntity($first, $this->user, 'b-first'));
+        $this->persist($second->addTag('a-second'));
+        $this->persist($first->addTag('z-first'));
+        $this->persist($first->addTag('b-first'));
         $this->em->flush();
 
-        $tags = $this->repo(TagRepository::class)->getAllTagsByUser($this->user);
+        $tags = $this->repo(CategoryRepository::class)->getAllTagsByUser($this->user);
 
         self::assertSame(['b-first', 'z-first', 'a-second'], $this->names($tags));
     }
@@ -231,12 +228,12 @@ final class ListMethodsTest extends KernelTestCase
 
     private function product(): ProductEntity
     {
-        return $this->persist(new ProductEntity($this->persist(new CompanyEntity($this->user, 'Acme')), $this->user, 'Widget'));
+        return $this->persist($this->persist(new CompanyEntity($this->user, 'Acme'))->addProduct('Widget'));
     }
 
     private function project(): ProjectEntity
     {
-        return $this->persist(new ProjectEntity($this->product(), $this->user, 'Launch'));
+        return $this->persist($this->product()->addProject('Launch'));
     }
 
     /**

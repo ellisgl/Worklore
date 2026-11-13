@@ -78,8 +78,8 @@ final class CategoryRepositoryTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $withTags = $this->persist(new CategoryEntity($user, 'area'));
-        $this->persist(new TagEntity($withTags, $user, 'backend'));
-        $this->persist(new TagEntity($withTags, $user, 'frontend'));
+        $this->persist($withTags->addTag('backend'));
+        $this->persist($withTags->addTag('frontend'));
         $this->persist(new CategoryEntity($user, 'empty'));
         $this->em->flush();
 

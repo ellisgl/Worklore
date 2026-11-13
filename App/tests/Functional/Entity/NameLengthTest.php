@@ -42,23 +42,23 @@ final class NameLengthTest extends KernelTestCase
         yield 'product' => [static function (User $u, string $n) {
             $c = new CompanyEntity($u, 'Acme');
 
-            return [$c, new ProductEntity($c, $u, $n)];
+            return [$c, $c->addProduct($n)];
         }];
         yield 'project' => [static function (User $u, string $n) {
             $c = new CompanyEntity($u, 'Acme');
-            $p = new ProductEntity($c, $u, 'Widget');
+            $p = $c->addProduct('Widget');
 
-            return [$c, $p, new ProjectEntity($p, $u, $n)];
+            return [$c, $p, $p->addProject($n)];
         }];
         yield 'position title' => [static function (User $u, string $n) {
             $c = new CompanyEntity($u, 'Acme');
 
-            return [$c, new PositionEntity($c, $u, $n, new \DateTimeImmutable('2024-01-01'))];
+            return [$c, $c->addPosition($n, new \DateTimeImmutable('2024-01-01'))];
         }];
         yield 'journal entry title' => [static function (User $u, string $n) {
             $c = new CompanyEntity($u, 'Acme');
-            $p = new ProductEntity($c, $u, 'Widget');
-            $pj = new ProjectEntity($p, $u, 'Launch');
+            $p = $c->addProduct('Widget');
+            $pj = $p->addProject('Launch');
 
             return [$c, $p, $pj, new JournalEntryEntity($pj, $u, $n, 'Body')];
         }];
@@ -66,7 +66,7 @@ final class NameLengthTest extends KernelTestCase
         yield 'tag' => [static function (User $u, string $n) {
             $c = new CategoryEntity($u, 'Area');
 
-            return [$c, new TagEntity($c, $u, $n)];
+            return [$c, $c->addTag($n)];
         }];
     }
 
@@ -121,7 +121,7 @@ final class NameLengthTest extends KernelTestCase
     public function testReasonLeftOverMaxLengthIsRejected(): void
     {
         $user = new User('a@example.com');
-        $position = new PositionEntity(new CompanyEntity($user, 'Acme'), $user, 'Dev', new \DateTimeImmutable('2024-01-01'));
+        $position = (new CompanyEntity($user, 'Acme'))->addPosition('Dev', new \DateTimeImmutable('2024-01-01'));
 
         $this->expectException(\InvalidArgumentException::class);
         $position->end(new \DateTimeImmutable('2024-06-30'), str_repeat('x', 256));
@@ -130,7 +130,7 @@ final class NameLengthTest extends KernelTestCase
     public function testRejectedReasonLeftDoesNotEndThePosition(): void
     {
         $user = new User('a@example.com');
-        $position = new PositionEntity(new CompanyEntity($user, 'Acme'), $user, 'Dev', new \DateTimeImmutable('2024-01-01'));
+        $position = (new CompanyEntity($user, 'Acme'))->addPosition('Dev', new \DateTimeImmutable('2024-01-01'));
 
         try {
             $position->end(new \DateTimeImmutable('2024-06-30'), str_repeat('x', 256));

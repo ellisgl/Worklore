@@ -23,6 +23,8 @@ use function Symfony\Component\Clock\now;
 final class ProjectEntity
 {
     private(set) ProjectId $id;
+    /** The aggregate owner, copied from the product; stored for owner-scoped queries */
+    private(set) readonly User $user;
     private(set) Name $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -35,24 +37,22 @@ final class ProjectEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @throws OwnershipMismatchException if the product belongs to another user
+     * @internal Create through ProductEntity::addProject(), which adds it to the
+     *           product's list; the owner is taken from the product.
      */
     public function __construct(
         private(set) readonly ProductEntity $product,
-        private(set) readonly User $user,
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        OwnershipMismatchException::assertSameUser($product->user, $user, 'product');
-
+        $this->user = $product->user;
         $this->id = ProjectId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Project name');
         $this->overview = self::normalizeOverview($overview);
         $this->tags = new ArrayCollection();
         $this->journalEntries = new ArrayCollection();
-        $product->addProject($this);
     }
 
     /**

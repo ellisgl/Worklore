@@ -36,17 +36,17 @@ final class HydrationTest extends KernelTestCase
 
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
-        $product = new ProductEntity($company, $user, 'Widget');
+        $product = $company->addProduct('Widget');
         $category = new CategoryEntity($user, 'Area');
-        $project = new ProjectEntity($product, $user, 'Launch');
+        $project = $product->addProject('Launch');
         $this->graph = [
             'company' => $company,
             'product' => $product,
             'project' => $project,
             'journal' => new JournalEntryEntity($project, $user, 'Kickoff', 'Agreed on the scope.'),
-            'position' => new PositionEntity($company, $user, 'Developer', new \DateTimeImmutable('2024-01-15')),
+            'position' => $company->addPosition('Developer', new \DateTimeImmutable('2024-01-15')),
             'category' => $category,
-            'tag' => new TagEntity($category, $user, 'backend'),
+            'tag' => $category->addTag('backend'),
         ];
 
         $this->em->persist($user);

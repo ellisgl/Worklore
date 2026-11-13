@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Shared\OwnershipMismatchException;
 use App\Identity\User;
 use App\Shared\Name;
 use DateTimeImmutable;
@@ -24,6 +23,8 @@ final class PositionEntity
     public const int MAX_REASON_LEFT_LENGTH = 255;
 
     private(set) PositionId $id;
+    /** The aggregate owner, copied from the company; stored for owner-scoped queries */
+    private(set) readonly User $user;
     private(set) Name $title;
     private(set) ?string $overview;
     /** Start and (once ended) end day */
@@ -33,25 +34,22 @@ final class PositionEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @throws OwnershipMismatchException if the company belongs to another user
+     * @internal Create through CompanyEntity::addPosition(), which adds it to the
+     *           company's list; the owner is taken from the company.
      */
     public function __construct(
         private(set) readonly CompanyEntity $company,
-        private(set) readonly User $user,
         string $title,
         DateTimeImmutable $startDate,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
-
+        $this->user = $company->user;
         $this->id = PositionId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Position title');
         $this->period = Period::startingOn($startDate);
         $this->overview = self::normalizeText($overview);
-
-        $company->addPosition($this);
     }
 
     public function isCurrent(): bool

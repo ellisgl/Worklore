@@ -6,21 +6,21 @@ namespace App\Tests\Functional\Repository;
 
 use App\Company\CompanyEntity;
 use App\Company\PositionEntity;
-use App\Company\PositionRepository;
+use App\Company\CompanyRepository;
 use App\Identity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class PositionRepositoryTest extends KernelTestCase
+final class CompanyRepositoryPositionsTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private PositionRepository $positions;
+    private CompanyRepository $positions;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->em = self::getContainer()->get('doctrine')->getManager();
-        $this->positions = self::getContainer()->get(PositionRepository::class);
+        $this->positions = self::getContainer()->get(CompanyRepository::class);
     }
 
     public function testReturnsPositionsOldestFirst(): void
@@ -101,7 +101,7 @@ final class PositionRepositoryTest extends KernelTestCase
 
     private function position(CompanyEntity $company, User $user, string $title, string $start = '2024-01-15'): PositionEntity
     {
-        return $this->persist(new PositionEntity($company, $user, $title, new \DateTimeImmutable($start)));
+        return $this->persist($company->addPosition($title, new \DateTimeImmutable($start)));
     }
 
     /**

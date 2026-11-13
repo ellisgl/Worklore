@@ -7,9 +7,19 @@ namespace App\Company;
 use App\Identity\User;
 use App\Shared\Name;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
+ * Repository for the Company aggregate: companies and everything inside them
+ * (products, projects, positions). Save a company and its children are saved
+ * with it; there's no separate repository per child.
+ *
+ * Every lookup is scoped to a user, so endpoints answer 404 instead of
+ * revealing someone else's records. By-id lookups return archived records too
+ * (e.g. to unarchive them); list methods leave out archived records, and
+ * records whose parent or ancestor is archived, unless $includeArchived.
+ *
  * @extends ServiceEntityRepository<CompanyEntity>
  */
 class CompanyRepository extends ServiceEntityRepository
@@ -19,11 +29,8 @@ class CompanyRepository extends ServiceEntityRepository
         parent::__construct($registry, CompanyEntity::class);
     }
 
-    /**
-     * The company with this id, if it belongs to the user; null otherwise, so an
-     * endpoint answers 404 instead of revealing someone else's record.
-     * Archived ones are returned too (e.g. to unarchive them).
-     */
+    // ---- companies --------------------------------------------------------
+
     public function findOneByIdForUser(CompanyId $id, User $user): ?CompanyEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
@@ -31,9 +38,6 @@ class CompanyRepository extends ServiceEntityRepository
 
     /**
      * The user's companies, sorted by name.
-     *
-     * By default only active companies are returned: pass $includeArchived =
-     * true for all.
      *
      * @return list<CompanyEntity>
      */
@@ -77,5 +81,133 @@ class CompanyRepository extends ServiceEntityRepository
         }
 
         return null !== $qb->getQuery()->getOneOrNullResult();
+    }
+
+    // ---- products ---------------------------------------------------------
+
+    public function findProductByIdForUser(ProductId $id, User $user): ?ProductEntity
+    {
+        return $this->getEntityManager()->getRepository(ProductEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+    }
+
+    /**
+     * The user's products at a company, sorted by name.
+     *
+     * @return list<ProductEntity>
+     */
+    public function getAllProductsByCompany(User $user, CompanyEntity $company, bool $includeArchived = false): array
+    {
+        $qb = $this->select(ProductEntity::class, 'p')
+            ->innerJoin('p.company', 'c')
+            ->where('p.user = :user')
+            ->andWhere('p.company = :company')
+            ->setParameter('user', $user)
+            ->setParameter('company', $company)
+            ->orderBy('p.name', 'ASC')
+            ->addOrderBy('p.id', 'ASC');
+
+        if (!$includeArchived) {
+            $qb->andWhere('p.archivedAt IS NULL')
+                ->andWhere('c.archivedAt IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    // ---- projects ---------------------------------------------------------
+
+    public function findProjectByIdForUser(ProjectId $id, User $user): ?ProjectEntity
+    {
+        return $this->getEntityManager()->getRepository(ProjectEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+    }
+
+    /**
+     * The user's projects for a product, sorted by name.
+     *
+     * @return list<ProjectEntity>
+     */
+    public function getAllProjectsByProduct(User $user, ProductEntity $product, bool $includeArchived = false): array
+    {
+        $qb = $this->select(ProjectEntity::class, 'pj')
+            ->innerJoin('pj.product', 'p')
+            ->innerJoin('p.company', 'c')
+            ->where('pj.user = :user')
+            ->andWhere('pj.product = :product')
+            ->setParameter('user', $user)
+            ->setParameter('product', $product)
+            ->orderBy('pj.name', 'ASC')
+            ->addOrderBy('pj.id', 'ASC');
+
+        if (!$includeArchived) {
+            $qb->andWhere('pj.archivedAt IS NULL')
+                ->andWhere('p.archivedAt IS NULL')
+                ->andWhere('c.archivedAt IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    // ---- positions --------------------------------------------------------
+
+    public function findPositionByIdForUser(PositionId $id, User $user): ?PositionEntity
+    {
+        return $this->getEntityManager()->getRepository(PositionEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+    }
+
+    /**
+     * The user's positions at a company, newest start date first.
+     *
+     * @return list<PositionEntity>
+     */
+    public function getAllPositionsByCompany(User $user, CompanyEntity $company, bool $includeArchived = false): array
+    {
+        $qb = $this->select(PositionEntity::class, 'p')
+            ->innerJoin('p.company', 'c')
+            ->where('p.user = :user')
+            ->andWhere('p.company = :company')
+            ->setParameter('user', $user)
+            ->setParameter('company', $company)
+            ->orderBy('p.period.start', 'DESC')
+            ->addOrderBy('p.id', 'DESC');
+
+        if (!$includeArchived) {
+            $qb->andWhere('p.archivedAt IS NULL')
+                ->andWhere('c.archivedAt IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * The user's current positions (no end date) across all companies, newest
+     * start date first. Always leaves out archived positions and positions at
+     * archived companies. The company is fetched in the same query.
+     *
+     * @return list<PositionEntity>
+     */
+    public function getCurrentPositionsByUser(User $user): array
+    {
+        return $this->select(PositionEntity::class, 'p')
+            ->innerJoin('p.company', 'c')
+            ->addSelect('c')
+            ->where('p.user = :user')
+            ->andWhere('p.period.end IS NULL')
+            ->andWhere('p.archivedAt IS NULL')
+            ->andWhere('c.archivedAt IS NULL')
+            ->setParameter('user', $user)
+            ->orderBy('p.period.start', 'DESC')
+            ->addOrderBy('p.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * A query over one of the aggregate's child entities.
+     *
+     * @param class-string $class
+     */
+    private function select(string $class, string $alias): QueryBuilder
+    {
+        return $this->getEntityManager()->createQueryBuilder()->select($alias)->from($class, $alias);
     }
 }

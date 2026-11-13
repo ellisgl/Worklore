@@ -4,7 +4,7 @@
                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
-    <entity name="App\Company\ProductEntity" table="product" repository-class="App\Company\ProductRepository">
+    <entity name="App\Company\ProductEntity" table="product">
         <indexes>
             <index name="idx_product_company_archived" columns="company_id,archived_at"/>
         </indexes>
@@ -32,7 +32,11 @@
             </options>
         </field>
 
-        <one-to-many field="projects" target-entity="App\Company\ProjectEntity" mapped-by="product" />
+        <one-to-many field="projects" target-entity="App\Company\ProjectEntity" mapped-by="product">
+            <cascade>
+                <cascade-persist/>
+            </cascade>
+        </one-to-many>
 
         <many-to-one field="company" target-entity="App\Company\CompanyEntity" inversed-by="products">
             <join-column name="company_id" nullable="false" on-delete="CASCADE"/>

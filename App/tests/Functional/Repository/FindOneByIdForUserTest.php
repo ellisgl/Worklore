@@ -7,22 +7,18 @@ namespace App\Tests\Functional\Repository;
 use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
 use App\Company\PositionEntity;
-use App\Company\PositionRepository;
 use App\Company\ProductEntity;
-use App\Company\ProductRepository;
 use App\Company\ProjectEntity;
-use App\Company\ProjectRepository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
-use App\Taxonomy\TagRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Every repository's findOneByIdForUser(): a user sees their own records and
+ * Every by-id lookup (findOneByIdForUser(), findProductByIdForUser(), ...): a user sees their own records and
  * nothing else.
  */
 final class FindOneByIdForUserTest extends KernelTestCase
@@ -36,58 +32,58 @@ final class FindOneByIdForUserTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{class-string, string}>
+     * @return iterable<string, array{class-string, string, string}>
      */
     public static function repositoryProvider(): iterable
     {
-        yield 'company' => [CompanyRepository::class, 'company'];
-        yield 'product' => [ProductRepository::class, 'product'];
-        yield 'project' => [ProjectRepository::class, 'project'];
-        yield 'position' => [PositionRepository::class, 'position'];
-        yield 'category' => [CategoryRepository::class, 'category'];
-        yield 'tag' => [TagRepository::class, 'tag'];
+        yield 'company' => [CompanyRepository::class, 'findOneByIdForUser', 'company'];
+        yield 'product' => [CompanyRepository::class, 'findProductByIdForUser', 'product'];
+        yield 'project' => [CompanyRepository::class, 'findProjectByIdForUser', 'project'];
+        yield 'position' => [CompanyRepository::class, 'findPositionByIdForUser', 'position'];
+        yield 'category' => [CategoryRepository::class, 'findOneByIdForUser', 'category'];
+        yield 'tag' => [CategoryRepository::class, 'findTagByIdForUser', 'tag'];
     }
 
     #[DataProvider('repositoryProvider')]
-    public function testOwnerGetsTheRecord(string $repository, string $key): void
+    public function testOwnerGetsTheRecord(string $repository, string $method, string $key): void
     {
         $mine = $this->graphFor('me@example.com');
         $this->em->flush();
         $this->em->clear();
 
-        $found = $this->repo($repository)->findOneByIdForUser($mine[$key]->id, $this->reload($mine['user']));
+        $found = $this->repo($repository)->{$method}($mine[$key]->id, $this->reload($mine['user']));
 
         self::assertNotNull($found);
         self::assertTrue($mine[$key]->id->equals($found->id));
     }
 
     #[DataProvider('repositoryProvider')]
-    public function testOtherUserGetsNull(string $repository, string $key): void
+    public function testOtherUserGetsNull(string $repository, string $method, string $key): void
     {
         $mine = $this->graphFor('me@example.com');
         $theirs = $this->graphFor('other@example.com');
         $this->em->flush();
 
-        self::assertNull($this->repo($repository)->findOneByIdForUser($mine[$key]->id, $theirs['user']));
+        self::assertNull($this->repo($repository)->{$method}($mine[$key]->id, $theirs['user']));
     }
 
     #[DataProvider('repositoryProvider')]
-    public function testUnknownIdGetsNull(string $repository, string $key): void
+    public function testUnknownIdGetsNull(string $repository, string $method, string $key): void
     {
         $mine = $this->graphFor('me@example.com');
         $this->em->flush();
 
-        self::assertNull($this->repo($repository)->findOneByIdForUser($mine[$key]->id::generate(), $mine['user']));
+        self::assertNull($this->repo($repository)->{$method}($mine[$key]->id::generate(), $mine['user']));
     }
 
     #[DataProvider('repositoryProvider')]
-    public function testArchivedRecordIsStillFound(string $repository, string $key): void
+    public function testArchivedRecordIsStillFound(string $repository, string $method, string $key): void
     {
         $mine = $this->graphFor('me@example.com');
         $mine[$key]->archive(new \DateTimeImmutable());
         $this->em->flush();
 
-        self::assertNotNull($this->repo($repository)->findOneByIdForUser($mine[$key]->id, $mine['user']));
+        self::assertNotNull($this->repo($repository)->{$method}($mine[$key]->id, $mine['user']));
     }
 
     /**
@@ -99,16 +95,16 @@ final class FindOneByIdForUserTest extends KernelTestCase
     {
         $user = new User($email);
         $company = new CompanyEntity($user, 'Acme');
-        $product = new ProductEntity($company, $user, 'Widget');
+        $product = $company->addProduct('Widget');
         $category = new CategoryEntity($user, 'Area');
         $graph = [
             'user' => $user,
             'company' => $company,
             'product' => $product,
-            'project' => new ProjectEntity($product, $user, 'Launch'),
-            'position' => new PositionEntity($company, $user, 'Developer', new \DateTimeImmutable('2024-01-15')),
+            'project' => $product->addProject('Launch'),
+            'position' => $company->addPosition('Developer', new \DateTimeImmutable('2024-01-15')),
             'category' => $category,
-            'tag' => new TagEntity($category, $user, 'backend'),
+            'tag' => $category->addTag('backend'),
         ];
         foreach ($graph as $entity) {
             $this->em->persist($entity);

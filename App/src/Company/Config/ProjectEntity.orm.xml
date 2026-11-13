@@ -4,7 +4,7 @@
     xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
     https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
-    <entity name="App\Company\ProjectEntity" table="project" repository-class="App\Company\ProjectRepository">
+    <entity name="App\Company\ProjectEntity" table="project">
         <indexes>
             <index name="idx_project_product_archived" columns="product_id,archived_at"/>
         </indexes>

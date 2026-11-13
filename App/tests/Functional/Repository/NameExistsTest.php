@@ -9,7 +9,7 @@ use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
-use App\Taxonomy\TagRepository;
+use App\Taxonomy\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -20,14 +20,14 @@ final class NameExistsTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
     private CompanyRepository $companies;
-    private TagRepository $tags;
+    private CategoryRepository $tags;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->em = self::getContainer()->get('doctrine')->getManager();
         $this->companies = self::getContainer()->get(CompanyRepository::class);
-        $this->tags = self::getContainer()->get(TagRepository::class);
+        $this->tags = self::getContainer()->get(CategoryRepository::class);
     }
 
     // ---- CompanyRepository::nameExistsForUser() ---------------------------
@@ -86,18 +86,18 @@ final class NameExistsTest extends KernelTestCase
     public function testTagNameCheckIgnoresCaseLikeTheConstraint(): void
     {
         [$user, $area] = $this->userWithCategory();
-        $this->persist(new TagEntity($area, $user, 'PHP'));
+        $this->persist($area->addTag('PHP'));
         $this->em->flush();
 
         self::assertTrue($this->tags->nameExistsInCategory($area, 'php'));
     }
 
-    // ---- TagRepository::nameExistsInCategory() ----------------------------
+    // ---- CategoryRepository::nameExistsInCategory() ----------------------------
 
     public function testTagNameTakenInCategory(): void
     {
         [$user, $area] = $this->userWithCategory();
-        $this->persist(new TagEntity($area, $user, 'backend'));
+        $this->persist($area->addTag('backend'));
         $this->em->flush();
 
         self::assertTrue($this->tags->nameExistsInCategory($area, 'backend'));
@@ -109,7 +109,7 @@ final class NameExistsTest extends KernelTestCase
     {
         [$user, $area] = $this->userWithCategory();
         $skill = $this->persist(new CategoryEntity($user, 'Skill'));
-        $this->persist(new TagEntity($skill, $user, 'backend'));
+        $this->persist($skill->addTag('backend'));
         $this->em->flush();
 
         self::assertFalse($this->tags->nameExistsInCategory($area, 'backend'));
@@ -118,7 +118,7 @@ final class NameExistsTest extends KernelTestCase
     public function testArchivedTagStillHoldsItsName(): void
     {
         [$user, $area] = $this->userWithCategory();
-        $this->persist((new TagEntity($area, $user, 'backend'))->archive(new \DateTimeImmutable()));
+        $this->persist($area->addTag('backend')->archive(new \DateTimeImmutable()));
         $this->em->flush();
 
         self::assertTrue($this->tags->nameExistsInCategory($area, 'backend'));
@@ -127,8 +127,8 @@ final class NameExistsTest extends KernelTestCase
     public function testTagCanKeepItsOwnNameWhenExcluded(): void
     {
         [$user, $area] = $this->userWithCategory();
-        $backend = $this->persist(new TagEntity($area, $user, 'backend'));
-        $this->persist(new TagEntity($area, $user, 'frontend'));
+        $backend = $this->persist($area->addTag('backend'));
+        $this->persist($area->addTag('frontend'));
         $this->em->flush();
 
         self::assertFalse($this->tags->nameExistsInCategory($area, 'backend', except: $backend));

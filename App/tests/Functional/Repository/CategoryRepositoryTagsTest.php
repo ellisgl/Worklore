@@ -7,20 +7,20 @@ namespace App\Tests\Functional\Repository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
-use App\Taxonomy\TagRepository;
+use App\Taxonomy\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class TagRepositoryTest extends KernelTestCase
+final class CategoryRepositoryTagsTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TagRepository $tags;
+    private CategoryRepository $tags;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->em = self::getContainer()->get('doctrine')->getManager();
-        $this->tags = self::getContainer()->get(TagRepository::class);
+        $this->tags = self::getContainer()->get(CategoryRepository::class);
     }
 
     public function testReturnsUsersTagsOrderedByCategoryThenTagName(): void
@@ -29,10 +29,10 @@ final class TagRepositoryTest extends KernelTestCase
         $skill = $this->persist(new CategoryEntity($user, 'skill'));
         $area = $this->persist(new CategoryEntity($user, 'area'));
         // Inserted out of order on purpose
-        $this->persist(new TagEntity($skill, $user, 'php'));
-        $this->persist(new TagEntity($area, $user, 'frontend'));
-        $this->persist(new TagEntity($skill, $user, 'go'));
-        $this->persist(new TagEntity($area, $user, 'backend'));
+        $this->persist($skill->addTag('php'));
+        $this->persist($area->addTag('frontend'));
+        $this->persist($skill->addTag('go'));
+        $this->persist($area->addTag('backend'));
         $this->em->flush();
         $this->em->clear();
 
@@ -48,8 +48,8 @@ final class TagRepositoryTest extends KernelTestCase
     {
         $me = $this->persist(new User('me@example.com'));
         $other = $this->persist(new User('other@example.com'));
-        $this->persist(new TagEntity($this->persist(new CategoryEntity($me, 'area')), $me, 'mine'));
-        $this->persist(new TagEntity($this->persist(new CategoryEntity($other, 'area')), $other, 'theirs'));
+        $this->persist($this->persist(new CategoryEntity($me, 'area'))->addTag('mine'));
+        $this->persist($this->persist(new CategoryEntity($other, 'area'))->addTag('theirs'));
         $this->em->flush();
 
         $names = array_map(static fn (TagEntity $t) => $t->name->value, $this->tags->getAllTagsByUser($me));
@@ -60,7 +60,7 @@ final class TagRepositoryTest extends KernelTestCase
     public function testCategoriesAreLoadedInTheSameQuery(): void
     {
         $user = $this->persist(new User('a@example.com'));
-        $this->persist(new TagEntity($this->persist(new CategoryEntity($user, 'area')), $user, 'backend'));
+        $this->persist($this->persist(new CategoryEntity($user, 'area'))->addTag('backend'));
         $this->em->flush();
         $this->em->clear();
 
@@ -74,9 +74,9 @@ final class TagRepositoryTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $area = $this->persist(new CategoryEntity($user, 'area'));
         $old = $this->persist((new CategoryEntity($user, 'old'))->archive(new \DateTimeImmutable()));
-        $this->persist(new TagEntity($area, $user, 'active'));
-        $this->persist((new TagEntity($area, $user, 'archived'))->archive(new \DateTimeImmutable()));
-        $this->persist(new TagEntity($old, $user, 'in-archived-category'));
+        $this->persist($area->addTag('active'));
+        $this->persist($area->addTag('archived')->archive(new \DateTimeImmutable()));
+        $this->persist($old->addTag('in-archived-category'));
         $this->em->flush();
 
         self::assertSame(['area/active'], $this->labels($this->tags->getAllTagsByUser($user)));
@@ -87,9 +87,9 @@ final class TagRepositoryTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $area = $this->persist(new CategoryEntity($user, 'area'));
         $old = $this->persist((new CategoryEntity($user, 'old'))->archive(new \DateTimeImmutable()));
-        $this->persist(new TagEntity($area, $user, 'active'));
-        $this->persist((new TagEntity($area, $user, 'archived'))->archive(new \DateTimeImmutable()));
-        $this->persist(new TagEntity($old, $user, 'in-archived-category'));
+        $this->persist($area->addTag('active'));
+        $this->persist($area->addTag('archived')->archive(new \DateTimeImmutable()));
+        $this->persist($old->addTag('in-archived-category'));
         $this->em->flush();
 
         self::assertSame(

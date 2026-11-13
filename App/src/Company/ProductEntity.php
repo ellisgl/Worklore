@@ -22,6 +22,8 @@ use function Symfony\Component\Clock\now;
 final class ProductEntity
 {
     private(set) ProductId $id;
+    /** The aggregate owner, copied from the company; stored for owner-scoped queries */
+    private(set) readonly User $user;
     private(set) Name $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -34,25 +36,22 @@ final class ProductEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @throws OwnershipMismatchException if the company belongs to another user
+     * @internal Create through CompanyEntity::addProduct(), which adds it to the
+     *           company's list; the owner is taken from the company.
      */
     public function __construct(
         private(set) readonly CompanyEntity $company,
-        private(set) readonly User $user,
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
-
+        $this->user = $company->user;
         $this->id = ProductId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Product name');
         $this->overview = self::normalizeOverview($overview);
         $this->projects = new ArrayCollection();
         $this->tags = new ArrayCollection();
-
-        $company->addProduct($this);
     }
 
     /**
@@ -64,20 +63,15 @@ final class ProductEntity
     }
 
     /**
-     * Keeps the inverse side in sync. Called by ProjectEntity's constructor;
-     * create projects with `new ProjectEntity($product, ...)`, not this.
-     *
-     * @internal
+     * Starts a project for this product. Persisting the company (or this
+     * product) saves it.
      */
-    public function addProject(ProjectEntity $project): void
+    public function addProject(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): ProjectEntity
     {
-        if ($project->product !== $this) {
-            throw new LogicException('Project belongs to a different product');
-        }
+        $project = new ProjectEntity($this, $name, $overview, $createdAt);
+        $this->projects->add($project);
 
-        if (!$this->projects->contains($project)) {
-            $this->projects->add($project);
-        }
+        return $project;
     }
 
     /**

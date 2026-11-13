@@ -56,10 +56,10 @@ final class UniquenessTest extends KernelTestCase
     {
         $user = $this->user('a@example.com');
         $category = $this->save(new CategoryEntity($user, 'Area'));
-        $this->save(new TagEntity($category, $user, 'backend'));
+        $this->save($category->addTag('backend'));
 
         $this->expectException(UniqueConstraintViolationException::class);
-        $this->save(new TagEntity($category, $user, 'backend'));
+        $this->save($category->addTag('backend'));
     }
 
     public function testCompanyNameUniquenessIgnoresCase(): void
@@ -75,10 +75,10 @@ final class UniquenessTest extends KernelTestCase
     {
         $user = $this->user('a@example.com');
         $category = $this->save(new CategoryEntity($user, 'Area'));
-        $this->save(new TagEntity($category, $user, 'PHP'));
+        $this->save($category->addTag('PHP'));
 
         $this->expectException(UniqueConstraintViolationException::class);
-        $this->save(new TagEntity($category, $user, 'php'));
+        $this->save($category->addTag('php'));
     }
 
     public function testRenameKeepsNameKeyInSync(): void
@@ -106,8 +106,8 @@ final class UniquenessTest extends KernelTestCase
     public function testSameTagNameAllowedInDifferentCategories(): void
     {
         $user = $this->user('a@example.com');
-        $this->save(new TagEntity($this->save(new CategoryEntity($user, 'Area')), $user, 'backend'));
-        $this->save(new TagEntity($this->save(new CategoryEntity($user, 'Skill')), $user, 'backend'));
+        $this->save($this->save(new CategoryEntity($user, 'Area'))->addTag('backend'));
+        $this->save($this->save(new CategoryEntity($user, 'Skill'))->addTag('backend'));
 
         self::assertSame(2, $this->em->getRepository(TagEntity::class)->count(['name' => 'backend']));
     }
@@ -116,8 +116,8 @@ final class UniquenessTest extends KernelTestCase
     {
         $user = $this->user('a@example.com');
         $category = $this->save(new CategoryEntity($user, 'Area'));
-        $this->save(new TagEntity($category, $user, 'backend'));
-        $this->save(new TagEntity($category, $user, 'frontend'));
+        $this->save($category->addTag('backend'));
+        $this->save($category->addTag('frontend'));
 
         $this->em->remove($category);
         $this->em->flush();

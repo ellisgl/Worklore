@@ -43,10 +43,17 @@
             </options>
         </field>
 
-        <one-to-many field="products" target-entity="App\Company\ProductEntity" mapped-by="company"/>
+        <one-to-many field="products" target-entity="App\Company\ProductEntity" mapped-by="company">
+            <cascade>
+                <cascade-persist/>
+            </cascade>
+        </one-to-many>
 
         <!-- A user can hold several positions at one company; newest first -->
         <one-to-many field="positions" target-entity="App\Company\PositionEntity" mapped-by="company">
+            <cascade>
+                <cascade-persist/>
+            </cascade>
             <order-by>
                 <order-by-field name="period.start" direction="DESC"/>
             </order-by>

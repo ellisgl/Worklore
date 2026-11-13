@@ -56,20 +56,14 @@ final class CompanyEntity
     }
 
     /**
-     * Keeps the inverse side in sync. Called by ProductEntity's constructor;
-     * create products with `new ProductEntity($company, ...)`, not this.
-     *
-     * @internal
+     * Adds a product to this company. Persisting the company saves it.
      */
-    public function addProduct(ProductEntity $product): void
+    public function addProduct(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): ProductEntity
     {
-        if ($product->company !== $this) {
-            throw new LogicException('Product belongs to a different company');
-        }
+        $product = new ProductEntity($this, $name, $overview, $createdAt);
+        $this->products->add($product);
 
-        if (!$this->products->contains($product)) {
-            $this->products->add($product);
-        }
+        return $product;
     }
 
     /**
@@ -84,20 +78,15 @@ final class CompanyEntity
     }
 
     /**
-     * Keeps the inverse side in sync. Called by PositionEntity's constructor;
-     * create positions with `new PositionEntity($company, ...)`, not this.
-     *
-     * @internal
+     * Records a position the owner held (or holds) here. Persisting the
+     * company saves it.
      */
-    public function addPosition(PositionEntity $position): void
+    public function addPosition(string $title, DateTimeImmutable $startDate, ?string $overview = null, ?DateTimeImmutable $createdAt = null): PositionEntity
     {
-        if ($position->company !== $this) {
-            throw new LogicException('Position belongs to a different company');
-        }
+        $position = new PositionEntity($this, $title, $startDate, $overview, $createdAt);
+        $this->positions->add($position);
 
-        if (!$this->positions->contains($position)) {
-            $this->positions->add($position);
-        }
+        return $position;
     }
 
     public function isArchived(): bool
