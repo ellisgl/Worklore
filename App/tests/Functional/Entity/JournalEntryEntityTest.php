@@ -9,6 +9,7 @@ use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Journal\JournalEntryId;
+use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
@@ -64,6 +65,37 @@ final class JournalEntryEntityTest extends KernelTestCase
         $id = JournalEntryId::generate();
 
         self::assertSame($id, new JournalEntryEntity($this->project($user), $user, 'Kickoff', 'Body', id: $id)->id);
+    }
+
+    public function testSetTagsReplacesTheTags(): void
+    {
+        $user = new User('a@example.com');
+        $area = new CategoryEntity($user, 'Area');
+        [$backend, $frontend, $api] = [$area->addTag('backend'), $area->addTag('frontend'), $area->addTag('api')];
+        $entry = new JournalEntryEntity($this->project($user), $user, 'Kickoff', 'Body')->addTag($backend)->addTag($frontend);
+
+        $entry->setTags($frontend, $api, $api);
+
+        self::assertSame(['frontend', 'api'], $this->tagNames($entry));
+
+        $entry->setTags();
+        self::assertSame([], $this->tagNames($entry));
+    }
+
+    public function testSetTagsChecksEveryTagBeforeChangingAnything(): void
+    {
+        $user = new User('a@example.com');
+        $mine = new CategoryEntity($user, 'Area')->addTag('backend');
+        $theirs = new CategoryEntity(new User('b@example.com'), 'Area')->addTag('backend');
+        $entry = new JournalEntryEntity($this->project($user), $user, 'Kickoff', 'Body')->addTag($mine);
+
+        try {
+            $entry->setTags($theirs);
+            self::fail('Expected OwnershipMismatchException');
+        } catch (OwnershipMismatchException) {
+        }
+
+        self::assertSame(['backend'], $this->tagNames($entry), 'Unchanged');
     }
 
     public function testBlankTitleIsRejected(): void
@@ -130,6 +162,14 @@ final class JournalEntryEntityTest extends KernelTestCase
 
         $entry = self::findOrFail($this->em, JournalEntryEntity::class, $entry->id); // the entry itself survives
         self::assertCount(0, $entry->getTags());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tagNames(JournalEntryEntity $entry): array
+    {
+        return array_values(array_map(static fn (TagEntity $t) => $t->name->value, $entry->getTags()->toArray()));
     }
 
     private function project(User $user): ProjectEntity
