@@ -8,11 +8,14 @@ use App\Company\Application\CreateCompany;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
 use App\Shared\Owner;
+use DateMalformedStringException;
+use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -33,6 +36,9 @@ final class CompanyController extends AbstractController
 
     /**
      * GET /api/companies[?include_archived=1]
+     *
+     * @throws DateMalformedStringException
+     * @throws Exception
      */
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(
@@ -44,6 +50,8 @@ final class CompanyController extends AbstractController
 
     /**
      * POST /api/companies {"name": "...", "overview": "..."} → 201 {"id": "..."}
+     *
+     * @throws ExceptionInterface
      */
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(

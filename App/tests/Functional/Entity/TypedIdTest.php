@@ -9,10 +9,14 @@ use App\Company\CompanyId;
 use App\Company\Doctrine\CompanyIdType;
 use App\Identity\User;
 use App\Taxonomy\TagId;
+use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Exception\InvalidType;
+use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Uid\UuidV7;
@@ -50,6 +54,10 @@ final class TypedIdTest extends KernelTestCase
         CompanyId::fromString('not-a-uuid');
     }
 
+    /**
+     * @throws ConversionException
+     * @throws TypesException
+     */
     public function testDoctrineTypeRejectsAnotherIdType(): void
     {
         self::bootKernel();
@@ -60,6 +68,10 @@ final class TypedIdTest extends KernelTestCase
         $type->convertToDatabaseValue(TagId::generate(), $platform);
     }
 
+    /**
+     * @throws ConversionException
+     * @throws TypesException
+     */
     public function testDoctrineTypeRejectsMalformedValueFromDatabase(): void
     {
         self::bootKernel();
@@ -69,6 +81,10 @@ final class TypedIdTest extends KernelTestCase
         Type::getType(CompanyIdType::NAME)->convertToPHPValue('nope', $platform);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testEntityLoadsWithItsTypedId(): void
     {
         self::bootKernel();

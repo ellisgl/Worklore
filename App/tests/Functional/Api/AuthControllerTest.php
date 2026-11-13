@@ -8,6 +8,7 @@ use App\Identity\ApiTokenRepository;
 use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
 use DateTimeImmutable;
+use JsonException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,6 +19,9 @@ final class AuthControllerTest extends ApiTestCase
 
     // ---- login ------------------------------------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testLoginReturnsTokenPair(): void
     {
         $this->createUser();
@@ -31,6 +35,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertSame(self::REFRESH_TTL, $tokens['refresh_expires_in']);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testTokensAreStoredOnlyAsHashes(): void
     {
         $this->createUser();
@@ -46,6 +53,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertNotContains($tokens['refresh_token'], $raw);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testLoginEmailIsCaseInsensitive(): void
     {
         $this->createUser();
@@ -64,6 +74,9 @@ final class AuthControllerTest extends ApiTestCase
         yield 'unknown email' => ['nobody@example.com', self::PASSWORD];
     }
 
+    /**
+     * @throws JsonException
+     */
     #[DataProvider('badCredentialsProvider')]
     public function testLoginWithBadCredentialsIsRejected(string $email, string $password): void
     {
@@ -74,6 +87,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid credentials.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testLoginWithMissingFieldsIsRejected(): void
     {
         $response = $this->jsonRequest('POST', '/api/auth/login', ['email' => 'user@example.com']);
@@ -81,6 +97,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testLoginIsThrottledAfterRepeatedFailures(): void
     {
         $this->createUser();
@@ -98,6 +117,9 @@ final class AuthControllerTest extends ApiTestCase
 
     // ---- access tokens / protected routes ---------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testProtectedRouteWithoutTokenReturns401(): void
     {
         $response = $this->jsonRequest('POST', '/api/auth/logout');
@@ -106,6 +128,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertSame('Bearer', $response->headers->get('WWW-Authenticate'));
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testProtectedRouteWithInvalidTokenReturns401(): void
     {
         $response = $this->jsonRequest('POST', '/api/auth/logout', headers: $this->bearer('wla_not-a-real-token'));
@@ -114,6 +139,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertSame('Bearer error="invalid_token"', $response->headers->get('WWW-Authenticate'));
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testRefreshTokenCannotBeUsedAsAccessToken(): void
     {
         $this->createUser();
@@ -122,6 +150,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertFalse($this->accessTokenWorks($tokens['refresh_token']));
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testAccessTokenExpires(): void
     {
         $this->createUser();
@@ -134,6 +165,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid or expired access token.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testAccessTokenIsValidJustBeforeExpiry(): void
     {
         $this->createUser();
@@ -147,6 +181,9 @@ final class AuthControllerTest extends ApiTestCase
 
     // ---- refresh ----------------------------------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testRefreshIssuesNewPairAndInvalidatesOldOne(): void
     {
         $this->createUser();
@@ -164,6 +201,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertTrue($this->accessTokenWorks($new['access_token']), 'New access token must work');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testRefreshTokenCannotBeReused(): void
     {
         $this->createUser();
@@ -176,6 +216,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid or expired refresh token.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testRefreshWorksAfterAccessTokenExpired(): void
     {
         $this->createUser();
@@ -188,6 +231,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertResponseIsSuccessful();
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testExpiredRefreshTokenIsRejected(): void
     {
         $this->createUser();
@@ -200,6 +246,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid or expired refresh token.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testRefreshWithUnknownTokenIsRejected(): void
     {
         $response = $this->jsonRequest('POST', '/api/auth/refresh', ['refresh_token' => 'wlr_bogus']);
@@ -207,6 +256,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid or expired refresh token.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testAccessTokenCannotBeUsedAsRefreshToken(): void
     {
         $this->createUser();
@@ -217,6 +269,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testRefreshWithoutTokenFailsValidation(): void
     {
         $response = $this->jsonRequest('POST', '/api/auth/refresh', []);
@@ -228,6 +283,9 @@ final class AuthControllerTest extends ApiTestCase
 
     // ---- logout -----------------------------------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testLogoutRevokesAccessAndRefreshToken(): void
     {
         $this->createUser();
@@ -241,6 +299,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testLogoutOnlyEndsCurrentSession(): void
     {
         $this->createUser();
@@ -255,6 +316,9 @@ final class AuthControllerTest extends ApiTestCase
 
     // ---- archived users ---------------------------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testArchivedUserCannotLogIn(): void
     {
         $this->archive($this->createUser());
@@ -264,6 +328,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Account is archived.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testArchivedUserWithWrongPasswordGetsGenericError(): void
     {
         $this->archive($this->createUser());
@@ -273,6 +340,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid credentials.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testArchivedUsersExistingAccessTokenStopsWorking(): void
     {
         $user = $this->createUser();
@@ -285,6 +355,9 @@ final class AuthControllerTest extends ApiTestCase
         self::assertFalse($this->accessTokenWorks($tokens['access_token']));
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testArchivedUserCannotRefresh(): void
     {
         $user = $this->createUser();
@@ -296,6 +369,9 @@ final class AuthControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid or expired refresh token.');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testUnarchivedUserCanLogInAgain(): void
     {
         $user = $this->createUser();
@@ -310,6 +386,9 @@ final class AuthControllerTest extends ApiTestCase
 
     // ---- general API behaviour --------------------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testUnknownApiRouteReturnsJson404(): void
     {
         $this->client->request('GET', '/api/does-not-exist');

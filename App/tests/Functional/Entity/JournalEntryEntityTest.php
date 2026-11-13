@@ -11,6 +11,8 @@ use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -24,6 +26,10 @@ final class JournalEntryEntityTest extends KernelTestCase
         $this->em = self::getContainer()->get('doctrine')->getManager();
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testEntryRoundTripsWithProjectAndTags(): void
     {
         $user = new User('a@example.com');
@@ -92,6 +98,10 @@ final class JournalEntryEntityTest extends KernelTestCase
         self::assertSame(0, $this->em->getRepository(JournalEntryEntity::class)->count());
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testDeletingTagRemovesItFromEntries(): void
     {
         $user = new User('a@example.com');

@@ -9,6 +9,8 @@ use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CategoryRepositoryTest extends KernelTestCase
@@ -23,6 +25,10 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->categories = self::getContainer()->get(CategoryRepository::class);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testReturnsUsersCategoriesOrderedByName(): void
     {
         $user = $this->persist(new User('a@example.com'));

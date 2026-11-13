@@ -16,6 +16,8 @@ use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -153,6 +155,10 @@ final class ListMethodsTest extends KernelTestCase
         self::assertCount(1, $repo->getAllPositionsByCompany($this->user, $acme, includeArchived: true));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testCurrentPositionsAcrossCompanies(): void
     {
         $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));

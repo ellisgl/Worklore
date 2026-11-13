@@ -13,6 +13,8 @@ use App\Taxonomy\CategoryEntity;
 use Closure;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -114,6 +116,10 @@ final class OwnershipTest extends KernelTestCase
         self::assertTrue($area->getTags()->contains($tag));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testSameUserLoadedSeparatelyStillMatches(): void
     {
         // The check compares ids, so a lazy reference to the same user passes

@@ -11,6 +11,8 @@ use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -95,6 +97,10 @@ final class UniquenessTest extends KernelTestCase
         $this->save(new CompanyEntity($user, 'GLOBEX'));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testCategoryDescriptionIsUnlimitedText(): void
     {
         $user = $this->user('a@example.com');

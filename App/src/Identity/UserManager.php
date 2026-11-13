@@ -36,8 +36,8 @@ final readonly class UserManager
     /**
      * @param list<string> $roles
      *
-     * @throws ValidationFailedException
      * @throws UserAlreadyExistsException
+     * @throws ValidationFailedException
      */
     public function create(string $email, #[SensitiveParameter] string $plainPassword, array $roles = []): User
     {

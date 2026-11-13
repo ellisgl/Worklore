@@ -11,7 +11,10 @@ use App\Company\CompanyId;
 use App\Identity\User;
 use App\Shared\InvalidValueException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Throwable;
@@ -36,6 +39,11 @@ final class CreateCompanyHandlerTest extends KernelTestCase
         $this->em->flush();
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testCreatesTheCompanyWithTheGivenId(): void
     {
         $id = CompanyId::generate();
@@ -50,6 +58,9 @@ final class CreateCompanyHandlerTest extends KernelTestCase
         self::assertTrue($this->owner->id->equals($company->owner->ownerId()));
     }
 
+    /**
+     * @throws ExceptionInterface
+     */
     public function testTakenNameFailsWithCompanyNameTaken(): void
     {
         $this->bus->dispatch(new CreateCompany(CompanyId::generate(), $this->owner->id, 'Acme'));
@@ -60,6 +71,11 @@ final class CreateCompanyHandlerTest extends KernelTestCase
         self::assertSame(1, $this->em->getRepository(CompanyEntity::class)->count());
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testInvalidNameFailsAndSavesNothing(): void
     {
         $id = CompanyId::generate();
@@ -73,6 +89,8 @@ final class CreateCompanyHandlerTest extends KernelTestCase
 
     /**
      * Messenger wraps what the handler threw; returns that.
+     *
+     * @throws ExceptionInterface
      */
     private function dispatchExpectingFailure(object $command): Throwable
     {

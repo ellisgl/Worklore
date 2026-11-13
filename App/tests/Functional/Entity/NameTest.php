@@ -8,7 +8,9 @@ use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Shared\Doctrine\NameType;
 use App\Shared\Name;
+use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Exception\InvalidType;
+use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
@@ -52,6 +54,10 @@ final class NameTest extends KernelTestCase
         self::assertFalse(Name::of('Acme')->equals(Name::of('acme')), 'Equality is exact; key() is for case-insensitive checks');
     }
 
+    /**
+     * @throws ConversionException
+     * @throws TypesException
+     */
     public function testDoctrineTypeRoundTrip(): void
     {
         self::bootKernel();
@@ -63,6 +69,10 @@ final class NameTest extends KernelTestCase
         self::assertNull($type->convertToPHPValue(null, $platform));
     }
 
+    /**
+     * @throws ConversionException
+     * @throws TypesException
+     */
     public function testDoctrineTypeRejectsBlankParameter(): void
     {
         self::bootKernel();
@@ -72,6 +82,10 @@ final class NameTest extends KernelTestCase
         Type::getType(NameType::NAME)->convertToDatabaseValue('  ', $platform);
     }
 
+    /**
+     * @throws ConversionException
+     * @throws TypesException
+     */
     public function testDoctrineTypeRejectsOtherValues(): void
     {
         self::bootKernel();

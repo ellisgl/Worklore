@@ -7,6 +7,8 @@ namespace App\Tests\Functional;
 use App\Company\CompanyEntity;
 use App\Identity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RecursiveDirectoryIterator;
@@ -63,6 +65,10 @@ final class ModuleBoundaryTest extends KernelTestCase
         self::assertSame([], $offenders, "src/$module must use App\\Shared\\Owner, not App\\Identity");
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testOwnerRelationsLoadTheUser(): void
     {
         self::bootKernel();

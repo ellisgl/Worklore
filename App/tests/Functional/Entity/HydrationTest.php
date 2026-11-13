@@ -11,6 +11,8 @@ use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -65,6 +67,9 @@ final class HydrationTest extends KernelTestCase
         }
     }
 
+    /**
+     * @throws ORMException
+     */
     #[DataProvider('entityProvider')]
     public function testLazyReferenceCanBeLoaded(string $key): void
     {
@@ -75,6 +80,10 @@ final class HydrationTest extends KernelTestCase
         self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $reference->createdAt->format('Y-m-d H:i:s'));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     #[DataProvider('entityProvider')]
     public function testEntityCanBeRefreshed(string $key): void
     {
@@ -86,6 +95,10 @@ final class HydrationTest extends KernelTestCase
         self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $entity->createdAt->format('Y-m-d H:i:s'));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testRelationsLoadLazilyAcrossTheGraph(): void
     {
         $project = $this->em->find(ProjectEntity::class, $this->graph['project']->id);

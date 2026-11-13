@@ -9,6 +9,8 @@ use App\Company\PositionEntity;
 use App\Identity\User;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use InvalidArgumentException;
 use LogicException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -23,6 +25,10 @@ final class PositionEntityTest extends KernelTestCase
         $this->em = self::getContainer()->get('doctrine')->getManager();
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testUserCanHoldSeveralPositionsAtOneCompany(): void
     {
         $user = new User('a@example.com');

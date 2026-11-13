@@ -8,8 +8,11 @@ use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
 use App\Company\PositionEntity;
 use App\Identity\User;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CompanyRepositoryPositionsTest extends KernelTestCase
@@ -24,6 +27,11 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $this->positions = self::getContainer()->get(CompanyRepository::class);
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testReturnsPositionsOldestFirst(): void
     {
         $user = $this->persist(new User('a@example.com'));
@@ -43,6 +51,9 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($result));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     public function testExcludesPositionsAtOtherCompanies(): void
     {
         $user = $this->persist(new User('a@example.com'));
@@ -55,6 +66,9 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         self::assertSame(['Developer'], $this->titles($this->positions->getAllPositionsByCompany($user, $acme)));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     public function testAnotherUserGetsNothingForMyCompany(): void
     {
         $me = $this->persist(new User('me@example.com'));
@@ -66,6 +80,9 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         self::assertSame([], $this->positions->getAllPositionsByCompany($other, $acme));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     public function testArchivedPositionsAreExcludedByDefault(): void
     {
         $user = $this->persist(new User('a@example.com'));
@@ -77,6 +94,9 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         self::assertSame(['Developer'], $this->titles($this->positions->getAllPositionsByCompany($user, $acme)));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     public function testIncludeArchivedReturnsEverything(): void
     {
         $user = $this->persist(new User('a@example.com'));
@@ -100,6 +120,9 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         self::assertSame([], $this->positions->getAllPositionsByCompany($user, $acme));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     private function position(CompanyEntity $company, string $title, string $start = '2024-01-15'): PositionEntity
     {
         return $this->persist($company->addPosition($title, new DateTimeImmutable($start)));

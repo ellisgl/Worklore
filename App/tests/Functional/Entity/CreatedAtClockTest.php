@@ -9,6 +9,7 @@ use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use Closure;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -58,6 +59,9 @@ final class CreatedAtClockTest extends KernelTestCase
         self::assertSame('2026-01-02 11:00:00 UTC', $entity->createdAt->format('Y-m-d H:i:s T'));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     #[DataProvider('entityProvider')]
     public function testExplicitCreatedAtIsKept(Closure $create): void
     {

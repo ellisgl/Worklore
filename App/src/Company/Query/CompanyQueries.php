@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Company\Query;
 
 use App\Shared\UserId;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception;
 
 /**
  * The read side of the Company module: SQL shaped for what the API shows,
@@ -27,6 +29,9 @@ final readonly class CompanyQueries
      * true for all.
      *
      * @return list<CompanySummary>
+     *
+     * @throws DateMalformedStringException
+     * @throws Exception
      */
     public function listForOwner(UserId $ownerId, bool $includeArchived = false): array
     {
@@ -71,6 +76,8 @@ final readonly class CompanyQueries
 
     /**
      * Timestamps are stored in UTC without a zone.
+     *
+     * @throws DateMalformedStringException
      */
     private static function utc(string $timestamp): DateTimeImmutable
     {

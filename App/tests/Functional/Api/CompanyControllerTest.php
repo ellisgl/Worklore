@@ -10,8 +10,12 @@ use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
 use Closure;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
+use JsonException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,6 +27,9 @@ final class CompanyControllerTest extends ApiTestCase
     /** @var array<string, string> */
     private array $auth;
 
+    /**
+     * @throws JsonException
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,6 +39,11 @@ final class CompanyControllerTest extends ApiTestCase
 
     // ---- POST /api/companies ----------------------------------------------
 
+    /**
+     * @throws JsonException
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testCreateReturnsIdAndSavesTheCompany(): void
     {
         $response = $this->jsonRequest('POST', '/api/companies', ['name' => '  Acme Ltd ', 'overview' => 'Widgets'], $this->auth);
@@ -45,6 +57,9 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertSame('Widgets', $company->overview);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testDuplicateNameIsAConflictIgnoringCase(): void
     {
         $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme'], $this->auth);
@@ -55,6 +70,9 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertCount(1, $this->list());
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testAnotherUserCanUseTheSameName(): void
     {
         $this->createUser('other@example.com');
@@ -76,6 +94,9 @@ final class CompanyControllerTest extends ApiTestCase
         yield 'name too long' => [['name' => str_repeat('x', 256)]];
     }
 
+    /**
+     * @throws JsonException
+     */
     #[DataProvider('invalidPayloadProvider')]
     public function testInvalidPayloadIsRejectedWithViolations(array $payload): void
     {
@@ -86,6 +107,9 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertSame([], $this->list(), 'Nothing saved');
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testCreateRequiresAuthentication(): void
     {
         $response = $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme']);
@@ -95,6 +119,9 @@ final class CompanyControllerTest extends ApiTestCase
 
     // ---- GET /api/companies -----------------------------------------------
 
+    /**
+     * @throws JsonException
+     */
     public function testListShowsOwnCompaniesSortedByName(): void
     {
         foreach (['Globex', 'Acme', 'Initech'] as $name) {
@@ -107,6 +134,9 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertSame(['Acme', 'Globex', 'Initech'], array_column($this->list(), 'name'));
     }
 
+    /**
+     * @throws JsonException
+     */
     public function testListUsesSnakeCaseKeys(): void
     {
         $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme'], $this->auth);
@@ -117,6 +147,12 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertNotFalse(DateTimeImmutable::createFromFormat(DATE_RFC3339, $company['created_at']));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws JsonException
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testArchivedCompaniesAreHiddenUnlessAskedFor(): void
     {
         $this->seed(static function (CompanyEntity $c): void {}, 'Acme');
@@ -130,6 +166,12 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertNotNull($all[1]['archived_at']);
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws JsonException
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testListCountsActiveProductsAndShowsCurrentPosition(): void
     {
         $this->seed(static function (CompanyEntity $c): void {
@@ -160,6 +202,8 @@ final class CompanyControllerTest extends ApiTestCase
 
     /**
      * @return list<array<string, mixed>>
+     *
+     * @throws JsonException
      */
     private function list(string $query = ''): array
     {
@@ -174,6 +218,9 @@ final class CompanyControllerTest extends ApiTestCase
      * create yet (products, positions, archiving).
      *
      * @param Closure(CompanyEntity): mixed $build
+     *
+     * @throws OptimisticLockException
+     * @throws ORMException
      */
     private function seed(Closure $build, string $name): void
     {
@@ -184,6 +231,10 @@ final class CompanyControllerTest extends ApiTestCase
         $em->flush();
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     private function reloadedUser(): User
     {
         return $this->em()->find(User::class, $this->user->id);

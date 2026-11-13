@@ -6,6 +6,7 @@ namespace App\Identity\Controller;
 
 use App\Identity\Security\TokenManager;
 use LogicException;
+use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +32,9 @@ final class AuthController extends AbstractController
         throw new LogicException('This route is handled by the json_login authenticator.');
     }
 
+    /**
+     * @throws RandomException
+     */
     #[Route('/refresh', name: 'refresh', methods: ['POST'])]
     public function refresh(#[MapRequestPayload] RefreshTokenRequest $payload): JsonResponse
     {

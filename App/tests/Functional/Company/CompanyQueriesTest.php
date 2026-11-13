@@ -8,8 +8,10 @@ use App\Company\CompanyEntity;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\CompanySummary;
 use App\Identity\User;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
+use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -30,6 +32,10 @@ final class CompanyQueriesTest extends KernelTestCase
         $this->em->persist($this->owner);
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
     public function testListIsSortedByNameAndScopedToTheOwner(): void
     {
         $this->company('Globex');
@@ -44,6 +50,10 @@ final class CompanyQueriesTest extends KernelTestCase
         self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($this->queries->listForOwner($this->owner->id, includeArchived: true)));
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
     public function testReadModelFields(): void
     {
         $acme = $this->company('Acme', 'Widgets', new DateTimeImmutable('2024-01-02 03:04:05', new DateTimeZone('UTC')));
@@ -63,6 +73,10 @@ final class CompanyQueriesTest extends KernelTestCase
         self::assertSame('Lead', $summary->currentPosition, 'Newest current, non-archived position');
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
     public function testOwnerWithoutCompaniesGetsEmptyList(): void
     {
         $this->em->flush();

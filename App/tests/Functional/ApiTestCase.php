@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Identity\User;
 use App\Identity\UserManager;
+use JsonException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -45,6 +46,8 @@ abstract class ApiTestCase extends WebTestCase
     /**
      * @param array<string, mixed>|null $body
      * @param array<string, string>     $headers HTTP headers, e.g. ['Authorization' => 'Bearer x']
+     *
+     * @throws JsonException
      */
     protected function jsonRequest(string $method, string $uri, ?array $body = null, array $headers = []): Response
     {
@@ -60,6 +63,8 @@ abstract class ApiTestCase extends WebTestCase
 
     /**
      * @return array{token_type: string, access_token: string, expires_in: int, refresh_token: string, refresh_expires_in: int}
+     *
+     * @throws JsonException
      */
     protected function login(string $email = 'user@example.com', string $password = self::PASSWORD): array
     {
@@ -76,12 +81,17 @@ abstract class ApiTestCase extends WebTestCase
 
     /**
      * @return array<string, mixed>
+     *
+     * @throws JsonException
      */
     protected function decode(Response $response): array
     {
         return json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * @throws JsonException
+     */
     protected function assertJsonError(Response $response, int $status, ?string $error = null): void
     {
         self::assertSame($status, $response->getStatusCode(), (string) $response->getContent());
@@ -95,6 +105,8 @@ abstract class ApiTestCase extends WebTestCase
      * Calls a protected endpoint to check whether an access token is accepted.
      * Uses logout because it's currently the only protected route; it revokes
      * the token, so call this at most once per token.
+     *
+     * @throws JsonException
      */
     protected function accessTokenWorks(string $accessToken): bool
     {

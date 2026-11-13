@@ -11,6 +11,7 @@ use App\Identity\User;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Random\RandomException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -32,6 +33,9 @@ final readonly class TokenManager
     ) {
     }
 
+    /**
+     * @throws RandomException
+     */
     public function issue(User $user): TokenPair
     {
         [$pair, $hashes] = $this->generate();
@@ -62,6 +66,8 @@ final readonly class TokenManager
      *
      * Returns null if the refresh token is unknown, expired, was already used,
      * or belongs to an archived user.
+     *
+     * @throws RandomException
      */
     public function refresh(string $refreshToken): ?TokenPair
     {
@@ -119,6 +125,8 @@ final readonly class TokenManager
 
     /**
      * @return array{TokenPair, array{access: string, refresh: string}}
+     *
+     * @throws RandomException
      */
     private function generate(): array
     {
@@ -131,6 +139,9 @@ final readonly class TokenManager
         ];
     }
 
+    /**
+     * @throws RandomException
+     */
     private static function randomToken(): string
     {
         return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');

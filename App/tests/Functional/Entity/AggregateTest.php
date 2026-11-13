@@ -11,6 +11,8 @@ use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -30,6 +32,10 @@ final class AggregateTest extends KernelTestCase
         $this->em->persist($this->user);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testPersistingTheCompanySavesEverythingInside(): void
     {
         $company = new CompanyEntity($this->user, 'Acme');
@@ -51,6 +57,10 @@ final class AggregateTest extends KernelTestCase
         self::assertNotNull($companies->findProductByIdForOwner($widget->id, $user));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testPersistingTheCategorySavesItsTags(): void
     {
         $category = new CategoryEntity($this->user, 'Area');
@@ -65,6 +75,10 @@ final class AggregateTest extends KernelTestCase
         self::assertCount(2, self::getContainer()->get(CategoryRepository::class)->getAllTagsByCategory($user, $category));
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testChildrenAddedLaterAreSavedOnFlush(): void
     {
         $company = new CompanyEntity($this->user, 'Acme');

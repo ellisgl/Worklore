@@ -6,11 +6,13 @@ namespace App\Identity\Security;
 
 use App\Identity\User;
 use LogicException;
+use Random\RandomException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerInterface;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
@@ -24,6 +26,10 @@ final readonly class LoginSuccessHandler implements AuthenticationSuccessHandler
     ) {
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws RandomException
+     */
     public function onAuthenticationSuccess(Request $request, TokenInterface $token): Response
     {
         $user = $token->getUser();

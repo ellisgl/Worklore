@@ -9,6 +9,7 @@ use App\Company\CompanyRepository;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -27,6 +28,7 @@ final readonly class CreateCompanyHandler
     /**
      * @throws CompanyNameTaken
      * @throws InvalidValueException if the name is blank or too long
+     * @throws ORMException
      */
     public function __invoke(CreateCompany $command): void
     {

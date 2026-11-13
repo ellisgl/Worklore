@@ -10,6 +10,8 @@ use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CategoryRepositoryTagsTest extends KernelTestCase
@@ -24,6 +26,10 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->tags = self::getContainer()->get(CategoryRepository::class);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testReturnsUsersTagsOrderedByCategoryThenTagName(): void
     {
         $user = $this->persist(new User('a@example.com'));
@@ -58,6 +64,10 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         self::assertSame(['mine'], $names);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     public function testCategoriesAreLoadedInTheSameQuery(): void
     {
         $user = $this->persist(new User('a@example.com'));

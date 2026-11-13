@@ -15,6 +15,8 @@ use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -45,6 +47,10 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
         yield 'tag' => [CategoryRepository::class, 'findTagByIdForOwner', 'tag'];
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     #[DataProvider('repositoryProvider')]
     public function testOwnerGetsTheRecord(string $repository, string $method, string $key): void
     {
@@ -119,6 +125,10 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
         return self::getContainer()->get($class);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     private function reload(User $user): User
     {
         return $this->em->find(User::class, $user->id);

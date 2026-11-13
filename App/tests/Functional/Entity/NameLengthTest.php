@@ -11,6 +11,8 @@ use App\Taxonomy\CategoryEntity;
 use Closure;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -69,6 +71,10 @@ final class NameLengthTest extends KernelTestCase
         }];
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     #[DataProvider('namedProvider')]
     public function testMaxLengthIsAcceptedAndSaved(Closure $build): void
     {
