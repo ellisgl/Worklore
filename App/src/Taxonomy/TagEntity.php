@@ -10,7 +10,6 @@ use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Taxonomy/Config/TagEntity.orm.xml.
@@ -19,7 +18,7 @@ final class TagEntity
 {
     public const int MAX_NAME_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) TagId $id;
     private(set) string $name;
     /** Case-insensitive form of $name, for uniq_tag_category_name; see nameKey() */
     private string $nameKey;
@@ -38,7 +37,7 @@ final class TagEntity
     ) {
         OwnershipMismatchException::assertSameUser($category->user, $user, 'category');
 
-        $this->id = Uuid::v7();
+        $this->id = TagId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->category = $category;
@@ -52,11 +51,6 @@ final class TagEntity
     public static function nameKey(string $name): string
     {
         return mb_strtolower(trim($name));
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     /**

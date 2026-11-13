@@ -36,7 +36,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $this->persistAll($user, $project->product->company, $project->product, $project, $tag->category, $tag, $entry);
         $this->em->clear();
 
-        $project = $this->em->find(ProjectEntity::class, $project->getId());
+        $project = $this->em->find(ProjectEntity::class, $project->id);
         self::assertCount(1, $project->getJournalEntries(), 'The project loads its entries from the database');
 
         $loaded = $project->getJournalEntries()->first();
@@ -104,7 +104,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $entry = $this->em->find(JournalEntryEntity::class, $entry->getId());
+        $entry = $this->em->find(JournalEntryEntity::class, $entry->id);
         self::assertNotNull($entry, 'The entry itself survives');
         self::assertCount(0, $entry->getTags());
     }

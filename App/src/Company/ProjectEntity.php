@@ -16,7 +16,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
 use LogicException;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Company/Config/ProjectEntity.orm.xml.
@@ -25,7 +24,7 @@ final class ProjectEntity
 {
     public const int MAX_NAME_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) ProjectId $id;
     private(set) string $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -49,18 +48,13 @@ final class ProjectEntity
     ) {
         OwnershipMismatchException::assertSameUser($product->user, $user, 'product');
 
-        $this->id = Uuid::v7();
+        $this->id = ProjectId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = self::normalizeName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->tags = new ArrayCollection();
         $this->journalEntries = new ArrayCollection();
         $product->addProject($this);
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     /**

@@ -35,7 +35,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $result = $this->categories->getAllCategoriesByUser($this->em->find(User::class, $user->getId()));
+        $result = $this->categories->getAllCategoriesByUser($this->em->find(User::class, $user->id));
 
         self::assertSame(['area', 'location', 'skill'], $this->names($result));
     }

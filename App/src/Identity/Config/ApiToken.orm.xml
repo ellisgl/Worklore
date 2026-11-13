@@ -14,7 +14,7 @@
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
-        <id name="id" type="uuid"/>
+        <id name="id" type="api_token_id"/>
 
         <field name="accessTokenHash" column="access_token_hash" length="64"/>
         <field name="accessExpiresAt" column="access_expires_at" type="datetime_immutable"/>

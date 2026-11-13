@@ -11,7 +11,6 @@ use DateTimeZone;
 use InvalidArgumentException;
 use LogicException;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * A role a user held (or holds) at a company. A user can have several at the
@@ -24,7 +23,7 @@ final class PositionEntity
     public const int MAX_TITLE_LENGTH = 255;
     public const int MAX_REASON_LEFT_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) PositionId $id;
     private(set) string $title;
     private(set) ?string $overview;
     private(set) DateTimeImmutable $startDate;
@@ -47,18 +46,13 @@ final class PositionEntity
     ) {
         OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
 
-        $this->id = Uuid::v7();
+        $this->id = PositionId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = self::normalizeTitle($title);
         $this->startDate = self::dateOnly($startDate);
         $this->overview = self::normalizeText($overview);
 
         $company->addPosition($this);
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     public function isCurrent(): bool

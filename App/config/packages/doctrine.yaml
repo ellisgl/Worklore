@@ -7,6 +7,18 @@ doctrine:
         #server_version: '16'
 
         profiling_collect_backtrace: '%kernel.debug%'
+
+        # Typed entity ids (App\Shared\EntityId subclasses), stored as native UUIDs
+        types:
+            api_token_id: App\Identity\Doctrine\ApiTokenIdType
+            category_id: App\Taxonomy\Doctrine\CategoryIdType
+            company_id: App\Company\Doctrine\CompanyIdType
+            journal_entry_id: App\Journal\Doctrine\JournalEntryIdType
+            position_id: App\Company\Doctrine\PositionIdType
+            product_id: App\Company\Doctrine\ProductIdType
+            project_id: App\Company\Doctrine\ProjectIdType
+            tag_id: App\Taxonomy\Doctrine\TagIdType
+            user_id: App\Identity\Doctrine\UserIdType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore

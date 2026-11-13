@@ -9,14 +9,13 @@ use DateTimeZone;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Identity/Config/User.orm.xml.
  */
 final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    private(set) Uuid $id;
+    private(set) UserId $id;
     /** Stored trimmed and lowercased; see normalizeEmail() */
     private(set) string $email;
     /** @var list<string> Extra roles only; getRoles() adds the implicit ROLE_USER */
@@ -30,7 +29,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         string $email,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = UserId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setEmail($email);
     }
@@ -38,11 +37,6 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public static function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     public function setEmail(string $email): self

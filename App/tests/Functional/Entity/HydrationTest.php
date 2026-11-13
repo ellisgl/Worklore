@@ -20,7 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * Guards the readonly properties on entities. Doctrine refuses to write a
  * readonly property twice with a different object (ReadonlyAccessor uses
  * !==), which happens when a lazy reference is loaded or an entity is
- * refreshed. An id typed Uuid can't be readonly for that reason.
+ * refreshed. Object-valued ids (CompanyId, ...) can't be readonly for that reason.
  */
 final class HydrationTest extends KernelTestCase
 {
@@ -72,7 +72,7 @@ final class HydrationTest extends KernelTestCase
     {
         $original = $this->graph[$key];
 
-        $reference = $this->em->getReference($original::class, $original->getId());
+        $reference = $this->em->getReference($original::class, $original->id);
         // Reading a non-id property initialises the lazy object.
         self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $reference->createdAt->format('Y-m-d H:i:s'));
     }
@@ -81,7 +81,7 @@ final class HydrationTest extends KernelTestCase
     public function testEntityCanBeRefreshed(string $key): void
     {
         $original = $this->graph[$key];
-        $entity = $this->em->find($original::class, $original->getId());
+        $entity = $this->em->find($original::class, $original->id);
 
         $this->em->refresh($entity);
 
@@ -90,7 +90,7 @@ final class HydrationTest extends KernelTestCase
 
     public function testRelationsLoadLazilyAcrossTheGraph(): void
     {
-        $project = $this->em->find(ProjectEntity::class, $this->graph['project']->getId());
+        $project = $this->em->find(ProjectEntity::class, $this->graph['project']->id);
 
         self::assertSame('Acme', $project->product->company->name);
         self::assertSame('a@example.com', $project->product->company->user->email);

@@ -35,8 +35,8 @@ final class PositionRepositoryTest extends KernelTestCase
         $this->em->clear();
 
         $result = $this->positions->getAllPositionsByCompany(
-            $this->em->find(User::class, $user->getId()),
-            $this->em->find(CompanyEntity::class, $acme->getId()),
+            $this->em->find(User::class, $user->id),
+            $this->em->find(CompanyEntity::class, $acme->id),
         );
 
         self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($result));

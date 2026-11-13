@@ -25,7 +25,7 @@ final class OwnershipMismatchException extends InvalidArgumentException
     {
         // Compare ids, not objects: a lazy reference and a loaded entity can
         // be the same user.
-        if (!$owner->getId()->equals($user->getId())) {
+        if (!$owner->id->equals($user->id)) {
             throw new self(\sprintf('The %s belongs to a different user', $what));
         }
     }

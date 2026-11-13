@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Identity;
 
 use DateTimeImmutable;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * One login session: an access/refresh token pair.
@@ -17,7 +16,7 @@ use Symfony\Component\Uid\Uuid;
  */
 final class ApiToken
 {
-    private(set) Uuid $id;
+    private(set) ApiTokenId $id;
     private(set) string $accessTokenHash;
     private(set) DateTimeImmutable $accessExpiresAt;
     private(set) string $refreshTokenHash;
@@ -35,13 +34,8 @@ final class ApiToken
         string $refreshTokenHash,
         DateTimeImmutable $refreshExpiresAt,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = ApiTokenId::generate();
         $this->rotate($accessTokenHash, $accessExpiresAt, $refreshTokenHash, $refreshExpiresAt);
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     public function rotate(

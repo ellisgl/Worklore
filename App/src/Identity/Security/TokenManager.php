@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Identity\Security;
 
 use App\Identity\ApiToken;
+use App\Identity\Doctrine\ApiTokenIdType;
 use App\Identity\User;
 use App\Identity\ApiTokenRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -87,7 +88,7 @@ final readonly class TokenManager
             ->setParameter('accessExpires', $now->modify("+{$this->accessTtl} seconds"), 'datetime_immutable')
             ->setParameter('refresh', $hashes['refresh'])
             ->setParameter('refreshExpires', $now->modify("+{$this->refreshTtl} seconds"), 'datetime_immutable')
-            ->setParameter('id', $token->getId(), 'uuid')
+            ->setParameter('id', $token->id, ApiTokenIdType::NAME)
             ->setParameter('oldHash', $oldHash)
             ->getQuery()
             ->execute();

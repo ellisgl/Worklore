@@ -8,7 +8,6 @@ use App\Company\ProjectEntity;
 use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<JournalEntryEntity>
@@ -25,7 +24,7 @@ class JournalEntryRepository extends ServiceEntityRepository
      * otherwise, so an endpoint answers 404 instead of revealing someone
      * else's record. Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(Uuid $id, User $user): ?JournalEntryEntity
+    public function findOneByIdForUser(JournalEntryId $id, User $user): ?JournalEntryEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -47,8 +46,8 @@ class JournalEntryRepository extends ServiceEntityRepository
             ->innerJoin('p.company', 'c')
             ->where('j.user = :user')
             ->andWhere('j.project = :project')
-            ->setParameter('user', $user->getId(), 'uuid')
-            ->setParameter('project', $project->getId(), 'uuid')
+            ->setParameter('user', $user)
+            ->setParameter('project', $project)
             ->orderBy('j.createdAt', 'DESC')
             ->addOrderBy('j.id', 'DESC');
 

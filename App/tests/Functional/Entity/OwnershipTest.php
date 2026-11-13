@@ -115,8 +115,8 @@ final class OwnershipTest extends KernelTestCase
         $em->flush();
         $em->clear();
 
-        $company = $em->find(CompanyEntity::class, $company->getId());
-        $sameUser = $em->getReference(User::class, $this->me->getId());
+        $company = $em->find(CompanyEntity::class, $company->id);
+        $sameUser = $em->getReference(User::class, $this->me->id);
 
         $product = new ProductEntity($company, $sameUser, 'Widget');
 

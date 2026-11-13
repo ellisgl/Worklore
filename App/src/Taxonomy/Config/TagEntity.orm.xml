@@ -15,7 +15,7 @@
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
-        <id name="id" type="uuid"/>
+        <id name="id" type="tag_id"/>
 
         <field name="name">
             <options>

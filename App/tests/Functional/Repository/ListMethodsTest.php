@@ -153,8 +153,8 @@ final class ListMethodsTest extends KernelTestCase
         $this->em->flush();
         $repo = $this->repo(JournalEntryRepository::class);
 
-        self::assertSame($entry, $repo->findOneByIdForUser($entry->getId(), $this->user));
-        self::assertNull($repo->findOneByIdForUser($entry->getId(), $this->persist(new User('other@example.com'))));
+        self::assertSame($entry, $repo->findOneByIdForUser($entry->id, $this->user));
+        self::assertNull($repo->findOneByIdForUser($entry->id, $this->persist(new User('other@example.com'))));
     }
 
     // ---- positions --------------------------------------------------------
@@ -184,7 +184,7 @@ final class ListMethodsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $current = $this->repo(PositionRepository::class)->getCurrentPositionsByUser($this->em->find(User::class, $this->user->getId()));
+        $current = $this->repo(PositionRepository::class)->getCurrentPositionsByUser($this->em->find(User::class, $this->user->id));
 
         self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title, $current));
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($current[0]->company), 'Company is fetched in the same query');

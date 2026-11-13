@@ -86,7 +86,7 @@ final class NameLengthTest extends KernelTestCase
 
         $record = end($entities);
         $this->em->clear();
-        $loaded = $this->em->find($record::class, $record->getId());
+        $loaded = $this->em->find($record::class, $record->id);
         self::assertSame($name, $loaded->name ?? $loaded->title);
     }
 

@@ -7,7 +7,6 @@ namespace App\Company;
 use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<CompanyEntity>
@@ -24,7 +23,7 @@ class CompanyRepository extends ServiceEntityRepository
      * endpoint answers 404 instead of revealing someone else's record.
      * Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(Uuid $id, User $user): ?CompanyEntity
+    public function findOneByIdForUser(CompanyId $id, User $user): ?CompanyEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -41,7 +40,7 @@ class CompanyRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('c')
             ->where('c.user = :user')
-            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('user', $user)
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC');
 
@@ -67,13 +66,13 @@ class CompanyRepository extends ServiceEntityRepository
             ->select('1')
             ->where('c.user = :user')
             ->andWhere('c.nameKey = :nameKey')
-            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('user', $user)
             ->setParameter('nameKey', CompanyEntity::nameKey($name))
             ->setMaxResults(1);
 
         if (null !== $except) {
-            $qb->andWhere('c.id <> :except')
-                ->setParameter('except', $except->getId(), 'uuid');
+            $qb->andWhere('c <> :except')
+                ->setParameter('except', $except);
         }
 
         return null !== $qb->getQuery()->getOneOrNullResult();

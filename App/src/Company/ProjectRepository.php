@@ -7,7 +7,6 @@ namespace App\Company;
 use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<ProjectEntity>
@@ -24,7 +23,7 @@ class ProjectRepository extends ServiceEntityRepository
      * endpoint answers 404 instead of revealing someone else's record.
      * Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(Uuid $id, User $user): ?ProjectEntity
+    public function findOneByIdForUser(ProjectId $id, User $user): ?ProjectEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -45,8 +44,8 @@ class ProjectRepository extends ServiceEntityRepository
             ->innerJoin('p.company', 'c')
             ->where('pj.user = :user')
             ->andWhere('pj.product = :product')
-            ->setParameter('user', $user->getId(), 'uuid')
-            ->setParameter('product', $product->getId(), 'uuid')
+            ->setParameter('user', $user)
+            ->setParameter('product', $product)
             ->orderBy('pj.name', 'ASC')
             ->addOrderBy('pj.id', 'ASC');
 

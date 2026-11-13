@@ -15,7 +15,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Journal/Config/JournalEntryEntity.orm.xml.
@@ -24,7 +23,7 @@ final class JournalEntryEntity
 {
     public const int MAX_TITLE_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) JournalEntryId $id;
     private(set) string $title;
     private(set) string $entry;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -44,17 +43,12 @@ final class JournalEntryEntity
     ) {
         OwnershipMismatchException::assertSameUser($project->user, $user, 'project');
 
-        $this->id = Uuid::v7();
+        $this->id = JournalEntryId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = self::normalizeTitle($title);
         $this->entry = self::normalizeEntry($entry);
         $this->tags = new ArrayCollection();
         $project->addJournalEntry($this);
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     /**

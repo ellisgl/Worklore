@@ -40,7 +40,7 @@ final class AuthControllerTest extends ApiTestCase
 
         self::assertNotNull($row);
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
-        $raw = $connection->fetchAssociative('SELECT access_token_hash, refresh_token_hash FROM api_token WHERE id = ?', [$row->getId()->toRfc4122()]);
+        $raw = $connection->fetchAssociative('SELECT access_token_hash, refresh_token_hash FROM api_token WHERE id = ?', [$row->id->toRfc4122()]);
         self::assertNotContains($tokens['access_token'], $raw);
         self::assertNotContains($tokens['refresh_token'], $raw);
     }

@@ -20,7 +20,6 @@ use App\Taxonomy\TagRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Every repository's findOneByIdForUser(): a user sees their own records and
@@ -56,10 +55,10 @@ final class FindOneByIdForUserTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $found = $this->repo($repository)->findOneByIdForUser($mine[$key]->getId(), $this->reload($mine['user']));
+        $found = $this->repo($repository)->findOneByIdForUser($mine[$key]->id, $this->reload($mine['user']));
 
         self::assertNotNull($found);
-        self::assertTrue($mine[$key]->getId()->equals($found->getId()));
+        self::assertTrue($mine[$key]->id->equals($found->id));
     }
 
     #[DataProvider('repositoryProvider')]
@@ -69,7 +68,7 @@ final class FindOneByIdForUserTest extends KernelTestCase
         $theirs = $this->graphFor('other@example.com');
         $this->em->flush();
 
-        self::assertNull($this->repo($repository)->findOneByIdForUser($mine[$key]->getId(), $theirs['user']));
+        self::assertNull($this->repo($repository)->findOneByIdForUser($mine[$key]->id, $theirs['user']));
     }
 
     #[DataProvider('repositoryProvider')]
@@ -78,7 +77,7 @@ final class FindOneByIdForUserTest extends KernelTestCase
         $mine = $this->graphFor('me@example.com');
         $this->em->flush();
 
-        self::assertNull($this->repo($repository)->findOneByIdForUser(Uuid::v7(), $mine['user']));
+        self::assertNull($this->repo($repository)->findOneByIdForUser($mine[$key]->id::generate(), $mine['user']));
     }
 
     #[DataProvider('repositoryProvider')]
@@ -88,7 +87,7 @@ final class FindOneByIdForUserTest extends KernelTestCase
         $mine[$key]->archive(new \DateTimeImmutable());
         $this->em->flush();
 
-        self::assertNotNull($this->repo($repository)->findOneByIdForUser($mine[$key]->getId(), $mine['user']));
+        self::assertNotNull($this->repo($repository)->findOneByIdForUser($mine[$key]->id, $mine['user']));
     }
 
     /**
@@ -125,6 +124,6 @@ final class FindOneByIdForUserTest extends KernelTestCase
 
     private function reload(User $user): User
     {
-        return $this->em->find(User::class, $user->getId());
+        return $this->em->find(User::class, $user->id);
     }
 }

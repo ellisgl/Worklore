@@ -100,7 +100,7 @@ final class UniquenessTest extends KernelTestCase
         $category = $this->save(new CategoryEntity($user, 'Area', str_repeat('x', 5000)));
         $this->em->clear();
 
-        self::assertSame(5000, mb_strlen($this->em->find(CategoryEntity::class, $category->getId())->description));
+        self::assertSame(5000, mb_strlen($this->em->find(CategoryEntity::class, $category->id)->description));
     }
 
     public function testSameTagNameAllowedInDifferentCategories(): void

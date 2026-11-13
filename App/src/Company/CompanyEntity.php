@@ -13,7 +13,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Company/Config/CompanyEntity.orm.xml.
@@ -22,7 +21,7 @@ final class CompanyEntity
 {
     public const int MAX_NAME_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) CompanyId $id;
     private(set) string $name;
     /** Case-insensitive form of $name, for uniq_company_user_name; see nameKey() */
     private string $nameKey;
@@ -42,7 +41,7 @@ final class CompanyEntity
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = CompanyId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->overview = self::normalizeOverview($overview);
@@ -57,11 +56,6 @@ final class CompanyEntity
     public static function nameKey(string $name): string
     {
         return mb_strtolower(trim($name));
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     /**

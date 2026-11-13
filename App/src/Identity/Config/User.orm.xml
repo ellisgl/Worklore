@@ -9,7 +9,7 @@
             <unique-constraint name="uniq_app_user_email" columns="email"/>
         </unique-constraints>
 
-        <id name="id" type="uuid"/>
+        <id name="id" type="user_id"/>
 
         <field name="email" length="180"/>
         <field name="roles" type="json"/>

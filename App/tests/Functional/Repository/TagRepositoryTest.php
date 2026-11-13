@@ -36,7 +36,7 @@ final class TagRepositoryTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $result = $this->tags->getAllTagsByUser($this->em->find(User::class, $user->getId()));
+        $result = $this->tags->getAllTagsByUser($this->em->find(User::class, $user->id));
 
         self::assertSame(
             ['area/backend', 'area/frontend', 'skill/go', 'skill/php'],
@@ -64,7 +64,7 @@ final class TagRepositoryTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $tag = $this->tags->getAllTagsByUser($this->em->find(User::class, $user->getId()))[0];
+        $tag = $this->tags->getAllTagsByUser($this->em->find(User::class, $user->id))[0];
 
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($tag->category));
     }

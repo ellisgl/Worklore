@@ -7,7 +7,6 @@ namespace App\Taxonomy;
 use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<TagEntity>
@@ -24,7 +23,7 @@ class TagRepository extends ServiceEntityRepository
      * endpoint answers 404 instead of revealing someone else's record.
      * Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(Uuid $id, User $user): ?TagEntity
+    public function findOneByIdForUser(TagId $id, User $user): ?TagEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -44,13 +43,13 @@ class TagRepository extends ServiceEntityRepository
             ->select('1')
             ->where('t.category = :category')
             ->andWhere('t.nameKey = :nameKey')
-            ->setParameter('category', $category->getId(), 'uuid')
+            ->setParameter('category', $category)
             ->setParameter('nameKey', TagEntity::nameKey($name))
             ->setMaxResults(1);
 
         if (null !== $except) {
-            $qb->andWhere('t.id <> :except')
-                ->setParameter('except', $except->getId(), 'uuid');
+            $qb->andWhere('t <> :except')
+                ->setParameter('except', $except);
         }
 
         return null !== $qb->getQuery()->getOneOrNullResult();
@@ -73,7 +72,7 @@ class TagRepository extends ServiceEntityRepository
             ->innerJoin('t.category', 'c')
             ->addSelect('c')
             ->where('t.user = :user')
-            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('user', $user)
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC')     // keeps same-named categories' tags together
             ->addOrderBy('t.name', 'ASC')
@@ -102,8 +101,8 @@ class TagRepository extends ServiceEntityRepository
             ->innerJoin('t.category', 'c')
             ->where('t.user = :user')
             ->andWhere('t.category = :category')
-            ->setParameter('user', $user->getId(), 'uuid')
-            ->setParameter('category', $category->getId(), 'uuid')
+            ->setParameter('user', $user)
+            ->setParameter('category', $category)
             ->orderBy('t.name', 'ASC')
             ->addOrderBy('t.id', 'ASC');
 

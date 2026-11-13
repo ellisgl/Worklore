@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Command;
 
 use App\Identity\User;
+use App\Identity\UserId;
 use App\Identity\ApiTokenRepository;
 use App\Identity\UserRepository;
 use App\Identity\Security\TokenManager;
@@ -44,8 +45,9 @@ final class UserCommandsTest extends KernelTestCase
         $tester->assertCommandIsSuccessful();
         $user = $this->users->findOneByEmail('new.user@example.com');
         self::assertNotNull($user);
-        self::assertInstanceOf(UuidV7::class, $user->getId(), 'IDs are UUIDv7');
-        self::assertStringContainsString($user->getId()->toRfc4122(), $tester->getDisplay());
+        self::assertInstanceOf(UserId::class, $user->id);
+        self::assertInstanceOf(UuidV7::class, $user->id->uuid, 'IDs are UUIDv7');
+        self::assertStringContainsString($user->id->toRfc4122(), $tester->getDisplay());
         self::assertSame('new.user@example.com', $user->email, 'Email is stored lowercased');
         self::assertSame(['ROLE_USER'], $user->getRoles());
         self::assertNotSame(self::PASSWORD, $user->getPassword(), 'Password must be hashed');
@@ -173,7 +175,7 @@ final class UserCommandsTest extends KernelTestCase
     {
         $user = $this->createUser('user@example.com');
         self::getContainer()->get(TokenManager::class)->issue($user);
-        $userId = $user->getId();
+        $userId = $user->id;
 
         $tester = $this->command('app:user:delete');
         $tester->execute(['email' => 'user@example.com', '--force' => true]);
@@ -324,7 +326,7 @@ final class UserCommandsTest extends KernelTestCase
         $em = self::getContainer()->get('doctrine')->getManager();
         $em->clear();
 
-        return $em->find(User::class, $user->getId());
+        return $em->find(User::class, $user->id);
     }
 
     private function passwordMatches(User $user, string $plain): bool

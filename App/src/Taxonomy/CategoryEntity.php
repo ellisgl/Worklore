@@ -13,7 +13,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Taxonomy/Config/CategoryEntity.orm.xml.
@@ -22,7 +21,7 @@ final class CategoryEntity
 {
     public const int MAX_NAME_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) CategoryId $id;
     private(set) string $name;
     private(set) ?string $description;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -37,16 +36,11 @@ final class CategoryEntity
         ?string $description = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = CategoryId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = self::normalizeName($name);
         $this->description = self::normalizeDescription($description);
         $this->tags = new ArrayCollection();
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     /**

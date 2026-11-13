@@ -7,7 +7,6 @@ namespace App\Company;
 use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<PositionEntity>
@@ -24,7 +23,7 @@ class PositionRepository extends ServiceEntityRepository
      * endpoint answers 404 instead of revealing someone else's record.
      * Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(Uuid $id, User $user): ?PositionEntity
+    public function findOneByIdForUser(PositionId $id, User $user): ?PositionEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -45,8 +44,8 @@ class PositionRepository extends ServiceEntityRepository
             ->innerJoin('p.company', 'c')
             ->where('p.user = :user')
             ->andWhere('p.company = :company')
-            ->setParameter('user', $user->getId(), 'uuid')
-            ->setParameter('company', $company->getId(), 'uuid')
+            ->setParameter('user', $user)
+            ->setParameter('company', $company)
             ->orderBy('p.startDate', 'DESC')
             ->addOrderBy('p.id', 'DESC');
 
@@ -74,7 +73,7 @@ class PositionRepository extends ServiceEntityRepository
             ->andWhere('p.endDate IS NULL')
             ->andWhere('p.archivedAt IS NULL')
             ->andWhere('c.archivedAt IS NULL')
-            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('user', $user)
             ->orderBy('p.startDate', 'DESC')
             ->addOrderBy('p.id', 'DESC')
             ->getQuery()

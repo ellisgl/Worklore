@@ -15,7 +15,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
 use function Symfony\Component\Clock\now;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine mapping: src/Company/Config/ProductEntity.orm.xml.
@@ -24,7 +23,7 @@ final class ProductEntity
 {
     public const int MAX_NAME_LENGTH = 255;
 
-    private(set) Uuid $id;
+    private(set) ProductId $id;
     private(set) string $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -48,7 +47,7 @@ final class ProductEntity
     ) {
         OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
 
-        $this->id = Uuid::v7();
+        $this->id = ProductId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = self::normalizeName($name);
         $this->overview = self::normalizeOverview($overview);
@@ -56,11 +55,6 @@ final class ProductEntity
         $this->tags = new ArrayCollection();
 
         $company->addProduct($this);
-    }
-
-    public function getId(): Uuid
-    {
-        return $this->id;
     }
 
     /**

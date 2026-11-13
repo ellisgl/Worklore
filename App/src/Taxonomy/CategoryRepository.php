@@ -7,7 +7,6 @@ namespace App\Taxonomy;
 use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<CategoryEntity>
@@ -24,7 +23,7 @@ class CategoryRepository extends ServiceEntityRepository
      * endpoint answers 404 instead of revealing someone else's record.
      * Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(Uuid $id, User $user): ?CategoryEntity
+    public function findOneByIdForUser(CategoryId $id, User $user): ?CategoryEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -40,7 +39,7 @@ class CategoryRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('c')
             ->where('c.user = :user')
-            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('user', $user)
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC');
 
