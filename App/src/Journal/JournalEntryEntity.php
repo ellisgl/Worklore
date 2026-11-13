@@ -15,8 +15,7 @@ use DateTimeZone;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
-
-use function Symfony\Component\Clock\now;
+use Symfony\Component\Clock\Clock;
 
 /**
  * Doctrine mapping: src/Journal/Config/JournalEntryEntity.orm.xml.
@@ -44,7 +43,7 @@ final class JournalEntryEntity
         OwnershipMismatchException::assertSameOwner($project->owner, $owner, 'project');
 
         $this->id = JournalEntryId::generate();
-        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
+        $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Journal entry title');
         $this->entry = self::normalizeEntry($entry);
         $this->tags = new ArrayCollection();

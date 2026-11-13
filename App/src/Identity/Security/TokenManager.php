@@ -8,6 +8,7 @@ use App\Identity\ApiToken;
 use App\Identity\ApiTokenRepository;
 use App\Identity\Doctrine\ApiTokenIdType;
 use App\Identity\User;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -40,9 +41,9 @@ final readonly class TokenManager
             $user,
             $now,
             $hashes['access'],
-            $now->modify("+$this->accessTtl seconds"),
+            self::after($now, $this->accessTtl),
             $hashes['refresh'],
-            $now->modify("+$this->refreshTtl seconds"),
+            self::after($now, $this->refreshTtl),
         ));
         $this->em->flush();
 
@@ -85,9 +86,9 @@ final readonly class TokenManager
             ->where('t.id = :id')
             ->andWhere('t.refreshTokenHash = :oldHash')
             ->setParameter('access', $hashes['access'])
-            ->setParameter('accessExpires', $now->modify("+$this->accessTtl seconds"), 'datetime_immutable')
+            ->setParameter('accessExpires', self::after($now, $this->accessTtl), 'datetime_immutable')
             ->setParameter('refresh', $hashes['refresh'])
-            ->setParameter('refreshExpires', $now->modify("+$this->refreshTtl seconds"), 'datetime_immutable')
+            ->setParameter('refreshExpires', self::after($now, $this->refreshTtl), 'datetime_immutable')
             ->setParameter('id', $token->id, ApiTokenIdType::NAME)
             ->setParameter('oldHash', $oldHash)
             ->getQuery()
@@ -133,6 +134,15 @@ final readonly class TokenManager
     private static function randomToken(): string
     {
         return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    }
+
+    /**
+     * $now plus $seconds. Arithmetic rather than modify("+N seconds"), which
+     * can't fail here but declares DateMalformedStringException.
+     */
+    private static function after(DateTimeImmutable $now, int $seconds): DateTimeImmutable
+    {
+        return $now->setTimestamp($now->getTimestamp() + $seconds);
     }
 
     private static function hash(string $token): string

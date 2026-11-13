@@ -13,8 +13,7 @@ use DateTimeZone;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
-
-use function Symfony\Component\Clock\now;
+use Symfony\Component\Clock\Clock;
 
 /**
  * Doctrine mapping: src/Company/Config/ProductEntity.orm.xml.
@@ -47,7 +46,7 @@ final class ProductEntity
     ) {
         $this->owner = $company->owner;
         $this->id = ProductId::generate();
-        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
+        $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Product name');
         $this->overview = self::normalizeOverview($overview);
         $this->projects = new ArrayCollection();

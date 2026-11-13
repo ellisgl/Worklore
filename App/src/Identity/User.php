@@ -8,10 +8,9 @@ use App\Shared\Owner;
 use App\Shared\UserId;
 use DateTimeImmutable;
 use DateTimeZone;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-
-use function Symfony\Component\Clock\now;
 
 /**
  * Doctrine mapping: src/Identity/Config/User.orm.xml.
@@ -33,7 +32,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, O
         ?DateTimeImmutable $createdAt = null,
     ) {
         $this->id = UserId::generate();
-        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
+        $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->setEmail($email);
     }
 

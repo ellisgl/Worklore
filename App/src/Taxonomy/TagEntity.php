@@ -9,8 +9,7 @@ use App\Shared\Owner;
 use App\Shared\OwnershipMismatchException;
 use DateTimeImmutable;
 use DateTimeZone;
-
-use function Symfony\Component\Clock\now;
+use Symfony\Component\Clock\Clock;
 
 /**
  * Doctrine mapping: src/Taxonomy/Config/TagEntity.orm.xml.
@@ -44,7 +43,7 @@ final class TagEntity
     ) {
         $this->owner = $category->owner;
         $this->id = TagId::generate();
-        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
+        $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->category = $category;
     }

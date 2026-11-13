@@ -12,8 +12,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
 use LogicException;
-
-use function Symfony\Component\Clock\now;
+use Symfony\Component\Clock\Clock;
 
 /**
  * Doctrine mapping: src/Taxonomy/Config/CategoryEntity.orm.xml.
@@ -36,7 +35,7 @@ final class CategoryEntity
         ?DateTimeImmutable $createdAt = null,
     ) {
         $this->id = CategoryId::generate();
-        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
+        $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Category name');
         $this->description = self::normalizeDescription($description);
         $this->tags = new ArrayCollection();

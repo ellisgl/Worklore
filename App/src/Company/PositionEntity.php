@@ -10,9 +10,9 @@ use App\Shared\Owner;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
+use Symfony\Component\Clock\Clock;
 
 use function sprintf;
-use function Symfony\Component\Clock\now;
 
 /**
  * A role a user held (or holds) at a company. A user can have several at the
@@ -48,7 +48,7 @@ final class PositionEntity
     ) {
         $this->owner = $company->owner;
         $this->id = PositionId::generate();
-        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
+        $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Position title');
         $this->period = Period::startingOn($startDate);
         $this->overview = self::normalizeText($overview);
