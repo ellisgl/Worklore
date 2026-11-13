@@ -17,7 +17,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use function count;
 
 /**
- * Account lifecycle: shared by console commands and (later) API endpoints.
+ * Account lifecycle: shared by the console commands and the account endpoints
+ * (App\Identity\Controller\AccountController).
  */
 final readonly class UserManager
 {

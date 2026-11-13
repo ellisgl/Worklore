@@ -234,14 +234,13 @@ abstract class ApiTestCase extends WebTestCase
     }
 
     /**
-     * Calls a protected endpoint to check whether an access token is accepted.
-     * Uses logout because it's currently the only protected route; it revokes
-     * the token, so call this at most once per token.
+     * Whether a protected endpoint accepts this access token. Has no side
+     * effects (GET /api/me).
      *
      * @throws JsonException
      */
     protected function accessTokenWorks(string $accessToken): bool
     {
-        return Response::HTTP_NO_CONTENT === $this->jsonRequest('POST', '/api/auth/logout', headers: $this->bearer($accessToken))->getStatusCode();
+        return Response::HTTP_OK === $this->jsonRequest('GET', '/api/me', headers: $this->bearer($accessToken))->getStatusCode();
     }
 }
