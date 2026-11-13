@@ -12,6 +12,7 @@ use Doctrine\DBAL\Types\Exception\InvalidType;
 use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class NameTest extends KernelTestCase
@@ -23,7 +24,7 @@ final class NameTest extends KernelTestCase
 
     public function testBlankIsRejectedWithTheLabel(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Company name cannot be blank');
         Name::of('   ', 'Company name');
     }
@@ -32,7 +33,7 @@ final class NameTest extends KernelTestCase
     {
         self::assertSame(Name::MAX_LENGTH, mb_strlen(Name::of(str_repeat('é', Name::MAX_LENGTH))->value));
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Tag name cannot be longer than 255 characters');
         Name::of(str_repeat('é', Name::MAX_LENGTH + 1), 'Tag name');
     }

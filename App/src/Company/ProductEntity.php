@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Shared\OwnershipMismatchException;
 use App\Shared\Name;
 use App\Shared\Owner;
+use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;
-use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
+use LogicException;
 use function Symfony\Component\Clock\now;
 
 /**

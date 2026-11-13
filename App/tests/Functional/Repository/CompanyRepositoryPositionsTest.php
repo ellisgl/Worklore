@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Repository;
 
 use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
 use App\Company\CompanyRepository;
+use App\Company\PositionEntity;
 use App\Identity\User;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -70,7 +71,7 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $acme = $this->persist(new CompanyEntity($user, 'Acme'));
         $this->position($acme, $user, 'Developer', '2019-03-01');
-        $this->position($acme, $user, 'Archived', '2020-01-01')->archive(new \DateTimeImmutable());
+        $this->position($acme, $user, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
         $this->em->flush();
 
         self::assertSame(['Developer'], $this->titles($this->positions->getAllPositionsByCompany($user, $acme)));
@@ -81,7 +82,7 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $acme = $this->persist(new CompanyEntity($user, 'Acme'));
         $this->position($acme, $user, 'Developer', '2019-03-01');
-        $this->position($acme, $user, 'Archived', '2020-01-01')->archive(new \DateTimeImmutable());
+        $this->position($acme, $user, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
         $this->em->flush();
 
         self::assertSame(
@@ -101,7 +102,7 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
 
     private function position(CompanyEntity $company, User $user, string $title, string $start = '2024-01-15'): PositionEntity
     {
-        return $this->persist($company->addPosition($title, new \DateTimeImmutable($start)));
+        return $this->persist($company->addPosition($title, new DateTimeImmutable($start)));
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Identity\Security;
 
 use App\Identity\User;
+use LogicException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +28,7 @@ final readonly class LoginSuccessHandler implements AuthenticationSuccessHandler
     {
         $user = $token->getUser();
         if (!$user instanceof User) {
-            throw new \LogicException('Unexpected user class.');
+            throw new LogicException('Unexpected user class.');
         }
 
         return new JsonResponse($this->normalizer->normalize($this->tokenManager->issue($user)));

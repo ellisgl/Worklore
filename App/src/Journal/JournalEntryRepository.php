@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Journal;
 
-use App\Shared\Owner;
 use App\Company\ProjectEntity;
+use App\Shared\Owner;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 

@@ -8,6 +8,7 @@ use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
+use DateTimeImmutable;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,7 +39,7 @@ final class UniquenessTest extends KernelTestCase
     public function testArchivedCompanyStillReservesItsName(): void
     {
         $user = $this->user('a@example.com');
-        $this->save((new CompanyEntity($user, 'Acme'))->archive(new \DateTimeImmutable()));
+        $this->save(new CompanyEntity($user, 'Acme')->archive(new DateTimeImmutable()));
 
         $this->expectException(UniqueConstraintViolationException::class);
         $this->save(new CompanyEntity($user, 'Acme'));

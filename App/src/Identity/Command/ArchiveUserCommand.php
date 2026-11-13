@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Identity\Command;
 
-use App\Identity\UserRepository;
 use App\Identity\UserManager;
+use App\Identity\UserRepository;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

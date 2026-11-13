@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Shared\OwnershipMismatchException;
+use App\Journal\JournalEntryEntity;
 use App\Shared\Name;
 use App\Shared\Owner;
-use App\Journal\JournalEntryEntity;
+use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;

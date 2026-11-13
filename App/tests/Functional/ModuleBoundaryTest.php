@@ -8,7 +8,10 @@ use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Shared\Owner;
 use Doctrine\ORM\EntityManagerInterface;
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -32,7 +35,7 @@ final class ModuleBoundaryTest extends KernelTestCase
     {
         $offenders = [];
         $dir = \dirname(__DIR__, 2).'/src/'.$module;
-        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
 
         foreach ($files as $file) {
             $path = $file->getPathname();

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Doctrine;
 
-use App\Taxonomy\TagId;
 use App\Shared\Doctrine\EntityIdType;
+use App\Taxonomy\TagId;
 
 final class TagIdType extends EntityIdType
 {

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Command;
 
-use App\Identity\User;
-use App\Shared\UserId;
 use App\Identity\ApiTokenRepository;
-use App\Identity\UserRepository;
 use App\Identity\Security\TokenManager;
+use App\Identity\User;
 use App\Identity\UserManager;
+use App\Identity\UserRepository;
+use App\Shared\UserId;
+use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -263,7 +264,7 @@ final class UserCommandsTest extends KernelTestCase
 
         $tester->assertCommandIsSuccessful();
         self::assertStringContainsString('already archived', $tester->getDisplay());
-        self::assertEquals(new \DateTimeImmutable('2026-11-13 12:00:00'), $this->reload($user)->archivedAt);
+        self::assertEquals(new DateTimeImmutable('2026-11-13 12:00:00'), $this->reload($user)->archivedAt);
     }
 
     public function testUnarchiveRestoresUser(): void
@@ -313,7 +314,7 @@ final class UserCommandsTest extends KernelTestCase
 
     private function command(string $name): CommandTester
     {
-        return new CommandTester((new Application(self::$kernel))->find($name));
+        return new CommandTester(new Application(self::$kernel)->find($name));
     }
 
     private function createUser(string $email): User

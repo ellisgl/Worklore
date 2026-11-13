@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Taxonomy;
 
-use App\Shared\OwnershipMismatchException;
 use App\Shared\Name;
 use App\Shared\Owner;
+use App\Shared\OwnershipMismatchException;
 use DateTimeImmutable;
 use DateTimeZone;
 use function Symfony\Component\Clock\now;

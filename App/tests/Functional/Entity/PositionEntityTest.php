@@ -7,7 +7,10 @@ namespace App\Tests\Functional\Entity;
 use App\Company\CompanyEntity;
 use App\Company\PositionEntity;
 use App\Identity\User;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
+use LogicException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class PositionEntityTest extends KernelTestCase
@@ -24,10 +27,10 @@ final class PositionEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
-        ($company->addPosition('Developer', new \DateTimeImmutable('2019-03-01')))
-            ->end(new \DateTimeImmutable('2022-05-31'), 'Promoted');
-        $company->addPosition('Senior Developer', new \DateTimeImmutable('2022-06-01'));
-        $company->addPosition('Intern', new \DateTimeImmutable('2018-06-01'));
+        ($company->addPosition('Developer', new DateTimeImmutable('2019-03-01')))
+            ->end(new DateTimeImmutable('2022-05-31'), 'Promoted');
+        $company->addPosition('Senior Developer', new DateTimeImmutable('2022-06-01'));
+        $company->addPosition('Intern', new DateTimeImmutable('2018-06-01'));
 
         self::assertCount(3, $company->getPositions(), 'Constructor adds the position to the company');
 
@@ -52,8 +55,8 @@ final class PositionEntityTest extends KernelTestCase
 
     public function testDatesDropTheTime(): void
     {
-        $position = $this->position(new \DateTimeImmutable('2024-01-15 17:45:00'));
-        $position->end(new \DateTimeImmutable('2024-02-01 09:30:00'));
+        $position = $this->position(new DateTimeImmutable('2024-01-15 17:45:00'));
+        $position->end(new DateTimeImmutable('2024-02-01 09:30:00'));
 
         self::assertSame('2024-01-15 00:00:00', $position->period->start->format('Y-m-d H:i:s'));
         self::assertSame('2024-02-01 00:00:00', $position->period->end->format('Y-m-d H:i:s'));
@@ -61,32 +64,32 @@ final class PositionEntityTest extends KernelTestCase
 
     public function testCanStartAndEndOnTheSameDay(): void
     {
-        $position = $this->position(new \DateTimeImmutable('2024-01-15 09:00'));
+        $position = $this->position(new DateTimeImmutable('2024-01-15 09:00'));
 
-        $position->end(new \DateTimeImmutable('2024-01-15 08:00'));
+        $position->end(new DateTimeImmutable('2024-01-15 08:00'));
 
         self::assertSame('2024-01-15', $position->period->end->format('Y-m-d'));
     }
 
     public function testCannotEndBeforeStart(): void
     {
-        $position = $this->position(new \DateTimeImmutable('2024-01-15'));
+        $position = $this->position(new DateTimeImmutable('2024-01-15'));
 
-        $this->expectException(\InvalidArgumentException::class);
-        $position->end(new \DateTimeImmutable('2024-01-14'));
+        $this->expectException(InvalidArgumentException::class);
+        $position->end(new DateTimeImmutable('2024-01-14'));
     }
 
     public function testCannotMoveStartAfterEnd(): void
     {
-        $position = $this->position(new \DateTimeImmutable('2024-01-15'))->end(new \DateTimeImmutable('2024-06-30'));
+        $position = $this->position(new DateTimeImmutable('2024-01-15'))->end(new DateTimeImmutable('2024-06-30'));
 
-        $this->expectException(\InvalidArgumentException::class);
-        $position->setStartDate(new \DateTimeImmutable('2024-07-01'));
+        $this->expectException(InvalidArgumentException::class);
+        $position->setStartDate(new DateTimeImmutable('2024-07-01'));
     }
 
     public function testReopenMakesPositionCurrentAndClearsReason(): void
     {
-        $position = $this->position()->end(new \DateTimeImmutable('2024-06-30'), 'Contract ended');
+        $position = $this->position()->end(new DateTimeImmutable('2024-06-30'), 'Contract ended');
 
         $position->reopen();
 
@@ -96,13 +99,13 @@ final class PositionEntityTest extends KernelTestCase
 
     public function testCurrentPositionHasNoReasonLeft(): void
     {
-        $this->expectException(\LogicException::class);
+        $this->expectException(LogicException::class);
         $this->position()->setReasonLeft('Moved away');
     }
 
     public function testBlankTitleIsRejected(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->position(title: '   ');
     }
 
@@ -110,7 +113,7 @@ final class PositionEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
-        $position = $company->addPosition('Developer', new \DateTimeImmutable('2024-01-15'));
+        $position = $company->addPosition('Developer', new DateTimeImmutable('2024-01-15'));
         foreach ([$user, $company, $position] as $entity) {
             $this->em->persist($entity);
         }
@@ -123,10 +126,10 @@ final class PositionEntityTest extends KernelTestCase
         self::assertSame(0, $this->em->getRepository(PositionEntity::class)->count([]));
     }
 
-    private function position(?\DateTimeImmutable $start = null, string $title = 'Developer'): PositionEntity
+    private function position(?DateTimeImmutable $start = null, string $title = 'Developer'): PositionEntity
     {
         $user = new User('a@example.com');
 
-        return (new CompanyEntity($user, 'Acme'))->addPosition($title, $start ?? new \DateTimeImmutable('2024-01-15'));
+        return new CompanyEntity($user, 'Acme')->addPosition($title, $start ?? new DateTimeImmutable('2024-01-15'));
     }
 }

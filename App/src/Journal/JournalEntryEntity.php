@@ -6,9 +6,9 @@ namespace App\Journal;
 
 use App\Company\ProjectEntity;
 use App\Shared\InvalidValueException;
-use App\Shared\OwnershipMismatchException;
 use App\Shared\Name;
 use App\Shared\Owner;
+use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;

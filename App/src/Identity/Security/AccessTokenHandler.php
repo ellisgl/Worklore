@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Identity\Security;
 
+use SensitiveParameter;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\AccessToken\AccessTokenHandlerInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
@@ -17,7 +18,7 @@ final readonly class AccessTokenHandler implements AccessTokenHandlerInterface
     {
     }
 
-    public function getUserBadgeFrom(#[\SensitiveParameter] string $accessToken): UserBadge
+    public function getUserBadgeFrom(#[SensitiveParameter] string $accessToken): UserBadge
     {
         $token = $this->tokenManager->findValidByAccessToken($accessToken);
         if (null === $token) {

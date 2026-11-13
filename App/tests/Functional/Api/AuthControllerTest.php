@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Identity\User;
 use App\Identity\ApiTokenRepository;
+use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -328,7 +329,7 @@ final class AuthControllerTest extends ApiTestCase
 
     private function archive(User $user): void
     {
-        $user->archive(new \DateTimeImmutable());
+        $user->archive(new DateTimeImmutable());
         self::getContainer()->get('doctrine')->getManager()->flush();
     }
 }

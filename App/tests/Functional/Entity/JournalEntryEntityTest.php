@@ -12,6 +12,7 @@ use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class JournalEntryEntityTest extends KernelTestCase
@@ -28,8 +29,8 @@ final class JournalEntryEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $project = $this->project($user);
-        $tag = (new CategoryEntity($user, 'Area'))->addTag('backend');
-        $entry = (new JournalEntryEntity($project, $user, '  Kickoff  ', '  Agreed on the scope.  '))->addTag($tag);
+        $tag = new CategoryEntity($user, 'Area')->addTag('backend');
+        $entry = new JournalEntryEntity($project, $user, '  Kickoff  ', '  Agreed on the scope.  ')->addTag($tag);
 
         self::assertCount(1, $project->getJournalEntries(), 'Constructor adds the entry to the project');
 
@@ -50,7 +51,7 @@ final class JournalEntryEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Journal entry title cannot be blank');
         new JournalEntryEntity($this->project($user), $user, '   ', 'Body');
     }
@@ -59,7 +60,7 @@ final class JournalEntryEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Journal entry cannot be blank');
         new JournalEntryEntity($this->project($user), $user, 'Kickoff', '   ');
     }
@@ -72,7 +73,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         try {
             $entry->setEntry('  ');
             self::fail('Blank entry should be rejected');
-        } catch (\InvalidArgumentException) {
+        } catch (InvalidArgumentException) {
         }
 
         self::assertSame('Original', $entry->entry);
@@ -96,8 +97,8 @@ final class JournalEntryEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $project = $this->project($user);
-        $tag = (new CategoryEntity($user, 'Area'))->addTag('backend');
-        $entry = (new JournalEntryEntity($project, $user, 'Kickoff', 'Body'))->addTag($tag);
+        $tag = new CategoryEntity($user, 'Area')->addTag('backend');
+        $entry = new JournalEntryEntity($project, $user, 'Kickoff', 'Body')->addTag($tag);
         $this->persistAll($user, $project->product->company, $project->product, $project, $tag->category, $tag, $entry);
 
         $this->em->remove($tag);
@@ -111,7 +112,7 @@ final class JournalEntryEntityTest extends KernelTestCase
 
     private function project(User $user): ProjectEntity
     {
-        return (new CompanyEntity($user, 'Acme'))->addProduct('Widget')->addProject('Launch');
+        return new CompanyEntity($user, 'Acme')->addProduct('Widget')->addProject('Launch');
     }
 
     private function persistAll(object ...$entities): void

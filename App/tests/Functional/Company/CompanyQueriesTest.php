@@ -8,6 +8,8 @@ use App\Company\CompanyEntity;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\CompanySummary;
 use App\Identity\User;
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -30,7 +32,7 @@ final class CompanyQueriesTest extends KernelTestCase
     {
         $this->company('Globex');
         $this->company('Acme');
-        $this->company('Initech')->archive(new \DateTimeImmutable('2024-05-06 07:08:09'));
+        $this->company('Initech')->archive(new DateTimeImmutable('2024-05-06 07:08:09'));
         $other = new User('other@example.com');
         $this->em->persist($other);
         $this->em->persist(new CompanyEntity($other, 'Theirs'));
@@ -42,11 +44,11 @@ final class CompanyQueriesTest extends KernelTestCase
 
     public function testReadModelFields(): void
     {
-        $acme = $this->company('Acme', 'Widgets', new \DateTimeImmutable('2024-01-02 03:04:05', new \DateTimeZone('UTC')));
+        $acme = $this->company('Acme', 'Widgets', new DateTimeImmutable('2024-01-02 03:04:05', new DateTimeZone('UTC')));
         $acme->addProduct('Widget');
-        $acme->addPosition('Old', new \DateTimeImmutable('2020-01-01'))->end(new \DateTimeImmutable('2021-01-01'));
-        $acme->addPosition('Lead', new \DateTimeImmutable('2022-01-01'));
-        $acme->addPosition('Hidden', new \DateTimeImmutable('2023-01-01'))->archive(new \DateTimeImmutable());
+        $acme->addPosition('Old', new DateTimeImmutable('2020-01-01'))->end(new DateTimeImmutable('2021-01-01'));
+        $acme->addPosition('Lead', new DateTimeImmutable('2022-01-01'));
+        $acme->addPosition('Hidden', new DateTimeImmutable('2023-01-01'))->archive(new DateTimeImmutable());
         $this->em->flush();
 
         [$summary] = $this->queries->listForOwner($this->owner->id);
@@ -66,7 +68,7 @@ final class CompanyQueriesTest extends KernelTestCase
         self::assertSame([], $this->queries->listForOwner($this->owner->id));
     }
 
-    private function company(string $name, ?string $overview = null, ?\DateTimeImmutable $createdAt = null): CompanyEntity
+    private function company(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): CompanyEntity
     {
         $company = new CompanyEntity($this->owner, $name, $overview, $createdAt);
         $this->em->persist($company);

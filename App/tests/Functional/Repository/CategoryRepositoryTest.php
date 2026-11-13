@@ -8,6 +8,7 @@ use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -55,7 +56,7 @@ final class CategoryRepositoryTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $this->persist(new CategoryEntity($user, 'active'));
-        $this->persist((new CategoryEntity($user, 'archived'))->archive(new \DateTimeImmutable()));
+        $this->persist(new CategoryEntity($user, 'archived')->archive(new DateTimeImmutable()));
         $this->em->flush();
 
         self::assertSame(['active'], $this->names($this->categories->getAllCategoriesByOwner($user)));
@@ -65,7 +66,7 @@ final class CategoryRepositoryTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $this->persist(new CategoryEntity($user, 'active'));
-        $this->persist((new CategoryEntity($user, 'archived'))->archive(new \DateTimeImmutable()));
+        $this->persist(new CategoryEntity($user, 'archived')->archive(new DateTimeImmutable()));
         $this->em->flush();
 
         self::assertSame(

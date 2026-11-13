@@ -7,6 +7,7 @@ namespace App\Identity;
 use App\Identity\Security\TokenManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use SensitiveParameter;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
@@ -35,7 +36,7 @@ final readonly class UserManager
      * @throws ValidationFailedException
      * @throws UserAlreadyExistsException
      */
-    public function create(string $email, #[\SensitiveParameter] string $plainPassword, array $roles = []): User
+    public function create(string $email, #[SensitiveParameter] string $plainPassword, array $roles = []): User
     {
         $this->assertValid(User::normalizeEmail($email), [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)]);
         $this->assertValidPassword($plainPassword);
@@ -61,7 +62,7 @@ final readonly class UserManager
      *
      * @throws ValidationFailedException
      */
-    public function changePassword(User $user, #[\SensitiveParameter] string $plainPassword): int
+    public function changePassword(User $user, #[SensitiveParameter] string $plainPassword): int
     {
         $this->assertValidPassword($plainPassword);
 
@@ -100,7 +101,7 @@ final readonly class UserManager
         $this->em->flush();
     }
 
-    private function assertValidPassword(#[\SensitiveParameter] string $plainPassword): void
+    private function assertValidPassword(#[SensitiveParameter] string $plainPassword): void
     {
         $this->assertValid($plainPassword, [
             new Assert\NotBlank(),

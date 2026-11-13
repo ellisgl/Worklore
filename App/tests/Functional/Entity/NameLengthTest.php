@@ -12,7 +12,10 @@ use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
+use Closure;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -34,7 +37,7 @@ final class NameLengthTest extends KernelTestCase
      * Each closure builds the record with the given name/title and returns
      * every entity that needs persisting, the named record last.
      *
-     * @return iterable<string, array{\Closure(User $u, string $name): list<object>}>
+     * @return iterable<string, array{Closure(User $u, string $name): list<object>}>
      */
     public static function namedProvider(): iterable
     {
@@ -53,7 +56,7 @@ final class NameLengthTest extends KernelTestCase
         yield 'position title' => [static function (User $u, string $n) {
             $c = new CompanyEntity($u, 'Acme');
 
-            return [$c, $c->addPosition($n, new \DateTimeImmutable('2024-01-01'))];
+            return [$c, $c->addPosition($n, new DateTimeImmutable('2024-01-01'))];
         }];
         yield 'journal entry title' => [static function (User $u, string $n) {
             $c = new CompanyEntity($u, 'Acme');
@@ -71,7 +74,7 @@ final class NameLengthTest extends KernelTestCase
     }
 
     #[DataProvider('namedProvider')]
-    public function testMaxLengthIsAcceptedAndSaved(\Closure $build): void
+    public function testMaxLengthIsAcceptedAndSaved(Closure $build): void
     {
         // Multibyte on purpose: the limit counts characters, like VARCHAR(255).
         $name = str_repeat('é', 255);
@@ -91,9 +94,9 @@ final class NameLengthTest extends KernelTestCase
     }
 
     #[DataProvider('namedProvider')]
-    public function testOneOverMaxLengthIsRejected(\Closure $build): void
+    public function testOneOverMaxLengthIsRejected(Closure $build): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageMatches('/cannot be longer than 255 characters/');
         $build(new User('a@example.com'), str_repeat('x', 256));
     }
@@ -112,7 +115,7 @@ final class NameLengthTest extends KernelTestCase
         try {
             $company->setName(str_repeat('x', 256));
             self::fail('Expected the rename to be rejected');
-        } catch (\InvalidArgumentException) {
+        } catch (InvalidArgumentException) {
         }
 
         self::assertSame('Acme', $company->name->value);
@@ -121,20 +124,20 @@ final class NameLengthTest extends KernelTestCase
     public function testReasonLeftOverMaxLengthIsRejected(): void
     {
         $user = new User('a@example.com');
-        $position = (new CompanyEntity($user, 'Acme'))->addPosition('Dev', new \DateTimeImmutable('2024-01-01'));
+        $position = new CompanyEntity($user, 'Acme')->addPosition('Dev', new DateTimeImmutable('2024-01-01'));
 
-        $this->expectException(\InvalidArgumentException::class);
-        $position->end(new \DateTimeImmutable('2024-06-30'), str_repeat('x', 256));
+        $this->expectException(InvalidArgumentException::class);
+        $position->end(new DateTimeImmutable('2024-06-30'), str_repeat('x', 256));
     }
 
     public function testRejectedReasonLeftDoesNotEndThePosition(): void
     {
         $user = new User('a@example.com');
-        $position = (new CompanyEntity($user, 'Acme'))->addPosition('Dev', new \DateTimeImmutable('2024-01-01'));
+        $position = new CompanyEntity($user, 'Acme')->addPosition('Dev', new DateTimeImmutable('2024-01-01'));
 
         try {
-            $position->end(new \DateTimeImmutable('2024-06-30'), str_repeat('x', 256));
-        } catch (\InvalidArgumentException) {
+            $position->end(new DateTimeImmutable('2024-06-30'), str_repeat('x', 256));
+        } catch (InvalidArgumentException) {
         }
 
         self::assertTrue($position->isCurrent());

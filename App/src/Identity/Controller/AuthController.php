@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Identity\Controller;
 
 use App\Identity\Security\TokenManager;
+use LogicException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,7 +28,7 @@ final class AuthController extends AbstractController
     #[Route('/login', name: 'login', methods: ['POST'])]
     public function login(): never
     {
-        throw new \LogicException('This route is handled by the json_login authenticator.');
+        throw new LogicException('This route is handled by the json_login authenticator.');
     }
 
     #[Route('/refresh', name: 'refresh', methods: ['POST'])]
@@ -45,7 +46,7 @@ final class AuthController extends AbstractController
     #[IsGranted('IS_AUTHENTICATED')]
     public function logout(Request $request): Response
     {
-        $accessToken = (new HeaderAccessTokenExtractor())->extractAccessToken($request);
+        $accessToken = new HeaderAccessTokenExtractor()->extractAccessToken($request);
         if (null !== $accessToken) {
             $this->tokenManager->revokeByAccessToken($accessToken);
         }

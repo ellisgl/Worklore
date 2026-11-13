@@ -9,7 +9,10 @@ use App\Company\CompanyId;
 use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
+use Closure;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
 final class CompanyControllerTest extends ApiTestCase
@@ -71,7 +74,7 @@ final class CompanyControllerTest extends ApiTestCase
         yield 'name too long' => [['name' => str_repeat('x', 256)]];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('invalidPayloadProvider')]
+    #[DataProvider('invalidPayloadProvider')]
     public function testInvalidPayloadIsRejectedWithViolations(array $payload): void
     {
         $response = $this->jsonRequest('POST', '/api/companies', $payload, $this->auth);
@@ -109,13 +112,13 @@ final class CompanyControllerTest extends ApiTestCase
         $company = $this->list()[0];
 
         self::assertSame(['id', 'name', 'overview', 'created_at', 'archived_at', 'product_count', 'current_position'], array_keys($company));
-        self::assertNotFalse(\DateTimeImmutable::createFromFormat(\DATE_RFC3339, $company['created_at']));
+        self::assertNotFalse(DateTimeImmutable::createFromFormat(\DATE_RFC3339, $company['created_at']));
     }
 
     public function testArchivedCompaniesAreHiddenUnlessAskedFor(): void
     {
         $this->seed(static function (CompanyEntity $c): void {}, 'Acme');
-        $this->seed(static fn (CompanyEntity $c) => $c->archive(new \DateTimeImmutable('2024-01-01')), 'Gone');
+        $this->seed(static fn (CompanyEntity $c) => $c->archive(new DateTimeImmutable('2024-01-01')), 'Gone');
 
         self::assertSame(['Acme'], array_column($this->list(), 'name'));
 
@@ -130,9 +133,9 @@ final class CompanyControllerTest extends ApiTestCase
         $this->seed(static function (CompanyEntity $c): void {
             $c->addProduct('Widget');
             $c->addProduct('Gadget');
-            $c->addProduct('Retired')->archive(new \DateTimeImmutable());
-            $c->addPosition('Junior', new \DateTimeImmutable('2019-01-01'))->end(new \DateTimeImmutable('2021-12-31'));
-            $c->addPosition('Senior', new \DateTimeImmutable('2022-01-01'));
+            $c->addProduct('Retired')->archive(new DateTimeImmutable());
+            $c->addPosition('Junior', new DateTimeImmutable('2019-01-01'))->end(new DateTimeImmutable('2021-12-31'));
+            $c->addPosition('Senior', new DateTimeImmutable('2022-01-01'));
         }, 'Acme');
         $this->seed(static function (CompanyEntity $c): void {}, 'Globex');
 
@@ -168,9 +171,9 @@ final class CompanyControllerTest extends ApiTestCase
      * Saves a company for the test user directly, for state the API can't
      * create yet (products, positions, archiving).
      *
-     * @param \Closure(CompanyEntity): mixed $build
+     * @param Closure(CompanyEntity): mixed $build
      */
-    private function seed(\Closure $build, string $name): void
+    private function seed(Closure $build, string $name): void
     {
         $em = $this->em();
         $company = new CompanyEntity($this->reloadedUser(), $name);

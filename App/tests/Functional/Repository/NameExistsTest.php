@@ -8,8 +8,9 @@ use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\TagEntity;
 use App\Taxonomy\CategoryRepository;
+use App\Taxonomy\TagEntity;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -56,7 +57,7 @@ final class NameExistsTest extends KernelTestCase
     public function testArchivedCompanyStillHoldsItsName(): void
     {
         $user = $this->persist(new User('a@example.com'));
-        $this->persist((new CompanyEntity($user, 'Acme'))->archive(new \DateTimeImmutable()));
+        $this->persist(new CompanyEntity($user, 'Acme')->archive(new DateTimeImmutable()));
         $this->em->flush();
 
         self::assertTrue($this->companies->nameExistsForOwner($user, 'Acme'));
@@ -118,7 +119,7 @@ final class NameExistsTest extends KernelTestCase
     public function testArchivedTagStillHoldsItsName(): void
     {
         [$user, $area] = $this->userWithCategory();
-        $this->persist($area->addTag('backend')->archive(new \DateTimeImmutable()));
+        $this->persist($area->addTag('backend')->archive(new DateTimeImmutable()));
         $this->em->flush();
 
         self::assertTrue($this->tags->nameExistsInCategory($area, 'backend'));

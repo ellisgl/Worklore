@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Identity\Security;
 
 use App\Identity\ApiToken;
+use App\Identity\ApiTokenRepository;
 use App\Identity\Doctrine\ApiTokenIdType;
 use App\Identity\User;
-use App\Identity\ApiTokenRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Doctrine;
 
-use App\Taxonomy\CategoryId;
 use App\Shared\Doctrine\EntityIdType;
+use App\Taxonomy\CategoryId;
 
 final class CategoryIdType extends EntityIdType
 {

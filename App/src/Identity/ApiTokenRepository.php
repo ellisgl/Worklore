@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Identity;
 
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -43,7 +44,7 @@ class ApiTokenRepository extends ServiceEntityRepository
     /**
      * @return int number of sessions removed
      */
-    public function deleteExpired(\DateTimeImmutable $now): int
+    public function deleteExpired(DateTimeImmutable $now): int
     {
         return $this->createQueryBuilder('t')
             ->delete()

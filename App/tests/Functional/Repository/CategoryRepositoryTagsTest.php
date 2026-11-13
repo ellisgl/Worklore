@@ -6,8 +6,9 @@ namespace App\Tests\Functional\Repository;
 
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\TagEntity;
 use App\Taxonomy\CategoryRepository;
+use App\Taxonomy\TagEntity;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -73,9 +74,9 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $area = $this->persist(new CategoryEntity($user, 'area'));
-        $old = $this->persist((new CategoryEntity($user, 'old'))->archive(new \DateTimeImmutable()));
+        $old = $this->persist(new CategoryEntity($user, 'old')->archive(new DateTimeImmutable()));
         $this->persist($area->addTag('active'));
-        $this->persist($area->addTag('archived')->archive(new \DateTimeImmutable()));
+        $this->persist($area->addTag('archived')->archive(new DateTimeImmutable()));
         $this->persist($old->addTag('in-archived-category'));
         $this->em->flush();
 
@@ -86,9 +87,9 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
     {
         $user = $this->persist(new User('a@example.com'));
         $area = $this->persist(new CategoryEntity($user, 'area'));
-        $old = $this->persist((new CategoryEntity($user, 'old'))->archive(new \DateTimeImmutable()));
+        $old = $this->persist(new CategoryEntity($user, 'old')->archive(new DateTimeImmutable()));
         $this->persist($area->addTag('active'));
-        $this->persist($area->addTag('archived')->archive(new \DateTimeImmutable()));
+        $this->persist($area->addTag('archived')->archive(new DateTimeImmutable()));
         $this->persist($old->addTag('in-archived-category'));
         $this->em->flush();
 

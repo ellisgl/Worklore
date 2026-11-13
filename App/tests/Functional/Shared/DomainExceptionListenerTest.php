@@ -8,18 +8,22 @@ use App\Shared\ConflictException;
 use App\Shared\Http\DomainExceptionListener;
 use App\Shared\InvalidValueException;
 use App\Shared\OwnershipMismatchException;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use stdClass;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Throwable;
 
 final class DomainExceptionListenerTest extends TestCase
 {
     /**
-     * @return iterable<string, array{\Throwable, int, string}>
+     * @return iterable<string, array{Throwable, int, string}>
      */
     public static function mappedProvider(): iterable
     {
@@ -29,7 +33,7 @@ final class DomainExceptionListenerTest extends TestCase
     }
 
     #[DataProvider('mappedProvider')]
-    public function testMapsDomainExceptions(\Throwable $exception, int $status, string $error): void
+    public function testMapsDomainExceptions(Throwable $exception, int $status, string $error): void
     {
         $event = $this->dispatch('/api/companies', $exception);
 
@@ -38,9 +42,9 @@ final class DomainExceptionListenerTest extends TestCase
     }
 
     #[DataProvider('mappedProvider')]
-    public function testUnwrapsMessengerHandlerFailures(\Throwable $exception, int $status, string $error): void
+    public function testUnwrapsMessengerHandlerFailures(Throwable $exception, int $status, string $error): void
     {
-        $wrapped = new HandlerFailedException(new Envelope(new \stdClass()), [$exception]);
+        $wrapped = new HandlerFailedException(new Envelope(new stdClass()), [$exception]);
 
         $response = $this->dispatch('/api/companies', $wrapped)->getResponse();
 
@@ -50,8 +54,8 @@ final class DomainExceptionListenerTest extends TestCase
 
     public function testLeavesOtherExceptionsAlone(): void
     {
-        self::assertNull($this->dispatch('/api/companies', new \RuntimeException('boom'))->getResponse());
-        self::assertNull($this->dispatch('/api/companies', new \InvalidArgumentException('a bug, not a domain rule'))->getResponse());
+        self::assertNull($this->dispatch('/api/companies', new RuntimeException('boom'))->getResponse());
+        self::assertNull($this->dispatch('/api/companies', new InvalidArgumentException('a bug, not a domain rule'))->getResponse());
     }
 
     public function testLeavesNonApiRequestsAlone(): void
@@ -59,10 +63,10 @@ final class DomainExceptionListenerTest extends TestCase
         self::assertNull($this->dispatch('/somewhere-else', new InvalidValueException('x'))->getResponse());
     }
 
-    private function dispatch(string $path, \Throwable $exception): ExceptionEvent
+    private function dispatch(string $path, Throwable $exception): ExceptionEvent
     {
         $event = new ExceptionEvent($this->createStub(HttpKernelInterface::class), Request::create($path), HttpKernelInterface::MAIN_REQUEST, $exception);
-        (new DomainExceptionListener())($event);
+        new DomainExceptionListener()($event);
 
         return $event;
     }

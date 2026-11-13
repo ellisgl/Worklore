@@ -12,6 +12,7 @@ use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -44,7 +45,7 @@ final class HydrationTest extends KernelTestCase
             'product' => $product,
             'project' => $project,
             'journal' => new JournalEntryEntity($project, $user, 'Kickoff', 'Agreed on the scope.'),
-            'position' => $company->addPosition('Developer', new \DateTimeImmutable('2024-01-15')),
+            'position' => $company->addPosition('Developer', new DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => $category->addTag('backend'),
         ];

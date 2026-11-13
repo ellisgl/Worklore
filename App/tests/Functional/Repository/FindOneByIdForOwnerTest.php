@@ -13,6 +13,7 @@ use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -80,7 +81,7 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
     public function testArchivedRecordIsStillFound(string $repository, string $method, string $key): void
     {
         $mine = $this->graphFor('me@example.com');
-        $mine[$key]->archive(new \DateTimeImmutable());
+        $mine[$key]->archive(new DateTimeImmutable());
         $this->em->flush();
 
         self::assertNotNull($this->repo($repository)->{$method}($mine[$key]->id, $mine['user']));
@@ -102,7 +103,7 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
             'company' => $company,
             'product' => $product,
             'project' => $product->addProject('Launch'),
-            'position' => $company->addPosition('Developer', new \DateTimeImmutable('2024-01-15')),
+            'position' => $company->addPosition('Developer', new DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => $category->addTag('backend'),
         ];

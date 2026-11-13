@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Throwable;
 
 /**
  * CreateCompany through the real command bus, including its transaction
@@ -73,7 +74,7 @@ final class CreateCompanyHandlerTest extends KernelTestCase
     /**
      * Messenger wraps what the handler threw; returns that.
      */
-    private function dispatchExpectingFailure(object $command): \Throwable
+    private function dispatchExpectingFailure(object $command): Throwable
     {
         try {
             $this->bus->dispatch($command);

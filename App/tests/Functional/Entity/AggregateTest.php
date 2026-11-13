@@ -9,6 +9,7 @@ use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -35,7 +36,7 @@ final class AggregateTest extends KernelTestCase
         $widget = $company->addProduct('Widget');
         $widget->addProject('Launch');
         $widget->addProject('Beta');
-        $company->addPosition('Developer', new \DateTimeImmutable('2024-01-01'));
+        $company->addPosition('Developer', new DateTimeImmutable('2024-01-01'));
 
         $this->em->persist($company);   // only the root
         $this->em->flush();
@@ -83,7 +84,7 @@ final class AggregateTest extends KernelTestCase
         $company = new CompanyEntity($this->user, 'Acme');
         $product = $company->addProduct('Widget');
         $project = $product->addProject('Launch');
-        $position = $company->addPosition('Dev', new \DateTimeImmutable('2024-01-01'));
+        $position = $company->addPosition('Dev', new DateTimeImmutable('2024-01-01'));
         $category = new CategoryEntity($this->user, 'Area');
         $tag = $category->addTag('php');
 
