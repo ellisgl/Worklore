@@ -19,8 +19,8 @@ final class TagRepositoryTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = static::getContainer()->get('doctrine')->getManager();
-        $this->tags = static::getContainer()->get(TagRepository::class);
+        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->tags = self::getContainer()->get(TagRepository::class);
     }
 
     public function testReturnsUsersTagsOrderedByCategoryThenTagName(): void

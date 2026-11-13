@@ -23,7 +23,7 @@ final class UniquenessTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = static::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get('doctrine')->getManager();
     }
 
     public function testCompanyNameIsUniquePerUser(): void

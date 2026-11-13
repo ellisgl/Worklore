@@ -19,8 +19,8 @@ final class PositionRepositoryTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = static::getContainer()->get('doctrine')->getManager();
-        $this->positions = static::getContainer()->get(PositionRepository::class);
+        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->positions = self::getContainer()->get(PositionRepository::class);
     }
 
     public function testReturnsPositionsOldestFirst(): void

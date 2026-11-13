@@ -19,8 +19,8 @@ final class CategoryRepositoryTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = static::getContainer()->get('doctrine')->getManager();
-        $this->categories = static::getContainer()->get(CategoryRepository::class);
+        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->categories = self::getContainer()->get(CategoryRepository::class);
     }
 
     public function testReturnsUsersCategoriesOrderedByName(): void

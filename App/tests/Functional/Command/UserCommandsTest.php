@@ -29,7 +29,7 @@ final class UserCommandsTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->users = static::getContainer()->get(UserRepository::class);
+        $this->users = self::getContainer()->get(UserRepository::class);
     }
 
     // ---- app:user:create --------------------------------------------------
@@ -125,7 +125,7 @@ final class UserCommandsTest extends KernelTestCase
     public function testChangePasswordUpdatesHashAndRevokesSessions(): void
     {
         $user = $this->createUser('user@example.com');
-        $tokenManager = static::getContainer()->get(TokenManager::class);
+        $tokenManager = self::getContainer()->get(TokenManager::class);
         $session1 = $tokenManager->issue($user);
         $session2 = $tokenManager->issue($user);
 
@@ -146,7 +146,7 @@ final class UserCommandsTest extends KernelTestCase
     public function testChangePasswordRejectsShortPasswordAndKeepsOldOne(): void
     {
         $user = $this->createUser('user@example.com');
-        $session = static::getContainer()->get(TokenManager::class)->issue($user);
+        $session = self::getContainer()->get(TokenManager::class)->issue($user);
 
         $tester = $this->command('app:user:change-password');
         $tester->setInputs(['short', 'short']);
@@ -154,7 +154,7 @@ final class UserCommandsTest extends KernelTestCase
 
         self::assertSame(Command::INVALID, $tester->getStatusCode());
         self::assertTrue($this->passwordMatches($this->reload($user), self::PASSWORD));
-        self::assertNotNull(static::getContainer()->get(TokenManager::class)->findValidByAccessToken($session->accessToken), 'Sessions survive a failed change');
+        self::assertNotNull(self::getContainer()->get(TokenManager::class)->findValidByAccessToken($session->accessToken), 'Sessions survive a failed change');
     }
 
     public function testChangePasswordForUnknownUserFails(): void
@@ -172,16 +172,16 @@ final class UserCommandsTest extends KernelTestCase
     public function testDeleteWithForceRemovesUserAndSessions(): void
     {
         $user = $this->createUser('user@example.com');
-        static::getContainer()->get(TokenManager::class)->issue($user);
+        self::getContainer()->get(TokenManager::class)->issue($user);
         $userId = $user->getId();
 
         $tester = $this->command('app:user:delete');
         $tester->execute(['email' => 'user@example.com', '--force' => true]);
 
         $tester->assertCommandIsSuccessful();
-        static::getContainer()->get('doctrine')->getManager()->clear();
+        self::getContainer()->get('doctrine')->getManager()->clear();
         self::assertNull($this->users->findOneByEmail('user@example.com'));
-        self::assertSame(0, static::getContainer()->get(ApiTokenRepository::class)->count(['user' => $userId]));
+        self::assertSame(0, self::getContainer()->get(ApiTokenRepository::class)->count(['user' => $userId]));
     }
 
     public function testDeleteAsksForConfirmation(): void
@@ -234,9 +234,9 @@ final class UserCommandsTest extends KernelTestCase
     public function testArchiveBlocksUserAndRevokesSessions(): void
     {
         $user = $this->createUser('user@example.com');
-        $tokenManager = static::getContainer()->get(TokenManager::class);
+        $tokenManager = self::getContainer()->get(TokenManager::class);
         $session = $tokenManager->issue($user);
-        $clock = static::mockTime('2026-11-13 12:00:00');
+        $clock = self::mockTime('2026-11-13 12:00:00');
 
         $tester = $this->command('app:user:archive');
         $tester->execute(['email' => 'user@example.com']);
@@ -252,7 +252,7 @@ final class UserCommandsTest extends KernelTestCase
     public function testArchiveTwiceKeepsOriginalTime(): void
     {
         $user = $this->createUser('user@example.com');
-        $clock = static::mockTime('2026-11-13 12:00:00');
+        $clock = self::mockTime('2026-11-13 12:00:00');
         $this->command('app:user:archive')->execute(['email' => 'user@example.com']);
         $clock->sleep(3600);
 
@@ -290,8 +290,8 @@ final class UserCommandsTest extends KernelTestCase
     public function testPurgeExpiredRemovesOnlyExpiredSessions(): void
     {
         $user = $this->createUser('user@example.com');
-        $tokenManager = static::getContainer()->get(TokenManager::class);
-        $clock = static::mockTime();
+        $tokenManager = self::getContainer()->get(TokenManager::class);
+        $clock = self::mockTime();
 
         $tokenManager->issue($user);                // will expire
         $clock->sleep(2592000 - 10);
@@ -303,7 +303,7 @@ final class UserCommandsTest extends KernelTestCase
 
         $tester->assertCommandIsSuccessful();
         self::assertStringContainsString('Purged 1 expired session(s)', $tester->getDisplay());
-        self::assertSame(1, static::getContainer()->get(ApiTokenRepository::class)->count([]));
+        self::assertSame(1, self::getContainer()->get(ApiTokenRepository::class)->count([]));
         self::assertNotNull($tokenManager->findValidByAccessToken($fresh->accessToken));
     }
 
@@ -316,12 +316,12 @@ final class UserCommandsTest extends KernelTestCase
 
     private function createUser(string $email): User
     {
-        return static::getContainer()->get(UserManager::class)->create($email, self::PASSWORD);
+        return self::getContainer()->get(UserManager::class)->create($email, self::PASSWORD);
     }
 
     private function reload(User $user): User
     {
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getContainer()->get('doctrine')->getManager();
         $em->clear();
 
         return $em->find(User::class, $user->getId());
@@ -329,6 +329,6 @@ final class UserCommandsTest extends KernelTestCase
 
     private function passwordMatches(User $user, string $plain): bool
     {
-        return static::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($user, $plain);
+        return self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($user, $plain);
     }
 }

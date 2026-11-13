@@ -35,11 +35,11 @@ final class AuthControllerTest extends ApiTestCase
         $this->createUser();
         $tokens = $this->login();
 
-        $row = static::getContainer()->get(ApiTokenRepository::class)
+        $row = self::getContainer()->get(ApiTokenRepository::class)
             ->findOneByAccessTokenHash(hash('sha256', $tokens['access_token']));
 
         self::assertNotNull($row);
-        $connection = static::getContainer()->get('doctrine.dbal.default_connection');
+        $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $raw = $connection->fetchAssociative('SELECT access_token_hash, refresh_token_hash FROM api_token WHERE id = ?', [$row->getId()->toRfc4122()]);
         self::assertNotContains($tokens['access_token'], $raw);
         self::assertNotContains($tokens['refresh_token'], $raw);
@@ -124,7 +124,7 @@ final class AuthControllerTest extends ApiTestCase
     public function testAccessTokenExpires(): void
     {
         $this->createUser();
-        $clock = static::mockTime();
+        $clock = self::mockTime();
         $tokens = $this->login();
 
         $clock->sleep(self::ACCESS_TTL + 1);
@@ -136,7 +136,7 @@ final class AuthControllerTest extends ApiTestCase
     public function testAccessTokenIsValidJustBeforeExpiry(): void
     {
         $this->createUser();
-        $clock = static::mockTime();
+        $clock = self::mockTime();
         $tokens = $this->login();
 
         $clock->sleep(self::ACCESS_TTL - 1);
@@ -178,7 +178,7 @@ final class AuthControllerTest extends ApiTestCase
     public function testRefreshWorksAfterAccessTokenExpired(): void
     {
         $this->createUser();
-        $clock = static::mockTime();
+        $clock = self::mockTime();
         $tokens = $this->login();
         $clock->sleep(self::ACCESS_TTL + 60);
 
@@ -190,7 +190,7 @@ final class AuthControllerTest extends ApiTestCase
     public function testExpiredRefreshTokenIsRejected(): void
     {
         $this->createUser();
-        $clock = static::mockTime();
+        $clock = self::mockTime();
         $tokens = $this->login();
         $clock->sleep(self::REFRESH_TTL + 1);
 
@@ -300,7 +300,7 @@ final class AuthControllerTest extends ApiTestCase
         $user = $this->createUser();
         $this->archive($user);
         $user->unarchive();
-        static::getContainer()->get('doctrine')->getManager()->flush();
+        self::getContainer()->get('doctrine')->getManager()->flush();
 
         $this->login();
 
@@ -329,6 +329,6 @@ final class AuthControllerTest extends ApiTestCase
     private function archive(User $user): void
     {
         $user->archive(new \DateTimeImmutable());
-        static::getContainer()->get('doctrine')->getManager()->flush();
+        self::getContainer()->get('doctrine')->getManager()->flush();
     }
 }

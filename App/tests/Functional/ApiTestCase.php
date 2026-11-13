@@ -25,11 +25,11 @@ abstract class ApiTestCase extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->client = static::createClient();
+        $this->client = self::createClient();
 
         // Login throttling state lives in a filesystem cache pool that would
         // otherwise leak between tests and test runs.
-        static::getContainer()->get('cache.rate_limiter')->clear();
+        self::getContainer()->get('cache.rate_limiter')->clear();
     }
 
     /**
@@ -37,7 +37,7 @@ abstract class ApiTestCase extends WebTestCase
      */
     protected function createUser(string $email = 'user@example.com', string $password = self::PASSWORD, array $roles = []): User
     {
-        return static::getContainer()->get(UserManager::class)->create($email, $password, $roles);
+        return self::getContainer()->get(UserManager::class)->create($email, $password, $roles);
     }
 
     /**

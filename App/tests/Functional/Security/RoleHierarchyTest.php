@@ -13,7 +13,7 @@ final class RoleHierarchyTest extends KernelTestCase
     public function testAdminInheritsUserRole(): void
     {
         self::bootKernel();
-        $hierarchy = static::getContainer()->get(RoleHierarchyInterface::class);
+        $hierarchy = self::getContainer()->get(RoleHierarchyInterface::class);
 
         self::assertContains('ROLE_USER', $hierarchy->getReachableRoleNames(['ROLE_ADMIN']));
         self::assertNotContains('ROLE_ADMIN', $hierarchy->getReachableRoleNames(['ROLE_USER']));

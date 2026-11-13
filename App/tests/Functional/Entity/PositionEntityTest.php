@@ -17,7 +17,7 @@ final class PositionEntityTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = static::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get('doctrine')->getManager();
     }
 
     public function testUserCanHoldSeveralPositionsAtOneCompany(): void
