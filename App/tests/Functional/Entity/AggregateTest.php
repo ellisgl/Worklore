@@ -12,7 +12,9 @@ use App\Company\ProductId;
 use App\Company\ProjectId;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\CategoryId;
 use App\Taxonomy\CategoryRepository;
+use App\Taxonomy\TagId;
 use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -130,6 +132,11 @@ final class AggregateTest extends KernelTestCase
         self::assertSame($productId, $product->id);
         self::assertSame($projectId, $project->id);
         self::assertSame($positionId, $position->id);
+
+        [$categoryId, $tagId] = [CategoryId::generate(), TagId::generate()];
+        $category = new CategoryEntity($this->user, 'Area', id: $categoryId);
+        self::assertSame($categoryId, $category->id);
+        self::assertSame($tagId, $category->addTag('php', id: $tagId)->id);
     }
 
     public function testMovingATagUpdatesBothCategories(): void

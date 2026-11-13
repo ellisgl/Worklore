@@ -40,9 +40,10 @@ final class TagEntity
         CategoryEntity $category,
         string $name,
         ?DateTimeImmutable $createdAt = null,
+        ?TagId $id = null,
     ) {
         $this->owner = $category->owner;
-        $this->id = TagId::generate();
+        $this->id = $id ?? TagId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->category = $category;

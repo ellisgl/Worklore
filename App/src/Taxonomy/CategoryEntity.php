@@ -33,8 +33,9 @@ final class CategoryEntity
         string $name,
         ?string $description = null,
         ?DateTimeImmutable $createdAt = null,
+        ?CategoryId $id = null,
     ) {
-        $this->id = CategoryId::generate();
+        $this->id = $id ?? CategoryId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Category name');
         $this->description = self::normalizeDescription($description);
@@ -52,9 +53,9 @@ final class CategoryEntity
     /**
      * Adds a tag to this category. Persisting the category saves it.
      */
-    public function addTag(string $name, ?DateTimeImmutable $createdAt = null): TagEntity
+    public function addTag(string $name, ?DateTimeImmutable $createdAt = null, ?TagId $id = null): TagEntity
     {
-        $tag = new TagEntity($this, $name, $createdAt);
+        $tag = new TagEntity($this, $name, $createdAt, $id);
         $this->tags->add($tag);
 
         return $tag;
