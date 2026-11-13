@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Company;
 
 use App\Entity\User;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -29,9 +28,6 @@ final class PositionEntity
     private(set) ?string $reasonLeft = null;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
-    /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
-     */
     public function __construct(
         private(set) readonly CompanyEntity $company,
         private(set) readonly User $user,

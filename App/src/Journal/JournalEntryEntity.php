@@ -7,7 +7,6 @@ namespace App\Journal;
 use App\Company\ProjectEntity;
 use App\Entity\User;
 use App\Taxonomy\TagEntity;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -28,9 +27,6 @@ final class JournalEntryEntity
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
 
-    /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
-     */
     public function __construct(
         private(set) readonly ProjectEntity $project,
         private(set) readonly User $user,
@@ -48,11 +44,6 @@ final class JournalEntryEntity
     public function getId(): Uuid
     {
         return $this->id;
-    }
-
-    public function getProject(): ProjectEntity
-    {
-        return $this->project;
     }
 
     /**

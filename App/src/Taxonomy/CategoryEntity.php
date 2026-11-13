@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Taxonomy;
 
 use App\Entity\User;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -28,9 +27,6 @@ final class CategoryEntity
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
 
-    /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
-     */
     public function __construct(
         private(set) readonly User $user,
         string $name,

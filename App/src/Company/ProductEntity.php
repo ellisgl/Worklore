@@ -6,7 +6,6 @@ namespace App\Company;
 
 use App\Entity\User;
 use App\Taxonomy\TagEntity;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -32,9 +31,6 @@ final class ProductEntity
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
 
-    /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
-     */
     public function __construct(
         private(set) readonly CompanyEntity $company,
         private(set) readonly User $user,

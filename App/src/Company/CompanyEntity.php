@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Company;
 
 use App\Entity\User;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -31,9 +30,6 @@ final class CompanyEntity
     /** @var Collection<int, PositionEntity> */
     private Collection $positions;
 
-    /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
-     */
     public function __construct(
         private(set) readonly User $user,
         string $name,
