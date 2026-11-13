@@ -11,8 +11,8 @@ use App\Shared\Query\PagedSql;
 use App\Shared\Query\Paginated;
 use App\Shared\Query\ReadsDatabaseTimes;
 use App\Shared\UserId;
+use App\Taxonomy\Query\TagRefs;
 use DateMalformedStringException;
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 
@@ -20,10 +20,10 @@ use function array_column;
 
 /**
  * Read side for journal entries: SQL shaped for the API, returning read
- * models. Tags come from one extra query per call, not one per entry.
+ * models. Tags come from one extra query per call (TagRefs), not one per
+ * entry.
  *
  * @phpstan-type EntryRow array{id: string, project_id: string, project_name: string, title: string, entry: string, created_at: string, archived_at: string|null}
- * @phpstan-type TagRow array{journal_entry_id: string, id: string, name: string, category_id: string, category_name: string}
  */
 final readonly class JournalEntryQueries
 {
@@ -50,8 +50,10 @@ final readonly class JournalEntryQueries
 
     private const string SELECT = self::COLUMNS."\n".self::FROM;
 
-    public function __construct(private Connection $db)
-    {
+    public function __construct(
+        private Connection $db,
+        private TagRefs $tagRefs,
+    ) {
     }
 
     /**
@@ -164,7 +166,7 @@ final readonly class JournalEntryQueries
      */
     private function summaries(array $rows): array
     {
-        $tags = $this->tagsByEntry(array_column($rows, 'id'));
+        $tags = $this->tagRefs->forJournalEntries(array_column($rows, 'id'));
 
         $summaries = [];
         foreach ($rows as $row) {
@@ -181,47 +183,5 @@ final readonly class JournalEntryQueries
         }
 
         return $summaries;
-    }
-
-    /**
-     * The tags of these entries, archived ones included (they are still on
-     * the entry), sorted by category and then name.
-     *
-     * @param list<string> $entryIds
-     *
-     * @return array<string, list<JournalTag>> keyed by entry id
-     *
-     * @throws Exception
-     */
-    private function tagsByEntry(array $entryIds): array
-    {
-        if ([] === $entryIds) {
-            return [];
-        }
-
-        /** @var list<TagRow> $rows */
-        $rows = $this->db->fetchAllAssociative(
-            <<<'SQL'
-                SELECT jt.journal_entry_id,
-                       t.id,
-                       t.name,
-                       t.category_id,
-                       c.name AS category_name
-                  FROM journal_entry_tag jt
-                  JOIN tag t ON t.id = jt.tag_id
-                  JOIN category c ON c.id = t.category_id
-                 WHERE jt.journal_entry_id IN (:ids)
-                 ORDER BY c.name, c.id, t.name, t.id
-                SQL,
-            ['ids' => $entryIds],
-            ['ids' => ArrayParameterType::STRING],
-        );
-
-        $tags = [];
-        foreach ($rows as $row) {
-            $tags[$row['journal_entry_id']][] = new JournalTag($row['id'], $row['name'], $row['category_id'], $row['category_name']);
-        }
-
-        return $tags;
     }
 }

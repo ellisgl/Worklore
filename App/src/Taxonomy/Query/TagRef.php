@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Journal\Query;
+namespace App\Taxonomy\Query;
 
 use OpenApi\Attributes as OA;
 
 /**
- * Read model: a tag on a journal entry, with its category.
+ * Read model: a tag on a record (a journal entry, a project), with its
+ * category.
  */
-final readonly class JournalTag
+final readonly class TagRef
 {
     public function __construct(
         #[OA\Property(format: 'uuid')]

@@ -12,10 +12,10 @@ use App\Journal\JournalEntryId;
 use App\Journal\Query\JournalEntryQueries;
 use App\Journal\Query\JournalEntrySummary;
 use App\Journal\Query\JournalFilter;
-use App\Journal\Query\JournalTag;
 use App\Shared\InvalidValueException;
 use App\Shared\Query\Page;
 use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\Query\TagRef;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
@@ -199,7 +199,7 @@ final class JournalEntryQueriesTest extends KernelTestCase
         self::assertSame(['Backend', 'Both'], $this->titles($this->queries->listForProject($this->owner->id, $project->id, filter: $byBackend)->items));
         self::assertSame(2, $this->queries->listForOwner($this->owner->id, filter: $byBackend)->total);
         $both = $this->queries->listForOwner($this->owner->id, filter: new JournalFilter(tagId: $frontend->id))->items;
-        self::assertSame(['backend', 'frontend'], array_map(static fn (JournalTag $t) => $t->name, $both[0]->tags), 'All its tags still listed');
+        self::assertSame(['backend', 'frontend'], array_map(static fn (TagRef $t) => $t->name, $both[0]->tags), 'All its tags still listed');
     }
 
     /**
@@ -275,6 +275,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
      */
     private function tagLabels(JournalEntrySummary $summary): array
     {
-        return array_map(static fn (JournalTag $t) => $t->categoryName.'/'.$t->name, $summary->tags);
+        return array_map(static fn (TagRef $t) => $t->categoryName.'/'.$t->name, $summary->tags);
     }
 }

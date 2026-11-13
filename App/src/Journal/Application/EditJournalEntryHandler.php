@@ -8,6 +8,7 @@ use App\Journal\JournalEntryRepository;
 use App\Shared\Doctrine\OwnerReferences;
 use App\Shared\InvalidValueException;
 use App\Shared\OwnershipMismatchException;
+use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
 use Doctrine\ORM\Exception\ORMException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

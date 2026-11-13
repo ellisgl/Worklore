@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Journal\Application;
+namespace App\Taxonomy\Application;
 
 use App\Shared\Owner;
-use App\Taxonomy\Application\TagNotFound;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
 use App\Taxonomy\TagId;
 
 /**
- * Turns the tag ids a command carries into the owner's tags.
+ * Turns the tag ids a command carries into the owner's tags (for journal
+ * entries and projects).
  */
 final readonly class TagLookup
 {
