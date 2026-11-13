@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Company\Controller;
 
+use App\Company\Application\ArchiveCompany;
 use App\Company\Application\CompanyNotFound;
 use App\Company\Application\CreateCompany;
 use App\Company\Application\EditCompany;
+use App\Company\Application\UnarchiveCompany;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
 use App\Shared\Owner;
@@ -96,6 +98,33 @@ final class CompanyController extends AbstractController
         #[MapRequestPayload] EditCompanyRequest $payload,
     ): Response {
         $this->commandBus->dispatch(new EditCompany(CompanyId::fromString($id), $owner->ownerId(), $payload->name, $payload->overview));
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * POST /api/companies/{id}/archive → 204. Hides the company (and what's
+     * inside it) from lists; it can still be fetched by id and unarchived.
+     *
+     * @throws ExceptionInterface
+     */
+    #[Route('/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function archive(#[CurrentUser] Owner $owner, string $id): Response
+    {
+        $this->commandBus->dispatch(new ArchiveCompany(CompanyId::fromString($id), $owner->ownerId()));
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * POST /api/companies/{id}/unarchive → 204.
+     *
+     * @throws ExceptionInterface
+     */
+    #[Route('/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
+    {
+        $this->commandBus->dispatch(new UnarchiveCompany(CompanyId::fromString($id), $owner->ownerId()));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }

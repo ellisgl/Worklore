@@ -408,6 +408,116 @@ final class CompanyControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
     }
 
+    // ---- POST /api/companies/{id}/archive, /unarchive ---------------------
+
+    /**
+     * @throws JsonException
+     */
+    public function testArchiveHidesTheCompanyFromTheList(): void
+    {
+        self::mockTime('2026-03-04 05:06:07 UTC');
+        $id = $this->create('Acme');
+        $this->create('Globex');
+
+        $response = $this->jsonRequest('POST', '/api/companies/'.$id.'/archive', headers: $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+        self::assertSame(['Globex'], array_column($this->list(), 'name'));
+        self::assertSame('2026-03-04T05:06:07+00:00', $this->show($id)['archived_at'], 'Still readable by id, with the clock\'s time');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testArchivingTwiceKeepsTheOriginalTime(): void
+    {
+        $clock = self::mockTime('2026-03-04 05:06:07 UTC');
+        $id = $this->create('Acme');
+        $this->jsonRequest('POST', '/api/companies/'.$id.'/archive', headers: $this->auth);
+        $clock->sleep(3600);
+
+        $response = $this->jsonRequest('POST', '/api/companies/'.$id.'/archive', headers: $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame('2026-03-04T05:06:07+00:00', $this->show($id)['archived_at']);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testUnarchiveBringsTheCompanyBack(): void
+    {
+        $id = $this->create('Acme');
+        $this->jsonRequest('POST', '/api/companies/'.$id.'/archive', headers: $this->auth);
+
+        $response = $this->jsonRequest('POST', '/api/companies/'.$id.'/unarchive', headers: $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame(['Acme'], array_column($this->list(), 'name'));
+        self::assertNull($this->show($id)['archived_at']);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testUnarchivingAnActiveCompanyIsANoOp(): void
+    {
+        $id = $this->create('Acme');
+
+        $response = $this->jsonRequest('POST', '/api/companies/'.$id.'/unarchive', headers: $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertNull($this->show($id)['archived_at']);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function archiveActionProvider(): iterable
+    {
+        yield 'archive' => ['archive'];
+        yield 'unarchive' => ['unarchive'];
+    }
+
+    /**
+     * @throws JsonException
+     */
+    #[DataProvider('archiveActionProvider')]
+    public function testArchivingAnotherUsersCompanyIsNotFound(string $action): void
+    {
+        $this->createUser('other@example.com');
+        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $theirs = $this->field($this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other), 'id');
+
+        $response = $this->jsonRequest('POST', '/api/companies/'.$theirs.'/'.$action, headers: $this->auth);
+
+        $this->assertJsonError($response, Response::HTTP_NOT_FOUND, 'Company not found.');
+        $check = $this->jsonRequest('GET', '/api/companies/'.$theirs, headers: $other);
+        self::assertNull($this->decode($check)['archived_at'], 'Unchanged');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    #[DataProvider('archiveActionProvider')]
+    public function testArchivingAnUnknownCompanyIsNotFound(string $action): void
+    {
+        $response = $this->jsonRequest('POST', '/api/companies/'.CompanyId::generate().'/'.$action, headers: $this->auth);
+
+        $this->assertJsonError($response, Response::HTTP_NOT_FOUND, 'Company not found.');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    #[DataProvider('archiveActionProvider')]
+    public function testArchivingRequiresAuthentication(string $action): void
+    {
+        $response = $this->jsonRequest('POST', '/api/companies/'.CompanyId::generate().'/'.$action);
+
+        $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
+    }
+
     // ---- helpers ----------------------------------------------------------
 
     /**
