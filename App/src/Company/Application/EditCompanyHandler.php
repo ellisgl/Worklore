@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Company\Application;
 
 use App\Company\CompanyRepository;
+use App\Shared\Doctrine\OwnerReferences;
 use App\Shared\InvalidValueException;
-use App\Shared\Owner;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
-use LogicException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -21,7 +19,7 @@ final readonly class EditCompanyHandler
 {
     public function __construct(
         private CompanyRepository $companies,
-        private EntityManagerInterface $em,
+        private OwnerReferences $owners,
     ) {
     }
 
@@ -33,8 +31,7 @@ final readonly class EditCompanyHandler
      */
     public function __invoke(EditCompany $command): void
     {
-        $owner = $this->em->getReference(Owner::class, $command->ownerId)
-            ?? throw new LogicException('Owner is not a mapped entity; check resolve_target_entities');
+        $owner = $this->owners->get($command->ownerId);
         $company = $this->companies->findOneByIdForOwner($command->companyId, $owner)
             ?? throw new CompanyNotFound();
 
