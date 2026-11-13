@@ -6,10 +6,10 @@ namespace App\Company;
 
 use App\Entity\User;
 use DateMalformedStringException;
-use \DateTimeImmutable;
-use \DateTimeZone;
-use \InvalidArgumentException;
-use \LogicException;
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
+use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;

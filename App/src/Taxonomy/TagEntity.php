@@ -6,9 +6,9 @@ namespace App\Taxonomy;
 
 use App\Entity\User;
 use DateMalformedStringException;
-use \DateTimeImmutable;
-use \DateTimeZone;
-use \InvalidArgumentException;
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
 use Symfony\Component\Uid\Uuid;
 
 /**

@@ -6,10 +6,10 @@ namespace App\Company;
 
 use App\Entity\User;
 use DateMalformedStringException;
-use \DateTimeImmutable;
-use \DateTimeZone;
-use \InvalidArgumentException;
-use \LogicException;
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
+use LogicException;
 use Symfony\Component\Uid\Uuid;
 
 /**
