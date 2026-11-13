@@ -30,10 +30,33 @@ class CompanyRepository extends ServiceEntityRepository
     }
 
     /**
+     * The user's companies, sorted by name.
+     *
+     * By default only active companies are returned: pass $includeArchived =
+     * true for all.
+     *
+     * @return list<CompanyEntity>
+     */
+    public function getAllCompaniesByUser(User $user, bool $includeArchived = false): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->where('c.user = :user')
+            ->setParameter('user', $user->getId(), 'uuid')
+            ->orderBy('c.name', 'ASC')
+            ->addOrderBy('c.id', 'ASC');
+
+        if (!$includeArchived) {
+            $qb->andWhere('c.archivedAt IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Whether the user already has a company with this name, ignoring case
-     * (archived ones
-     * included, matching uniq_company_user_name). Pass the company being
-     * renamed as $except so keeping its current name isn't a clash.
+     * (archived ones included, matching uniq_company_user_name). Pass the
+     * company being renamed as $except so keeping its current name isn't a
+     * clash.
      *
      * Check this before saving to answer 409/422; the unique constraint stays
      * as the backstop for two requests racing each other.

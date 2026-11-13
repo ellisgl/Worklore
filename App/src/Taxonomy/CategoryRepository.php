@@ -38,11 +38,12 @@ class CategoryRepository extends ServiceEntityRepository
      */
     public function getAllCategoriesByUser(User $user, bool $includeArchived = false): array
     {
-        $qb = $this->createQueryBuilder('c');
-        $qb->select('c')
+        $qb = $this->createQueryBuilder('c')
             ->where('c.user = :user')
             ->setParameter('user', $user->getId(), 'uuid')
-            ->orderBy('c.name', 'ASC');
+            ->orderBy('c.name', 'ASC')
+            ->addOrderBy('c.id', 'ASC');
+
         if (!$includeArchived) {
             $qb->andWhere('c.archivedAt IS NULL');
         }

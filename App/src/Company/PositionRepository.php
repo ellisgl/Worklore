@@ -33,24 +33,51 @@ class PositionRepository extends ServiceEntityRepository
      * The user's positions at a company, newest start date first.
      *
      * Filtering on the user too means passing someone else's company returns
-     * nothing. By default only active positions are returned: pass
-     * $includeArchived = true for all.
+     * nothing. By default only active positions are returned: archived
+     * positions, and every position at an archived company, are left out.
+     * Pass $includeArchived = true for all.
      *
      * @return list<PositionEntity>
      */
     public function getAllPositionsByCompany(User $user, CompanyEntity $company, bool $includeArchived = false): array
     {
-        $qb = $this->createQueryBuilder('p');
-        $qb->select('p')
+        $qb = $this->createQueryBuilder('p')
+            ->innerJoin('p.company', 'c')
             ->where('p.user = :user')
-            ->setParameter('user', $user->getId(), 'uuid')
             ->andWhere('p.company = :company')
+            ->setParameter('user', $user->getId(), 'uuid')
             ->setParameter('company', $company->getId(), 'uuid')
-            ->orderBy('p.startDate', 'DESC');
+            ->orderBy('p.startDate', 'DESC')
+            ->addOrderBy('p.id', 'DESC');
+
         if (!$includeArchived) {
-            $qb->andWhere('p.archivedAt IS NULL');
+            $qb->andWhere('p.archivedAt IS NULL')
+                ->andWhere('c.archivedAt IS NULL');
         }
 
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * The user's current positions (no end date) across all companies, newest
+     * start date first. Archived positions, and positions at archived
+     * companies, are left out. The company is fetched in the same query.
+     *
+     * @return list<PositionEntity>
+     */
+    public function getCurrentPositionsByUser(User $user): array
+    {
+        return $this->createQueryBuilder('p')
+            ->innerJoin('p.company', 'c')
+            ->addSelect('c')
+            ->where('p.user = :user')
+            ->andWhere('p.endDate IS NULL')
+            ->andWhere('p.archivedAt IS NULL')
+            ->andWhere('c.archivedAt IS NULL')
+            ->setParameter('user', $user->getId(), 'uuid')
+            ->orderBy('p.startDate', 'DESC')
+            ->addOrderBy('p.id', 'DESC')
+            ->getQuery()
+            ->getResult();
     }
 }

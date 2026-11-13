@@ -28,4 +28,32 @@ class ProductRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
+
+    /**
+     * The user's products at a company, sorted by name.
+     *
+     * By default only active products are returned: archived products, and
+     * every product of an archived company, are left out. Pass
+     * $includeArchived = true for all.
+     *
+     * @return list<ProductEntity>
+     */
+    public function getAllProductsByCompany(User $user, CompanyEntity $company, bool $includeArchived = false): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->innerJoin('p.company', 'c')
+            ->where('p.user = :user')
+            ->andWhere('p.company = :company')
+            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('company', $company->getId(), 'uuid')
+            ->orderBy('p.name', 'ASC')
+            ->addOrderBy('p.id', 'ASC');
+
+        if (!$includeArchived) {
+            $qb->andWhere('p.archivedAt IS NULL')
+                ->andWhere('c.archivedAt IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

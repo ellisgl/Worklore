@@ -31,9 +31,9 @@ class TagRepository extends ServiceEntityRepository
 
     /**
      * Whether the category already has a tag with this name, ignoring case
-     * (archived ones
-     * included, matching uniq_tag_category_name). Pass the tag being renamed
-     * or moved as $except so keeping its current name isn't a clash.
+     * (archived ones included, matching uniq_tag_category_name). Pass the tag
+     * being renamed or moved as $except so keeping its current name isn't a
+     * clash.
      *
      * Check this before saving to answer 409/422; the unique constraint stays
      * as the backstop for two requests racing each other.
@@ -69,17 +69,47 @@ class TagRepository extends ServiceEntityRepository
      */
     public function getAllTagsByUser(User $user, bool $includeArchived = false): array
     {
-        $qb = $this->createQueryBuilder('t');
-        $qb->innerJoin('t.category', 'c')
-           ->addSelect('c')
-           ->where('t.user = :user')
-           ->setParameter('user', $user->getId(), 'uuid')
-           ->orderBy('c.name', 'ASC')
-           ->addOrderBy('t.name', 'ASC');
+        $qb = $this->createQueryBuilder('t')
+            ->innerJoin('t.category', 'c')
+            ->addSelect('c')
+            ->where('t.user = :user')
+            ->setParameter('user', $user->getId(), 'uuid')
+            ->orderBy('c.name', 'ASC')
+            ->addOrderBy('c.id', 'ASC')     // keeps same-named categories' tags together
+            ->addOrderBy('t.name', 'ASC')
+            ->addOrderBy('t.id', 'ASC');
 
         if (!$includeArchived) {
             $qb->andWhere('t.archivedAt IS NULL')
                ->andWhere('c.archivedAt IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * The user's tags in one category, sorted by name.
+     *
+     * By default only active tags are returned: archived tags, and every tag
+     * of an archived category, are left out. Pass $includeArchived = true for
+     * all.
+     *
+     * @return list<TagEntity>
+     */
+    public function getAllTagsByCategory(User $user, CategoryEntity $category, bool $includeArchived = false): array
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->innerJoin('t.category', 'c')
+            ->where('t.user = :user')
+            ->andWhere('t.category = :category')
+            ->setParameter('user', $user->getId(), 'uuid')
+            ->setParameter('category', $category->getId(), 'uuid')
+            ->orderBy('t.name', 'ASC')
+            ->addOrderBy('t.id', 'ASC');
+
+        if (!$includeArchived) {
+            $qb->andWhere('t.archivedAt IS NULL')
+                ->andWhere('c.archivedAt IS NULL');
         }
 
         return $qb->getQuery()->getResult();
