@@ -23,7 +23,7 @@ final class JournalEntryEntity
 {
     private(set) Uuid $id;
     private(set) string $title;
-    private(set) ?string $entry;
+    private(set) string $entry;
     private(set) ?DateTimeImmutable $archivedAt = null;
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
@@ -105,7 +105,7 @@ final class JournalEntryEntity
 
     public function setTitle(string $title): self
     {
-        $this->title = self::normalizeTitle(title);
+        $this->title = self::normalizeTitle($title);
 
         return $this;
     }
@@ -130,8 +130,13 @@ final class JournalEntryEntity
     /**
      * Blank or whitespace-only entries are stored as null.
      */
-    private static function normalizeEntry(?string $entry): ?string
+    private static function normalizeEntry(?string $entry): string
     {
-        return null === $entry ? null : (trim($entry) ?: null);
+        $entry = trim($entry);
+        if ('' === $entry) {
+            throw new InvalidArgumentException('Journal entry cannot be blank');
+        }
+
+        return $entry;
     }
 }
