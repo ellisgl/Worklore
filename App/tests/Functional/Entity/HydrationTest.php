@@ -9,6 +9,7 @@ use App\Company\PositionEntity;
 use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Entity\User;
+use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use Doctrine\ORM\EntityManagerInterface;
@@ -37,10 +38,12 @@ final class HydrationTest extends KernelTestCase
         $company = new CompanyEntity($user, 'Acme');
         $product = new ProductEntity($company, $user, 'Widget');
         $category = new CategoryEntity($user, 'Area');
+        $project = new ProjectEntity($product, $user, 'Launch');
         $this->graph = [
             'company' => $company,
             'product' => $product,
-            'project' => new ProjectEntity($product, $user, 'Launch'),
+            'project' => $project,
+            'journal' => new JournalEntryEntity($project, $user, 'Kickoff', 'Agreed on the scope.'),
             'position' => new PositionEntity($company, $user, 'Developer', new \DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => new TagEntity($category, $user, 'backend'),
@@ -59,7 +62,7 @@ final class HydrationTest extends KernelTestCase
      */
     public static function entityProvider(): iterable
     {
-        foreach (['company', 'product', 'project', 'position', 'category', 'tag'] as $key) {
+        foreach (['company', 'product', 'project', 'journal', 'position', 'category', 'tag'] as $key) {
             yield $key => [$key];
         }
     }

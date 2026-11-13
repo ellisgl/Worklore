@@ -35,8 +35,8 @@ final class JournalEntryEntity
         private(set) readonly ProjectEntity $project,
         private(set) readonly User $user,
         string $title,
-        ?string $entry = null,
-        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        string $entry,
+        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->title = self::normalizeTitle($title);
@@ -96,7 +96,7 @@ final class JournalEntryEntity
         return $this;
     }
 
-    public function setEntry(?string $entry): self
+    public function setEntry(string $entry): self
     {
         $this->entry = self::normalizeEntry($entry);
 
@@ -128,9 +128,9 @@ final class JournalEntryEntity
     }
 
     /**
-     * Blank or whitespace-only entries are stored as null.
+     * Entries are required: blank or whitespace-only text is rejected.
      */
-    private static function normalizeEntry(?string $entry): string
+    private static function normalizeEntry(string $entry): string
     {
         $entry = trim($entry);
         if ('' === $entry) {
