@@ -31,6 +31,16 @@ class CompanyRepository extends ServiceEntityRepository
 
     // ---- companies --------------------------------------------------------
 
+    /**
+     * Adds a new company (and anything already added inside it). It's saved
+     * when the unit of work is flushed, which the command bus does when the
+     * handler returns.
+     */
+    public function add(CompanyEntity $company): void
+    {
+        $this->getEntityManager()->persist($company);
+    }
+
     public function findOneByIdForOwner(CompanyId $id, Owner $owner): ?CompanyEntity
     {
         return $this->findOneBy(['id' => $id, 'owner' => $owner]);

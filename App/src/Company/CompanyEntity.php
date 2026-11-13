@@ -33,13 +33,18 @@ final class CompanyEntity
     private Collection $positions;
     private(set) DateTimeImmutable $createdAt;
 
+    /**
+     * @param CompanyId|null $id pass one when the caller needs the id up front
+     *                           (e.g. a command whose handler returns nothing)
+     */
     public function __construct(
         private(set) readonly Owner $owner,
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
+        ?CompanyId $id = null,
     ) {
-        $this->id = CompanyId::generate();
+        $this->id = $id ?? CompanyId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->overview = self::normalizeOverview($overview);
