@@ -40,39 +40,6 @@ final class ListMethodsTest extends KernelTestCase
         $this->user = $this->persist(new User('me@example.com'));
     }
 
-    // ---- projects ---------------------------------------------------------
-
-    public function testProjectsSortedByNameAndScopedToProduct(): void
-    {
-        $widget = $this->product();
-        $gadget = $this->persist($widget->company->addProduct('Gadget'));
-        $this->persist($widget->addProject('Launch'));
-        $this->persist($widget->addProject('Beta'));
-        $this->persist($gadget->addProject('Other'));
-        $this->em->flush();
-
-        self::assertSame(['Beta', 'Launch'], $this->names($this->repo(CompanyRepository::class)->getAllProjectsByProduct($this->user, $widget)));
-    }
-
-    public function testArchivedProductOrCompanyHidesItsProjects(): void
-    {
-        $widget = $this->product();
-        $this->persist($widget->addProject('Launch'));
-        $this->em->flush();
-        $repo = $this->repo(CompanyRepository::class);
-
-        $widget->archive(new DateTimeImmutable());
-        $this->em->flush();
-        self::assertSame([], $repo->getAllProjectsByProduct($this->user, $widget), 'Archived product');
-
-        $widget->unarchive();
-        $widget->company->archive(new DateTimeImmutable());
-        $this->em->flush();
-        self::assertSame([], $repo->getAllProjectsByProduct($this->user, $widget), 'Archived company');
-
-        self::assertSame(['Launch'], $this->names($repo->getAllProjectsByProduct($this->user, $widget, includeArchived: true)));
-    }
-
     // ---- journal entries --------------------------------------------------
 
     public function testJournalEntriesNewestFirst(): void

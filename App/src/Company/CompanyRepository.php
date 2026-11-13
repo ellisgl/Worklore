@@ -91,32 +91,6 @@ class CompanyRepository extends ServiceEntityRepository
         return $this->getEntityManager()->getRepository(ProjectEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
-    /**
-     * The user's projects for a product, sorted by name.
-     *
-     * @return list<ProjectEntity>
-     */
-    public function getAllProjectsByProduct(Owner $owner, ProductEntity $product, bool $includeArchived = false): array
-    {
-        $qb = $this->projects()
-            ->innerJoin('pj.product', 'p')
-            ->innerJoin('p.company', 'c')
-            ->where('pj.owner = :owner')
-            ->andWhere('pj.product = :product')
-            ->setParameter('owner', $owner)
-            ->setParameter('product', $product)
-            ->orderBy('pj.name', 'ASC')
-            ->addOrderBy('pj.id', 'ASC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('pj.archivedAt IS NULL')
-                ->andWhere('p.archivedAt IS NULL')
-                ->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
-    }
-
     // ---- positions --------------------------------------------------------
 
     public function findPositionByIdForOwner(PositionId $id, Owner $owner): ?PositionEntity
@@ -169,12 +143,6 @@ class CompanyRepository extends ServiceEntityRepository
             ->addOrderBy('p.id', 'DESC')
             ->getQuery()
             ->getResult();
-    }
-
-    /** A query over the aggregate's projects, aliased "pj". */
-    private function projects(): QueryBuilder
-    {
-        return $this->getEntityManager()->createQueryBuilder()->select('pj')->from(ProjectEntity::class, 'pj');
     }
 
     /** A query over the aggregate's positions, aliased "p". */

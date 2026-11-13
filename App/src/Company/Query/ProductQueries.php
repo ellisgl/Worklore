@@ -89,6 +89,19 @@ final readonly class ProductQueries
     }
 
     /**
+     * Whether the product exists and belongs to the owner (archived or not).
+     *
+     * @throws Exception
+     */
+    public function existsForOwner(UserId $ownerId, ProductId $productId): bool
+    {
+        return false !== $this->db->fetchOne(
+            'SELECT 1 FROM product WHERE user_id = :owner AND id = :id',
+            ['owner' => $ownerId->toRfc4122(), 'id' => $productId->toRfc4122()],
+        );
+    }
+
+    /**
      * @param ProductRow $row
      *
      * @throws DateMalformedStringException
