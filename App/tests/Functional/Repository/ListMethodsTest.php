@@ -34,21 +34,6 @@ final class ListMethodsTest extends KernelTestCase
         $this->user = $this->persist(new User('me@example.com'));
     }
 
-    // ---- companies --------------------------------------------------------
-
-    public function testCompaniesSortedByNameAndScopedToUser(): void
-    {
-        $this->persist(new CompanyEntity($this->user, 'Globex'));
-        $this->persist(new CompanyEntity($this->user, 'Acme'));
-        $this->persist((new CompanyEntity($this->user, 'Initech'))->archive(new \DateTimeImmutable()));
-        $this->persist(new CompanyEntity($this->persist(new User('other@example.com')), 'Theirs'));
-        $this->em->flush();
-
-        $repo = $this->repo(CompanyRepository::class);
-        self::assertSame(['Acme', 'Globex'], $this->names($repo->getAllCompaniesByOwner($this->user)));
-        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($repo->getAllCompaniesByOwner($this->user, includeArchived: true)));
-    }
-
     // ---- products ---------------------------------------------------------
 
     public function testProductsSortedByNameAndScopedToCompany(): void

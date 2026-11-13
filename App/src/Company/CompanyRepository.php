@@ -15,10 +15,14 @@ use Doctrine\Persistence\ManagerRegistry;
  * (products, projects, positions). Save a company and its children are saved
  * with it; there's no separate repository per child.
  *
- * Every lookup is scoped to a user, so endpoints answer 404 instead of
+ * Every lookup is scoped to an owner, so endpoints answer 404 instead of
  * revealing someone else's records. By-id lookups return archived records too
  * (e.g. to unarchive them); list methods leave out archived records, and
  * records whose parent or ancestor is archived, unless $includeArchived.
+ *
+ * This is the write side's way in. Lists for the API live in
+ * Query\CompanyQueries, which returns read models rather than entities; the
+ * remaining list methods here move there as their endpoints are built.
  *
  * @extends ServiceEntityRepository<CompanyEntity>
  */
@@ -44,26 +48,6 @@ class CompanyRepository extends ServiceEntityRepository
     public function findOneByIdForOwner(CompanyId $id, Owner $owner): ?CompanyEntity
     {
         return $this->findOneBy(['id' => $id, 'owner' => $owner]);
-    }
-
-    /**
-     * The user's companies, sorted by name.
-     *
-     * @return list<CompanyEntity>
-     */
-    public function getAllCompaniesByOwner(Owner $owner, bool $includeArchived = false): array
-    {
-        $qb = $this->createQueryBuilder('c')
-            ->where('c.owner = :owner')
-            ->setParameter('owner', $owner)
-            ->orderBy('c.name', 'ASC')
-            ->addOrderBy('c.id', 'ASC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
     }
 
     /**

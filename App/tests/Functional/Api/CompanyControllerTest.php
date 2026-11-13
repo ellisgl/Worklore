@@ -47,7 +47,7 @@ final class CompanyControllerTest extends ApiTestCase
         $response = $this->jsonRequest('POST', '/api/companies', ['name' => 'ACME'], $this->auth);
 
         $this->assertJsonError($response, Response::HTTP_CONFLICT, 'You already have a company named "ACME".');
-        self::assertSame(1, $this->companyCount());
+        self::assertCount(1, $this->list());
     }
 
     public function testAnotherUserCanUseTheSameName(): void
@@ -78,7 +78,7 @@ final class CompanyControllerTest extends ApiTestCase
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode(), (string) $response->getContent());
         self::assertSame('name', $this->decode($response)['violations'][0]['propertyPath']);
-        self::assertSame(0, $this->companyCount(), 'Nothing saved');
+        self::assertSame([], $this->list(), 'Nothing saved');
     }
 
     public function testCreateRequiresAuthentication(): void
@@ -88,11 +88,95 @@ final class CompanyControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
     }
 
+    // ---- GET /api/companies -----------------------------------------------
+
+    public function testListShowsOwnCompaniesSortedByName(): void
+    {
+        foreach (['Globex', 'Acme', 'Initech'] as $name) {
+            $this->jsonRequest('POST', '/api/companies', ['name' => $name], $this->auth);
+        }
+        $this->createUser('other@example.com');
+        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other);
+
+        self::assertSame(['Acme', 'Globex', 'Initech'], array_column($this->list(), 'name'));
+    }
+
+    public function testListUsesSnakeCaseKeys(): void
+    {
+        $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme'], $this->auth);
+
+        $company = $this->list()[0];
+
+        self::assertSame(['id', 'name', 'overview', 'created_at', 'archived_at', 'product_count', 'current_position'], array_keys($company));
+        self::assertNotFalse(\DateTimeImmutable::createFromFormat(\DATE_RFC3339, $company['created_at']));
+    }
+
+    public function testArchivedCompaniesAreHiddenUnlessAskedFor(): void
+    {
+        $this->seed(static function (CompanyEntity $c): void {}, 'Acme');
+        $this->seed(static fn (CompanyEntity $c) => $c->archive(new \DateTimeImmutable('2024-01-01')), 'Gone');
+
+        self::assertSame(['Acme'], array_column($this->list(), 'name'));
+
+        $all = $this->list('?include_archived=1');
+        self::assertSame(['Acme', 'Gone'], array_column($all, 'name'));
+        self::assertNull($all[0]['archived_at']);
+        self::assertNotNull($all[1]['archived_at']);
+    }
+
+    public function testListCountsActiveProductsAndShowsCurrentPosition(): void
+    {
+        $this->seed(static function (CompanyEntity $c): void {
+            $c->addProduct('Widget');
+            $c->addProduct('Gadget');
+            $c->addProduct('Retired')->archive(new \DateTimeImmutable());
+            $c->addPosition('Junior', new \DateTimeImmutable('2019-01-01'))->end(new \DateTimeImmutable('2021-12-31'));
+            $c->addPosition('Senior', new \DateTimeImmutable('2022-01-01'));
+        }, 'Acme');
+        $this->seed(static function (CompanyEntity $c): void {}, 'Globex');
+
+        [$acme, $globex] = $this->list();
+
+        self::assertSame(2, $acme['product_count']);
+        self::assertSame('Senior', $acme['current_position']);
+        self::assertSame(0, $globex['product_count']);
+        self::assertNull($globex['current_position']);
+    }
+
+    public function testListRequiresAuthentication(): void
+    {
+        $this->client->request('GET', '/api/companies');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
     // ---- helpers ----------------------------------------------------------
 
-    private function companyCount(): int
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function list(string $query = ''): array
     {
-        return $this->em()->getRepository(CompanyEntity::class)->count([]);
+        $response = $this->jsonRequest('GET', '/api/companies'.$query, headers: $this->auth);
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        return $this->decode($response);
+    }
+
+    /**
+     * Saves a company for the test user directly, for state the API can't
+     * create yet (products, positions, archiving).
+     *
+     * @param \Closure(CompanyEntity): mixed $build
+     */
+    private function seed(\Closure $build, string $name): void
+    {
+        $em = $this->em();
+        $company = new CompanyEntity($this->reloadedUser(), $name);
+        $build($company);
+        $em->persist($company);
+        $em->flush();
     }
 
     private function reloadedUser(): User

@@ -6,17 +6,19 @@ namespace App\Company\Controller;
 
 use App\Company\Application\CreateCompany;
 use App\Company\CompanyId;
+use App\Company\Query\CompanyQueries;
 use App\Shared\Owner;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
- * Writes dispatch a command. Domain exceptions
+ * Reads call the query class; writes dispatch a command. Domain exceptions
  * become 404/409/422 in App\Shared\Http\DomainExceptionListener.
  */
 #[Route('/api/companies', name: 'api_companies_')]
@@ -25,7 +27,19 @@ final class CompanyController extends AbstractController
     public function __construct(
         // Named autowiring: $commandBus is the command.bus service.
         private readonly MessageBusInterface $commandBus,
+        private readonly CompanyQueries $queries,
     ) {
+    }
+
+    /**
+     * GET /api/companies[?include_archived=1]
+     */
+    #[Route('', name: 'list', methods: ['GET'])]
+    public function list(
+        #[CurrentUser] Owner $owner,
+        #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
+    ): JsonResponse {
+        return $this->json($this->queries->listForOwner($owner->ownerId(), $includeArchived));
     }
 
     /**
