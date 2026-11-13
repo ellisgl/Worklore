@@ -1,3 +1,7 @@
 /.env
 Data/*
 !Data/.gitignore
+
+# IDE project settings (per developer)
+/.idea/
+/.openidea/
