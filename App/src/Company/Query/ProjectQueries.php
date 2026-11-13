@@ -95,6 +95,19 @@ final readonly class ProjectQueries
     }
 
     /**
+     * Whether the project exists and belongs to the owner (archived or not).
+     *
+     * @throws Exception
+     */
+    public function existsForOwner(UserId $ownerId, ProjectId $projectId): bool
+    {
+        return false !== $this->db->fetchOne(
+            'SELECT 1 FROM project WHERE user_id = :owner AND id = :id',
+            ['owner' => $ownerId->toRfc4122(), 'id' => $projectId->toRfc4122()],
+        );
+    }
+
+    /**
      * @param ProjectRow $row
      *
      * @throws DateMalformedStringException
