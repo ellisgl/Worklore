@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\User;
 use App\Repository\ApiTokenRepository;
 use App\Tests\Functional\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -251,6 +252,61 @@ final class AuthControllerTest extends ApiTestCase
         self::assertResponseIsSuccessful('Other sessions must survive a logout');
     }
 
+    // ---- archived users ---------------------------------------------------
+
+    public function testArchivedUserCannotLogIn(): void
+    {
+        $this->archive($this->createUser());
+
+        $response = $this->jsonRequest('POST', '/api/auth/login', ['email' => 'user@example.com', 'password' => self::PASSWORD]);
+
+        $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Account is archived.');
+    }
+
+    public function testArchivedUserWithWrongPasswordGetsGenericError(): void
+    {
+        $this->archive($this->createUser());
+
+        $response = $this->jsonRequest('POST', '/api/auth/login', ['email' => 'user@example.com', 'password' => 'wrong-password-123']);
+
+        $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid credentials.');
+    }
+
+    public function testArchivedUsersExistingAccessTokenStopsWorking(): void
+    {
+        $user = $this->createUser();
+        $tokens = $this->login();
+
+        // Archive on the entity directly, so the session isn't revoked: the
+        // user checker alone must reject it.
+        $this->archive($user);
+
+        self::assertFalse($this->accessTokenWorks($tokens['access_token']));
+    }
+
+    public function testArchivedUserCannotRefresh(): void
+    {
+        $user = $this->createUser();
+        $tokens = $this->login();
+        $this->archive($user);
+
+        $response = $this->jsonRequest('POST', '/api/auth/refresh', ['refresh_token' => $tokens['refresh_token']]);
+
+        $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED, 'Invalid or expired refresh token.');
+    }
+
+    public function testUnarchivedUserCanLogInAgain(): void
+    {
+        $user = $this->createUser();
+        $this->archive($user);
+        $user->unarchive();
+        static::getContainer()->get('doctrine')->getManager()->flush();
+
+        $this->login();
+
+        self::assertResponseIsSuccessful();
+    }
+
     // ---- general API behaviour --------------------------------------------
 
     public function testUnknownApiRouteReturnsJson404(): void
@@ -268,5 +324,11 @@ final class AuthControllerTest extends ApiTestCase
         $this->client->request('GET', '/api/auth/login');
 
         self::assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
+    }
+
+    private function archive(User $user): void
+    {
+        $user->archive(new \DateTimeImmutable());
+        static::getContainer()->get('doctrine')->getManager()->flush();
     }
 }

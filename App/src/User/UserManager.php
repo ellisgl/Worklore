@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Security\TokenManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
@@ -26,6 +27,7 @@ final readonly class UserManager
         private UserPasswordHasherInterface $hasher,
         private ValidatorInterface $validator,
         private TokenManager $tokenManager,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -69,6 +71,26 @@ final readonly class UserManager
         $this->em->flush();
 
         return $this->tokenManager->revokeAllForUser($user);
+    }
+
+    /**
+     * Blocks the user from logging in and signs them out everywhere. Their data
+     * stays; unarchive() restores access. Archiving twice keeps the first time.
+     *
+     * @return int number of sessions revoked
+     */
+    public function archive(User $user): int
+    {
+        $user->archive($this->clock->now());
+        $this->em->flush();
+
+        return $this->tokenManager->revokeAllForUser($user);
+    }
+
+    public function unarchive(User $user): void
+    {
+        $user->unarchive();
+        $this->em->flush();
     }
 
     /**

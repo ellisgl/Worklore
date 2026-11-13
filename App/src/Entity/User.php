@@ -4,31 +4,30 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use \DateTimeImmutable;
+use \DateTimeZone;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Doctrine mapping: config/doctrine/User.orm.xml.
+ * Doctrine mapping: config/doctrine/Entity/User.orm.xml.
  */
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    private Uuid $id;
-
+    private ?Uuid $id = null;
     private string $email;
-
     /** @var list<string> */
     private array $roles = [];
-
     private ?string $password = null;
-
-    private \DateTimeImmutable $createdAt;
+    private DateTimeImmutable $createdAt;
+    private ?DateTimeImmutable $archivedAt = null;
 
     public function __construct(string $email)
     {
         $this->id = Uuid::v7();
         $this->setEmail($email);
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
     public static function normalizeEmail(string $email): string
@@ -84,8 +83,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $hashedPassword;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getArchivedAt(): ?DateTimeImmutable
+    {
+        return $this->archivedAt;
+    }
+
+    public function isArchived(): bool
+    {
+        return null !== $this->archivedAt;
+    }
+
+    public function archive(DateTimeImmutable $at): void
+    {
+        $this->archivedAt ??= $at;  // already archived: keep the original time
+    }
+
+    public function unarchive(): void
+    {
+        $this->archivedAt = null;
     }
 }

@@ -24,6 +24,8 @@ security:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
+            # Rejects archived users at login and on every Bearer request
+            user_checker: App\Security\UserChecker
 
             # POST /api/auth/login {"email": "...", "password": "..."} -> token pair
             json_login:

@@ -57,7 +57,8 @@ final readonly class TokenManager
     /**
      * Exchanges a refresh token for a new pair. The old pair stops working.
      *
-     * Returns null if the refresh token is unknown, expired, or was already used.
+     * Returns null if the refresh token is unknown, expired, was already used,
+     * or belongs to an archived user.
      */
     public function refresh(string $refreshToken): ?TokenPair
     {
@@ -65,7 +66,7 @@ final readonly class TokenManager
         $now = $this->clock->now();
 
         $token = $this->tokens->findOneByRefreshTokenHash($oldHash);
-        if (null === $token || !$token->isRefreshTokenValid($now)) {
+        if (null === $token || !$token->isRefreshTokenValid($now) || $token->getUser()->isArchived()) {
             return null;
         }
 

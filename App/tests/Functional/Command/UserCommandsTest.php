@@ -229,6 +229,62 @@ final class UserCommandsTest extends KernelTestCase
         self::assertSame(Command::FAILURE, $tester->getStatusCode());
     }
 
+    // ---- app:user:archive / app:user:unarchive ----------------------------
+
+    public function testArchiveBlocksUserAndRevokesSessions(): void
+    {
+        $user = $this->createUser('user@example.com');
+        $tokenManager = static::getContainer()->get(TokenManager::class);
+        $session = $tokenManager->issue($user);
+        $clock = static::mockTime('2026-11-13 12:00:00');
+
+        $tester = $this->command('app:user:archive');
+        $tester->execute(['email' => 'user@example.com']);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertStringContainsString('revoked 1 session(s)', $tester->getDisplay());
+        $user = $this->reload($user);
+        self::assertTrue($user->isArchived());
+        self::assertEquals($clock->now(), $user->getArchivedAt());
+        self::assertNull($tokenManager->findValidByAccessToken($session->accessToken));
+    }
+
+    public function testArchiveTwiceKeepsOriginalTime(): void
+    {
+        $user = $this->createUser('user@example.com');
+        $clock = static::mockTime('2026-11-13 12:00:00');
+        $this->command('app:user:archive')->execute(['email' => 'user@example.com']);
+        $clock->sleep(3600);
+
+        $tester = $this->command('app:user:archive');
+        $tester->execute(['email' => 'user@example.com']);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertStringContainsString('already archived', $tester->getDisplay());
+        self::assertEquals(new \DateTimeImmutable('2026-11-13 12:00:00'), $this->reload($user)->getArchivedAt());
+    }
+
+    public function testUnarchiveRestoresUser(): void
+    {
+        $user = $this->createUser('user@example.com');
+        $this->command('app:user:archive')->execute(['email' => 'user@example.com']);
+
+        $tester = $this->command('app:user:unarchive');
+        $tester->execute(['email' => 'user@example.com']);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertFalse($this->reload($user)->isArchived());
+    }
+
+    public function testArchiveAndUnarchiveUnknownUserFail(): void
+    {
+        foreach (['app:user:archive', 'app:user:unarchive'] as $name) {
+            $tester = $this->command($name);
+            $tester->execute(['email' => 'nobody@example.com']);
+            self::assertSame(Command::FAILURE, $tester->getStatusCode(), $name);
+        }
+    }
+
     // ---- app:token:purge-expired ------------------------------------------
 
     public function testPurgeExpiredRemovesOnlyExpiredSessions(): void

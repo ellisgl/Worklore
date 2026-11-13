@@ -13,13 +13,27 @@ doctrine:
         identity_generation_preferences:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
+        # One XML mapping per namespace: each dir holds <ClassShortName>.orm.xml
+        # files for classes under its prefix.
         mappings:
             App:
                 type: xml
                 is_bundle: false
-                dir: '%kernel.project_dir%/config/doctrine'
+                dir: '%kernel.project_dir%/config/doctrine/Entity'
                 prefix: 'App\Entity'
                 alias: App
+            Company:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Company/Config'
+                prefix: 'App\Company'
+                alias: Company
+            Taxonomy:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Taxonomy/Config'
+                prefix: 'App\Taxonomy'
+                alias: Taxonomy
 
 when@test:
     doctrine:

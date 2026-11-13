@@ -12,7 +12,7 @@ use Symfony\Component\Uid\Uuid;
  * Only SHA-256 hashes of the tokens are stored, so a database leak doesn't
  * leak usable credentials. Refreshing rotates both hashes in place.
  *
- * Doctrine mapping: config/doctrine/ApiToken.orm.xml.
+ * Doctrine mapping: config/doctrine/Entity/ApiToken.orm.xml.
  */
 class ApiToken
 {
