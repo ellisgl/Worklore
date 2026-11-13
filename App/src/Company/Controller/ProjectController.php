@@ -14,6 +14,8 @@ use App\Company\ProductId;
 use App\Company\ProjectId;
 use App\Company\Query\ProductQueries;
 use App\Company\Query\ProjectQueries;
+use App\Shared\Http\PageRequest;
+use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
@@ -21,6 +23,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -44,10 +47,11 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * GET /api/products/{productId}/projects[?include_archived=1]
+     * GET /api/products/{productId}/projects[?include_archived=1][&page=1&per_page=50]
      *
      * @throws DateMalformedStringException
      * @throws Exception
+     * @throws InvalidValueException
      * @throws ProductNotFound
      */
     #[Route('/products/{productId}/projects', name: 'list', requirements: ['productId' => Requirement::UUID], methods: ['GET'])]
@@ -55,13 +59,14 @@ final class ProjectController extends AbstractController
         #[CurrentUser] Owner $owner,
         string $productId,
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
     ): JsonResponse {
         $product = ProductId::fromString($productId);
         if (!$this->products->existsForOwner($owner->ownerId(), $product)) {
             throw new ProductNotFound();
         }
 
-        return $this->json($this->projects->listForProduct($owner->ownerId(), $product, $includeArchived));
+        return $this->json($this->projects->listForProduct($owner->ownerId(), $product, $includeArchived, $paging->toPage()));
     }
 
     /**

@@ -204,6 +204,48 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
+    /**
+     * @throws JsonException
+     */
+    public function testListIsPaged(): void
+    {
+        foreach (['Initech', 'Acme', 'Globex'] as $name) {
+            $this->create($name);
+        }
+
+        $default = $this->decode($this->jsonRequest('GET', '/api/companies', headers: $this->auth));
+        $response = $this->jsonRequest('GET', '/api/companies?page=2&per_page=2', headers: $this->auth);
+
+        self::assertSame(['page' => 1, 'per_page' => 50, 'total' => 3], array_intersect_key($default, array_flip(['page', 'per_page', 'total'])));
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+        self::assertSame(['Initech'], array_column($this->items($response), 'name'));
+        self::assertSame(['page' => 2, 'per_page' => 2, 'total' => 3], array_intersect_key($this->decode($response), array_flip(['page', 'per_page', 'total'])));
+        self::assertSame([], $this->list('?page=3&per_page=2'), 'Past the end: empty');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function invalidPagingProvider(): iterable
+    {
+        yield 'page 0' => ['?page=0', 'page'];
+        yield 'page not a number' => ['?page=two', 'page'];
+        yield 'per_page 0' => ['?per_page=0', 'per_page'];
+        yield 'per_page over the max' => ['?per_page=101', 'per_page'];
+    }
+
+    /**
+     * @throws JsonException
+     */
+    #[DataProvider('invalidPagingProvider')]
+    public function testInvalidPagingIsRejected(string $query, string $field): void
+    {
+        $response = $this->jsonRequest('GET', '/api/companies'.$query, headers: $this->auth);
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode(), (string) $response->getContent());
+        self::assertSame($field, $this->firstViolationPath($response));
+    }
+
     // ---- GET /api/companies/{id} ------------------------------------------
 
     /**
@@ -555,12 +597,8 @@ final class CompanyControllerTest extends ApiTestCase
     {
         $response = $this->jsonRequest('GET', '/api/companies'.$query, headers: $this->auth);
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-        $decoded = $this->decode($response);
-        self::assertIsList($decoded);
-        /** @var list<array<string, mixed>> $companies */
-        $companies = $decoded;
 
-        return $companies;
+        return $this->items($response);
     }
 
     /**

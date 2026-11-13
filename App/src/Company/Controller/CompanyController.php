@@ -11,6 +11,8 @@ use App\Company\Application\EditCompany;
 use App\Company\Application\UnarchiveCompany;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
+use App\Shared\Http\PageRequest;
+use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
@@ -18,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -40,17 +43,19 @@ final class CompanyController extends AbstractController
     }
 
     /**
-     * GET /api/companies[?include_archived=1]
+     * GET /api/companies[?include_archived=1][&page=1&per_page=50]
      *
      * @throws DateMalformedStringException
      * @throws Exception
+     * @throws InvalidValueException
      */
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
     ): JsonResponse {
-        return $this->json($this->queries->listForOwner($owner->ownerId(), $includeArchived));
+        return $this->json($this->queries->listForOwner($owner->ownerId(), $includeArchived, $paging->toPage()));
     }
 
     /**

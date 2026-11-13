@@ -48,7 +48,7 @@ final class PositionQueriesTest extends KernelTestCase
         $this->position($globex, 'Manager');
         $this->em->flush();
 
-        self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id)));
+        self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id)->items));
     }
 
     /**
@@ -62,8 +62,8 @@ final class PositionQueriesTest extends KernelTestCase
         $this->position($acme, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
         $this->em->flush();
 
-        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id)));
-        self::assertSame(['Archived', 'Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)));
+        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id)->items));
+        self::assertSame(['Archived', 'Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)->items));
     }
 
     /**
@@ -76,8 +76,8 @@ final class PositionQueriesTest extends KernelTestCase
         $this->position($acme, 'Developer');
         $this->em->flush();
 
-        self::assertSame([], $this->queries->listForCompany($this->owner->id, $acme->id));
-        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)));
+        self::assertSame([], $this->queries->listForCompany($this->owner->id, $acme->id)->items);
+        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)->items));
     }
 
     /**
@@ -92,7 +92,7 @@ final class PositionQueriesTest extends KernelTestCase
         $this->em->persist($other);
         $this->em->flush();
 
-        self::assertSame([], $this->queries->listForCompany($other->id, $acme->id));
+        self::assertSame([], $this->queries->listForCompany($other->id, $acme->id)->items);
         self::assertNull($this->queries->findForOwner($other->id, $position->id));
         self::assertNull($this->queries->findForOwner($this->owner->id, PositionId::generate()));
     }
@@ -139,7 +139,7 @@ final class PositionQueriesTest extends KernelTestCase
         $this->position($gone, 'At archived company', '2022-01-01');
         $this->em->flush();
 
-        $current = $this->queries->listCurrentForOwner($this->owner->id);
+        $current = $this->queries->listCurrentForOwner($this->owner->id)->items;
 
         self::assertSame(['Lead', 'Consultant'], $this->titles($current));
         self::assertTrue($current[0]->current);

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Company\Query;
 
 use App\Company\CompanyId;
+use App\Shared\Query\Page;
+use App\Shared\Query\PagedSql;
+use App\Shared\Query\Paginated;
 use App\Shared\UserId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
@@ -25,8 +28,8 @@ final readonly class CompanyQueries
     {
     }
 
-    /** Every column a CompanySummary needs; callers add WHERE and ORDER BY. */
-    private const string SELECT = <<<'SQL'
+    /** Every column a CompanySummary needs, without FROM. */
+    private const string COLUMNS = <<<'SQL'
         SELECT c.id,
                c.name,
                c.overview,
@@ -43,8 +46,14 @@ final readonly class CompanyQueries
                    AND po.archived_at IS NULL
                  ORDER BY po.start_date DESC, po.id DESC
                  LIMIT 1) AS current_position
+        SQL;
+
+    /** The tables a CompanySummary reads; callers add WHERE and ORDER BY. */
+    private const string FROM = <<<'SQL'
           FROM company c
         SQL;
+
+    private const string SELECT = self::COLUMNS."\n".self::FROM;
 
     /**
      * The owner's companies, sorted by name.
@@ -52,28 +61,25 @@ final readonly class CompanyQueries
      * By default archived companies are left out; pass $includeArchived =
      * true for all.
      *
-     * @return list<CompanySummary>
+     * @return Paginated<CompanySummary>
      *
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function listForOwner(UserId $ownerId, bool $includeArchived = false): array
+    public function listForOwner(UserId $ownerId, bool $includeArchived = false, Page $page = new Page()): Paginated
     {
-        $sql = self::SELECT.' WHERE c.user_id = :owner';
-        if (!$includeArchived) {
-            $sql .= ' AND c.archived_at IS NULL';
-        }
-        $sql .= ' ORDER BY c.name, c.id';
+        $where = ' WHERE c.user_id = :owner'.($includeArchived ? '' : ' AND c.archived_at IS NULL');
+        $params = ['owner' => $ownerId->toRfc4122()];
 
         /** @var list<CompanyRow> $rows */
-        $rows = $this->db->fetchAllAssociative($sql, ['owner' => $ownerId->toRfc4122()]);
+        $rows = $this->db->fetchAllAssociative(self::SELECT.$where.' ORDER BY c.name, c.id'.PagedSql::limit($page), $params);
 
         $companies = [];
         foreach ($rows as $row) {
             $companies[] = self::summary($row);
         }
 
-        return $companies;
+        return new Paginated($companies, $page, PagedSql::count($this->db, self::FROM.$where, $params));
     }
 
     /**

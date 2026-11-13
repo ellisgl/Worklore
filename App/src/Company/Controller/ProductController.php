@@ -14,6 +14,8 @@ use App\Company\CompanyId;
 use App\Company\ProductId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\ProductQueries;
+use App\Shared\Http\PageRequest;
+use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
@@ -21,6 +23,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -44,24 +47,26 @@ final class ProductController extends AbstractController
     }
 
     /**
-     * GET /api/companies/{companyId}/products[?include_archived=1]
+     * GET /api/companies/{companyId}/products[?include_archived=1][&page=1&per_page=50]
      *
      * @throws CompanyNotFound
      * @throws DateMalformedStringException
      * @throws Exception
+     * @throws InvalidValueException
      */
     #[Route('/companies/{companyId}/products', name: 'list', requirements: ['companyId' => Requirement::UUID], methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
         string $companyId,
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
     ): JsonResponse {
         $company = CompanyId::fromString($companyId);
         if (!$this->companies->existsForOwner($owner->ownerId(), $company)) {
             throw new CompanyNotFound();
         }
 
-        return $this->json($this->products->listForCompany($owner->ownerId(), $company, $includeArchived));
+        return $this->json($this->products->listForCompany($owner->ownerId(), $company, $includeArchived, $paging->toPage()));
     }
 
     /**

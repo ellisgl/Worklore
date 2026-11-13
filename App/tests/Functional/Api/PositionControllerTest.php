@@ -105,7 +105,7 @@ final class PositionControllerTest extends ApiTestCase
         $response = $this->jsonRequest('GET', '/api/positions/current', headers: $this->auth);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame(['Lead', 'Consultant'], array_column($this->decode($response), 'title'));
+        self::assertSame(['Lead', 'Consultant'], array_column($this->items($response), 'title'));
     }
 
     /**
@@ -151,6 +151,22 @@ final class PositionControllerTest extends ApiTestCase
             $list = $this->jsonRequest('GET', '/api/companies/'.$companyId.'/positions', headers: $this->auth);
             $this->assertJsonError($list, Response::HTTP_NOT_FOUND, 'Company not found.');
         }
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testListsArePaged(): void
+    {
+        $this->createPosition(['title' => 'Developer', 'start_date' => '2019-03-01']);
+        $this->createPosition(['title' => 'Senior', 'start_date' => '2022-06-01']);
+        $this->createPosition(['title' => 'Intern', 'start_date' => '2018-06-01']);
+
+        self::assertSame(['Intern'], array_column($this->list('?page=2&per_page=2'), 'title'));
+
+        $current = $this->jsonRequest('GET', '/api/positions/current?page=2&per_page=1', headers: $this->auth);
+        self::assertSame(['Developer'], array_column($this->items($current), 'title'));
+        self::assertSame(3, $this->decode($current)['total']);
     }
 
     // ---- show and edit ----------------------------------------------------
@@ -374,11 +390,7 @@ final class PositionControllerTest extends ApiTestCase
     {
         $response = $this->jsonRequest('GET', $this->positionsUri().$query, headers: $this->auth);
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-        $decoded = $this->decode($response);
-        self::assertIsList($decoded);
-        /** @var list<array<string, mixed>> $positions */
-        $positions = $decoded;
 
-        return $positions;
+        return $this->items($response);
     }
 }

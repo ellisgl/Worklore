@@ -9,6 +9,8 @@ use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\CompanySummary;
 use App\Identity\User;
+use App\Shared\InvalidValueException;
+use App\Shared\Query\Page;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -47,8 +49,8 @@ final class CompanyQueriesTest extends KernelTestCase
         $this->em->persist(new CompanyEntity($other, 'Theirs'));
         $this->em->flush();
 
-        self::assertSame(['Acme', 'Globex'], $this->names($this->queries->listForOwner($this->owner->id)));
-        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($this->queries->listForOwner($this->owner->id, includeArchived: true)));
+        self::assertSame(['Acme', 'Globex'], $this->names($this->queries->listForOwner($this->owner->id)->items));
+        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($this->queries->listForOwner($this->owner->id, includeArchived: true)->items));
     }
 
     /**
@@ -64,7 +66,7 @@ final class CompanyQueriesTest extends KernelTestCase
         $acme->addPosition('Hidden', new DateTimeImmutable('2023-01-01'))->archive(new DateTimeImmutable());
         $this->em->flush();
 
-        [$summary] = $this->queries->listForOwner($this->owner->id);
+        [$summary] = $this->queries->listForOwner($this->owner->id)->items;
 
         self::assertSame((string) $acme->id, $summary->id);
         self::assertSame('Widgets', $summary->overview);
@@ -82,7 +84,7 @@ final class CompanyQueriesTest extends KernelTestCase
     {
         $this->em->flush();
 
-        self::assertSame([], $this->queries->listForOwner($this->owner->id));
+        self::assertSame([], $this->queries->listForOwner($this->owner->id)->items);
     }
 
     /**
@@ -121,6 +123,33 @@ final class CompanyQueriesTest extends KernelTestCase
         $this->em->persist($company);
 
         return $company;
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     * @throws InvalidValueException
+     */
+    public function testListIsPaged(): void
+    {
+        foreach (['E', 'C', 'A', 'D', 'B'] as $name) {
+            $this->em->persist(new CompanyEntity($this->owner, $name));
+        }
+        $this->em->persist(new CompanyEntity($this->owner, 'Archived')->archive(new DateTimeImmutable()));
+        $this->em->flush();
+
+        $second = $this->queries->listForOwner($this->owner->id, page: new Page(2, 2));
+        $last = $this->queries->listForOwner($this->owner->id, page: new Page(3, 2));
+        $beyond = $this->queries->listForOwner($this->owner->id, page: new Page(4, 2));
+
+        self::assertSame(['C', 'D'], $this->names($second->items));
+        self::assertSame(2, $second->page);
+        self::assertSame(2, $second->perPage);
+        self::assertSame(5, $second->total, 'Archived left out of the total too');
+        self::assertSame(['E'], $this->names($last->items));
+        self::assertSame([], $beyond->items);
+        self::assertSame(5, $beyond->total);
+        self::assertSame(6, $this->queries->listForOwner($this->owner->id, includeArchived: true)->total);
     }
 
     /**

@@ -16,6 +16,7 @@ use App\Company\CompanyId;
 use App\Company\PositionId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\PositionQueries;
+use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use DateMalformedStringException;
@@ -26,6 +27,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -49,38 +51,44 @@ final class PositionController extends AbstractController
     }
 
     /**
-     * GET /api/companies/{companyId}/positions[?include_archived=1], newest
+     * GET /api/companies/{companyId}/positions[?include_archived=1][&page=1&per_page=50], newest
      * start date first.
      *
      * @throws CompanyNotFound
      * @throws DateMalformedStringException
      * @throws Exception
+     * @throws InvalidValueException
      */
     #[Route('/companies/{companyId}/positions', name: 'list', requirements: ['companyId' => Requirement::UUID], methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
         string $companyId,
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
     ): JsonResponse {
         $company = CompanyId::fromString($companyId);
         if (!$this->companies->existsForOwner($owner->ownerId(), $company)) {
             throw new CompanyNotFound();
         }
 
-        return $this->json($this->positions->listForCompany($owner->ownerId(), $company, $includeArchived));
+        return $this->json($this->positions->listForCompany($owner->ownerId(), $company, $includeArchived, $paging->toPage()));
     }
 
     /**
-     * GET /api/positions/current: the caller's current positions across all
+     * GET /api/positions/current[?page=1&per_page=50]: the caller's current positions across all
      * companies (archived ones left out), newest start date first.
      *
      * @throws DateMalformedStringException
      * @throws Exception
+     * @throws InvalidValueException
+     * @throws InvalidValueException
      */
     #[Route('/positions/current', name: 'current', methods: ['GET'])]
-    public function current(#[CurrentUser] Owner $owner): JsonResponse
-    {
-        return $this->json($this->positions->listCurrentForOwner($owner->ownerId()));
+    public function current(
+        #[CurrentUser] Owner $owner,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
+    ): JsonResponse {
+        return $this->json($this->positions->listCurrentForOwner($owner->ownerId(), $paging->toPage()));
     }
 
     /**

@@ -120,6 +120,19 @@ final class ProjectControllerTest extends ApiTestCase
         }
     }
 
+    /**
+     * @throws JsonException
+     */
+    public function testListIsPaged(): void
+    {
+        foreach (['Launch', 'Beta', 'Gamma'] as $name) {
+            $this->createProject($name);
+        }
+
+        self::assertSame(['Launch'], array_column($this->list('?page=2&per_page=2'), 'name'));
+        self::assertSame(['Beta'], array_column($this->list('?per_page=1'), 'name'));
+    }
+
     // ---- show and edit ----------------------------------------------------
 
     /**
@@ -268,11 +281,7 @@ final class ProjectControllerTest extends ApiTestCase
     {
         $response = $this->jsonRequest('GET', '/api/products/'.$this->productId.'/projects'.$query, headers: $this->auth);
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-        $decoded = $this->decode($response);
-        self::assertIsList($decoded);
-        /** @var list<array<string, mixed>> $projects */
-        $projects = $decoded;
 
-        return $projects;
+        return $this->items($response);
     }
 }

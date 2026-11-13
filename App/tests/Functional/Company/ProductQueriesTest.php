@@ -44,8 +44,8 @@ final class ProductQueriesTest extends KernelTestCase
         $globex->addProduct('Other');
         $this->em->flush();
 
-        self::assertSame(['Gadget', 'Widget'], $this->names($this->queries->listForCompany($this->owner->id, $acme->id)));
-        self::assertSame(['Gadget', 'Retired', 'Widget'], $this->names($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)));
+        self::assertSame(['Gadget', 'Widget'], $this->names($this->queries->listForCompany($this->owner->id, $acme->id)->items));
+        self::assertSame(['Gadget', 'Retired', 'Widget'], $this->names($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)->items));
     }
 
     /**
@@ -58,8 +58,8 @@ final class ProductQueriesTest extends KernelTestCase
         $acme->addProduct('Widget');
         $this->em->flush();
 
-        self::assertSame([], $this->queries->listForCompany($this->owner->id, $acme->id));
-        self::assertSame(['Widget'], $this->names($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)));
+        self::assertSame([], $this->queries->listForCompany($this->owner->id, $acme->id)->items);
+        self::assertSame(['Widget'], $this->names($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)->items));
     }
 
     /**
@@ -74,7 +74,7 @@ final class ProductQueriesTest extends KernelTestCase
         $widget->addProject('Old')->archive(new DateTimeImmutable());
         $this->em->flush();
 
-        [$summary] = $this->queries->listForCompany($this->owner->id, $acme->id);
+        [$summary] = $this->queries->listForCompany($this->owner->id, $acme->id)->items;
 
         self::assertSame((string) $widget->id, $summary->id);
         self::assertSame((string) $acme->id, $summary->companyId);

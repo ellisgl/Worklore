@@ -6,6 +6,9 @@ namespace App\Company\Query;
 
 use App\Company\ProductId;
 use App\Company\ProjectId;
+use App\Shared\Query\Page;
+use App\Shared\Query\PagedSql;
+use App\Shared\Query\Paginated;
 use App\Shared\UserId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
@@ -20,8 +23,8 @@ final readonly class ProjectQueries
 {
     use ReadsDatabaseTimes;
 
-    /** Every column a ProjectSummary needs; callers add WHERE and ORDER BY. */
-    private const string SELECT = <<<'SQL'
+    /** Every column a ProjectSummary needs, without FROM. */
+    private const string COLUMNS = <<<'SQL'
         SELECT pj.id,
                pj.product_id,
                p.company_id,
@@ -29,10 +32,16 @@ final readonly class ProjectQueries
                pj.overview,
                pj.created_at,
                pj.archived_at
+        SQL;
+
+    /** The tables a ProjectSummary reads; callers add WHERE and ORDER BY. */
+    private const string FROM = <<<'SQL'
           FROM project pj
           JOIN product p ON p.id = pj.product_id
           JOIN company c ON c.id = p.company_id
         SQL;
+
+    private const string SELECT = self::COLUMNS."\n".self::FROM;
 
     public function __construct(private Connection $db)
     {
@@ -44,28 +53,26 @@ final readonly class ProjectQueries
      * By default archived projects, and every project under an archived
      * product or company, are left out; pass $includeArchived = true for all.
      *
-     * @return list<ProjectSummary>
+     * @return Paginated<ProjectSummary>
      *
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function listForProduct(UserId $ownerId, ProductId $productId, bool $includeArchived = false): array
+    public function listForProduct(UserId $ownerId, ProductId $productId, bool $includeArchived = false, Page $page = new Page()): Paginated
     {
-        $sql = self::SELECT.' WHERE pj.user_id = :owner AND pj.product_id = :product';
-        if (!$includeArchived) {
-            $sql .= ' AND pj.archived_at IS NULL AND p.archived_at IS NULL AND c.archived_at IS NULL';
-        }
-        $sql .= ' ORDER BY pj.name, pj.id';
+        $where = ' WHERE pj.user_id = :owner AND pj.product_id = :product'
+            .($includeArchived ? '' : ' AND pj.archived_at IS NULL AND p.archived_at IS NULL AND c.archived_at IS NULL');
+        $params = ['owner' => $ownerId->toRfc4122(), 'product' => $productId->toRfc4122()];
 
         /** @var list<ProjectRow> $rows */
-        $rows = $this->db->fetchAllAssociative($sql, ['owner' => $ownerId->toRfc4122(), 'product' => $productId->toRfc4122()]);
+        $rows = $this->db->fetchAllAssociative(self::SELECT.$where.' ORDER BY pj.name, pj.id'.PagedSql::limit($page), $params);
 
         $projects = [];
         foreach ($rows as $row) {
             $projects[] = self::summary($row);
         }
 
-        return $projects;
+        return new Paginated($projects, $page, PagedSql::count($this->db, self::FROM.$where, $params));
     }
 
     /**

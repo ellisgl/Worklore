@@ -47,8 +47,8 @@ final class ProjectQueriesTest extends KernelTestCase
         $gadget->addProject('Other');
         $this->em->flush();
 
-        self::assertSame(['Beta', 'Launch'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id)));
-        self::assertSame(['Beta', 'Launch', 'Old'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true)));
+        self::assertSame(['Beta', 'Launch'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id)->items));
+        self::assertSame(['Beta', 'Launch', 'Old'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true)->items));
     }
 
     /**
@@ -63,14 +63,14 @@ final class ProjectQueriesTest extends KernelTestCase
 
         $widget->archive(new DateTimeImmutable());
         $this->em->flush();
-        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id), 'Archived product');
+        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id)->items, 'Archived product');
 
         $widget->unarchive();
         $widget->company->archive(new DateTimeImmutable());
         $this->em->flush();
-        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id), 'Archived company');
+        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id)->items, 'Archived company');
 
-        self::assertSame(['Launch'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true)));
+        self::assertSame(['Launch'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true)->items));
     }
 
     /**

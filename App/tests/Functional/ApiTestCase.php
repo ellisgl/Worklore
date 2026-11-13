@@ -141,6 +141,23 @@ abstract class ApiTestCase extends WebTestCase
     }
 
     /**
+     * The items of a paginated list response ({"items": [...], "page", ...}).
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws JsonException
+     */
+    protected function items(Response $response): array
+    {
+        $items = $this->decode($response)['items'] ?? null;
+        self::assertIsList($items);
+        /** @var list<array<string, mixed>> $list */
+        $list = $items;
+
+        return $list;
+    }
+
+    /**
      * @throws JsonException
      */
     protected function assertJsonError(Response $response, int $status, ?string $error = null): void

@@ -6,6 +6,9 @@ namespace App\Company\Query;
 
 use App\Company\CompanyId;
 use App\Company\PositionId;
+use App\Shared\Query\Page;
+use App\Shared\Query\PagedSql;
+use App\Shared\Query\Paginated;
 use App\Shared\UserId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
@@ -20,8 +23,8 @@ final readonly class PositionQueries
 {
     use ReadsDatabaseTimes;
 
-    /** Every column a PositionSummary needs; callers add WHERE and ORDER BY. */
-    private const string SELECT = <<<'SQL'
+    /** Every column a PositionSummary needs, without FROM. */
+    private const string COLUMNS = <<<'SQL'
         SELECT po.id,
                po.company_id,
                po.title,
@@ -31,9 +34,15 @@ final readonly class PositionQueries
                po.reason_left,
                po.created_at,
                po.archived_at
+        SQL;
+
+    /** The tables a PositionSummary reads; callers add WHERE and ORDER BY. */
+    private const string FROM = <<<'SQL'
           FROM "position" po
           JOIN company c ON c.id = po.company_id
         SQL;
+
+    private const string SELECT = self::COLUMNS."\n".self::FROM;
 
     public function __construct(private Connection $db)
     {
@@ -45,28 +54,26 @@ final readonly class PositionQueries
      * By default archived positions, and every position at an archived
      * company, are left out; pass $includeArchived = true for all.
      *
-     * @return list<PositionSummary>
+     * @return Paginated<PositionSummary>
      *
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function listForCompany(UserId $ownerId, CompanyId $companyId, bool $includeArchived = false): array
+    public function listForCompany(UserId $ownerId, CompanyId $companyId, bool $includeArchived = false, Page $page = new Page()): Paginated
     {
-        $sql = self::SELECT.' WHERE po.user_id = :owner AND po.company_id = :company';
-        if (!$includeArchived) {
-            $sql .= ' AND po.archived_at IS NULL AND c.archived_at IS NULL';
-        }
-        $sql .= ' ORDER BY po.start_date DESC, po.id DESC';
+        $where = ' WHERE po.user_id = :owner AND po.company_id = :company'
+            .($includeArchived ? '' : ' AND po.archived_at IS NULL AND c.archived_at IS NULL');
+        $params = ['owner' => $ownerId->toRfc4122(), 'company' => $companyId->toRfc4122()];
 
         /** @var list<PositionRow> $rows */
-        $rows = $this->db->fetchAllAssociative($sql, ['owner' => $ownerId->toRfc4122(), 'company' => $companyId->toRfc4122()]);
+        $rows = $this->db->fetchAllAssociative(self::SELECT.$where.' ORDER BY po.start_date DESC, po.id DESC'.PagedSql::limit($page), $params);
 
         $positions = [];
         foreach ($rows as $row) {
             $positions[] = self::summary($row);
         }
 
-        return $positions;
+        return new Paginated($positions, $page, PagedSql::count($this->db, self::FROM.$where, $params));
     }
 
     /**
@@ -74,26 +81,25 @@ final readonly class PositionQueries
      * newest start date first. Archived positions and positions at archived
      * companies are always left out.
      *
-     * @return list<PositionSummary>
+     * @return Paginated<PositionSummary>
      *
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function listCurrentForOwner(UserId $ownerId): array
+    public function listCurrentForOwner(UserId $ownerId, Page $page = new Page()): Paginated
     {
+        $where = ' WHERE po.user_id = :owner AND po.end_date IS NULL AND po.archived_at IS NULL AND c.archived_at IS NULL';
+        $params = ['owner' => $ownerId->toRfc4122()];
+
         /** @var list<PositionRow> $rows */
-        $rows = $this->db->fetchAllAssociative(
-            self::SELECT.' WHERE po.user_id = :owner AND po.end_date IS NULL AND po.archived_at IS NULL AND c.archived_at IS NULL'
-                .' ORDER BY po.start_date DESC, po.id DESC',
-            ['owner' => $ownerId->toRfc4122()],
-        );
+        $rows = $this->db->fetchAllAssociative(self::SELECT.$where.' ORDER BY po.start_date DESC, po.id DESC'.PagedSql::limit($page), $params);
 
         $positions = [];
         foreach ($rows as $row) {
             $positions[] = self::summary($row);
         }
 
-        return $positions;
+        return new Paginated($positions, $page, PagedSql::count($this->db, self::FROM.$where, $params));
     }
 
     /**
