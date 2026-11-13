@@ -6,7 +6,7 @@ namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
 use App\Company\PositionEntity;
-use App\Entity\User;
+use App\Identity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

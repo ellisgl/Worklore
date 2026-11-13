@@ -12,7 +12,7 @@ use App\Company\ProductEntity;
 use App\Company\ProductRepository;
 use App\Company\ProjectEntity;
 use App\Company\ProjectRepository;
-use App\Entity\User;
+use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;

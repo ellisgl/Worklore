@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Command;
 
-use App\Entity\User;
-use App\Repository\ApiTokenRepository;
-use App\Repository\UserRepository;
-use App\Security\TokenManager;
-use App\User\UserManager;
+use App\Identity\User;
+use App\Identity\ApiTokenRepository;
+use App\Identity\UserRepository;
+use App\Identity\Security\TokenManager;
+use App\Identity\UserManager;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

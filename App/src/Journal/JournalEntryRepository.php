@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Journal;
 
 use App\Company\ProjectEntity;
-use App\Entity\User;
+use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;

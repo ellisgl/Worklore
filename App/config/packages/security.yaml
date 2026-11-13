@@ -7,10 +7,10 @@ security:
         # Loads users via UserRepository::loadUserByIdentifier() (case-insensitive email)
         app_user_provider:
             entity:
-                class: App\Entity\User
+                class: App\Identity\User
 
     # Coarse-grained access. Per-object rules (e.g. "only the owner may edit")
-    # belong in voters under src/Security/Voter/.
+    # belong in voters in each module's Security/ folder, e.g. src/Company/Security/.
     role_hierarchy:
         ROLE_ADMIN: ROLE_USER
 
@@ -25,22 +25,22 @@ security:
             stateless: true
             provider: app_user_provider
             # Rejects archived users at login and on every Bearer request
-            user_checker: App\Security\UserChecker
+            user_checker: App\Identity\Security\UserChecker
 
             # POST /api/auth/login {"email": "...", "password": "..."} -> token pair
             json_login:
                 check_path: api_auth_login
                 username_path: email
                 password_path: password
-                success_handler: App\Security\LoginSuccessHandler
+                success_handler: App\Identity\Security\LoginSuccessHandler
 
             # Authorization: Bearer <access token>
             access_token:
-                token_handler: App\Security\AccessTokenHandler
-                failure_handler: App\Security\AccessTokenFailureHandler
+                token_handler: App\Identity\Security\AccessTokenHandler
+                failure_handler: App\Identity\Security\AccessTokenFailureHandler
 
             # Unauthenticated requests get a 401 with WWW-Authenticate: Bearer
-            entry_point: App\Security\ApiEntryPoint
+            entry_point: App\Identity\Security\ApiEntryPoint
 
             # Per email+IP and per IP; needs symfony/rate-limiter
             login_throttling:

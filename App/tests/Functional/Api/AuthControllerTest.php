@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Entity\User;
-use App\Repository\ApiTokenRepository;
+use App\Identity\User;
+use App\Identity\ApiTokenRepository;
 use App\Tests\Functional\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;

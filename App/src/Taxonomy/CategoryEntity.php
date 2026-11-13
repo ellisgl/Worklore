@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Taxonomy;
 
-use App\Entity\User;
+use App\Identity\User;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;

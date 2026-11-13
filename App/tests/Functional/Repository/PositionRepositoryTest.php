@@ -7,7 +7,7 @@ namespace App\Tests\Functional\Repository;
 use App\Company\CompanyEntity;
 use App\Company\PositionEntity;
 use App\Company\PositionRepository;
-use App\Entity\User;
+use App\Identity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

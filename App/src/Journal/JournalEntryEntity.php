@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Journal;
 
 use App\Company\ProjectEntity;
-use App\Entity\OwnershipMismatchException;
-use App\Entity\User;
+use App\Shared\OwnershipMismatchException;
+use App\Identity\User;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;

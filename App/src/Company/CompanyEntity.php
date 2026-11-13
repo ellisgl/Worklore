@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Entity\User;
+use App\Identity\User;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;

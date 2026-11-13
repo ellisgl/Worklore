@@ -35,7 +35,7 @@
 
         <one-to-many field="tags" target-entity="App\Taxonomy\TagEntity" mapped-by="category"/>
 
-        <many-to-one field="user" target-entity="App\Entity\User">
+        <many-to-one field="user" target-entity="App\Identity\User">
             <join-column name="user_id" nullable="false" on-delete="CASCADE"/>
         </many-to-one>
 

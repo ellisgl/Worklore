@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
-use App\Entity\User;
+use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
