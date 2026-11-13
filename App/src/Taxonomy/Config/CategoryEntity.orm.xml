@@ -6,7 +6,7 @@
 
     <entity name="App\Taxonomy\CategoryEntity" table="category" repository-class="App\Taxonomy\CategoryRepository">
         <indexes>
-            <index name="idx_category_archived_at" columns="archived_at"/>
+            <index name="idx_category_user_archived" columns="user_id,archived_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
@@ -17,7 +17,7 @@
                 <option name="comment">Name of the category</option>
             </options>
         </field>
-        <field name="description" nullable="true">
+        <field name="description" type="text" nullable="true">
             <options>
                 <option name="comment">Description of the category</option>
             </options>

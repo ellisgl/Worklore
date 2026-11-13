@@ -6,11 +6,12 @@
 
     <entity name="App\Taxonomy\TagEntity" table="tag" repository-class="App\Taxonomy\TagRepository">
         <unique-constraints>
-            <!-- Tag names are unique within their category (archived ones included) -->
-            <unique-constraint name="uniq_tag_category_name" columns="category_id,name"/>
+            <!-- Tag names are unique within their category, ignoring case
+                 (archived ones included) -->
+            <unique-constraint name="uniq_tag_category_name" columns="category_id,name_key"/>
         </unique-constraints>
         <indexes>
-            <index name="idx_tag_archived_at" columns="archived_at"/>
+            <index name="idx_tag_user_archived" columns="user_id,archived_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
@@ -19,6 +20,11 @@
         <field name="name">
             <options>
                 <option name="comment">Name of the tag</option>
+            </options>
+        </field>
+        <field name="nameKey" column="name_key" length="255">
+            <options>
+                <option name="comment">Lowercased, trimmed name; makes the unique constraint case-insensitive</option>
             </options>
         </field>
         <field name="createdAt" column="created_at" type="datetime_immutable">

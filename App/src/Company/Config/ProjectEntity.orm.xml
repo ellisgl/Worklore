@@ -6,7 +6,7 @@
 
     <entity name="App\Company\ProjectEntity" table="project" repository-class="App\Company\ProjectRepository">
         <indexes>
-            <index name="idx_project_archived_at" columns="archived_at"/>
+            <index name="idx_project_product_archived" columns="product_id,archived_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->

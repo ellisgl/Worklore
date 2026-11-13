@@ -30,7 +30,8 @@ class TagRepository extends ServiceEntityRepository
     }
 
     /**
-     * Whether the category already has a tag with this name (archived ones
+     * Whether the category already has a tag with this name, ignoring case
+     * (archived ones
      * included, matching uniq_tag_category_name). Pass the tag being renamed
      * or moved as $except so keeping its current name isn't a clash.
      *
@@ -42,9 +43,9 @@ class TagRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('t')
             ->select('1')
             ->where('t.category = :category')
-            ->andWhere('t.name = :name')
+            ->andWhere('t.nameKey = :nameKey')
             ->setParameter('category', $category->getId(), 'uuid')
-            ->setParameter('name', trim($name))  // stored names are trimmed
+            ->setParameter('nameKey', TagEntity::nameKey($name))
             ->setMaxResults(1);
 
         if (null !== $except) {

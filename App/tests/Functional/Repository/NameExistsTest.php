@@ -73,13 +73,23 @@ final class NameExistsTest extends KernelTestCase
         self::assertTrue($this->companies->nameExistsForUser($user, 'Globex', except: $acme), 'Renaming onto another company');
     }
 
-    public function testCompanyNameCheckIsCaseSensitiveLikeTheConstraint(): void
+    public function testCompanyNameCheckIgnoresCaseLikeTheConstraint(): void
     {
         $user = $this->persist(new User('a@example.com'));
         $this->persist(new CompanyEntity($user, 'Acme'));
         $this->em->flush();
 
-        self::assertFalse($this->companies->nameExistsForUser($user, 'acme'));
+        self::assertTrue($this->companies->nameExistsForUser($user, 'acme'));
+        self::assertTrue($this->companies->nameExistsForUser($user, ' ACME '));
+    }
+
+    public function testTagNameCheckIgnoresCaseLikeTheConstraint(): void
+    {
+        [$user, $area] = $this->userWithCategory();
+        $this->persist(new TagEntity($area, $user, 'PHP'));
+        $this->em->flush();
+
+        self::assertTrue($this->tags->nameExistsInCategory($area, 'php'));
     }
 
     // ---- TagRepository::nameExistsInCategory() ----------------------------

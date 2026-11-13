@@ -30,7 +30,8 @@ class CompanyRepository extends ServiceEntityRepository
     }
 
     /**
-     * Whether the user already has a company with this name (archived ones
+     * Whether the user already has a company with this name, ignoring case
+     * (archived ones
      * included, matching uniq_company_user_name). Pass the company being
      * renamed as $except so keeping its current name isn't a clash.
      *
@@ -42,9 +43,9 @@ class CompanyRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('c')
             ->select('1')
             ->where('c.user = :user')
-            ->andWhere('c.name = :name')
+            ->andWhere('c.nameKey = :nameKey')
             ->setParameter('user', $user->getId(), 'uuid')
-            ->setParameter('name', trim($name))  // stored names are trimmed
+            ->setParameter('nameKey', CompanyEntity::nameKey($name))
             ->setMaxResults(1);
 
         if (null !== $except) {

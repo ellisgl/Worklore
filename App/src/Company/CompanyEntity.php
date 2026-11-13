@@ -23,6 +23,8 @@ final class CompanyEntity
 
     private(set) Uuid $id;
     private(set) string $name;
+    /** Case-insensitive form of $name, for uniq_company_user_name; see nameKey() */
+    private string $nameKey;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
@@ -39,10 +41,19 @@ final class CompanyEntity
         private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
-        $this->name = self::normalizeName($name);
+        $this->setName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->products = new ArrayCollection();
         $this->positions = new ArrayCollection();
+    }
+
+    /**
+     * The form names are compared in for uniqueness: "Acme" and " ACME " clash.
+     * CompanyRepository::nameExistsForUser() uses this too.
+     */
+    public static function nameKey(string $name): string
+    {
+        return mb_strtolower(trim($name));
     }
 
     public function getId(): Uuid
@@ -111,6 +122,7 @@ final class CompanyEntity
     public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
+        $this->nameKey = self::nameKey($this->name);
 
         return $this;
     }

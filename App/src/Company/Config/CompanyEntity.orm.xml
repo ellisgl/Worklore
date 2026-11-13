@@ -6,11 +6,12 @@
 
     <entity name="App\Company\CompanyEntity" table="company" repository-class="App\Company\CompanyRepository">
         <unique-constraints>
-            <!-- A user can't have two companies with the same name (archived ones included) -->
-            <unique-constraint name="uniq_company_user_name" columns="user_id,name"/>
+            <!-- A user can't have two companies with the same name, ignoring case
+                 (archived ones included) -->
+            <unique-constraint name="uniq_company_user_name" columns="user_id,name_key"/>
         </unique-constraints>
         <indexes>
-            <index name="idx_company_archived_at" columns="archived_at"/>
+            <index name="idx_company_user_archived" columns="user_id,archived_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
@@ -19,6 +20,11 @@
         <field name="name">
             <options>
                 <option name="comment">Name of the company</option>
+            </options>
+        </field>
+        <field name="nameKey" column="name_key" length="255">
+            <options>
+                <option name="comment">Lowercased, trimmed name; makes the unique constraint case-insensitive</option>
             </options>
         </field>
         <field name="overview" type="text" nullable="true">

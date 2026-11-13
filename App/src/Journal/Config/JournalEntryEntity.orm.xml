@@ -6,7 +6,8 @@
 
     <entity name="App\Journal\JournalEntryEntity" table="journal_entry" repository-class="App\Journal\JournalEntryRepository">
         <indexes>
-            <index name="idx_journal_entry_archived_at" columns="archived_at"/>
+            <!-- Entries are listed per project, newest first -->
+            <index name="idx_journal_entry_project_created" columns="project_id,created_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->

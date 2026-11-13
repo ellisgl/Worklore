@@ -62,6 +62,47 @@ final class UniquenessTest extends KernelTestCase
         $this->save(new TagEntity($category, $user, 'backend'));
     }
 
+    public function testCompanyNameUniquenessIgnoresCase(): void
+    {
+        $user = $this->user('a@example.com');
+        $this->save(new CompanyEntity($user, 'Acme'));
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->save(new CompanyEntity($user, 'ACME'));
+    }
+
+    public function testTagNameUniquenessIgnoresCase(): void
+    {
+        $user = $this->user('a@example.com');
+        $category = $this->save(new CategoryEntity($user, 'Area'));
+        $this->save(new TagEntity($category, $user, 'PHP'));
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->save(new TagEntity($category, $user, 'php'));
+    }
+
+    public function testRenameKeepsNameKeyInSync(): void
+    {
+        $user = $this->user('a@example.com');
+        $acme = $this->save(new CompanyEntity($user, 'Acme'));
+        $acme->setName('Globex');
+        $this->em->flush();
+
+        // "acme" is free again, "globex" is taken
+        $this->save(new CompanyEntity($user, 'ACME'));
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->save(new CompanyEntity($user, 'GLOBEX'));
+    }
+
+    public function testCategoryDescriptionIsUnlimitedText(): void
+    {
+        $user = $this->user('a@example.com');
+        $category = $this->save(new CategoryEntity($user, 'Area', str_repeat('x', 5000)));
+        $this->em->clear();
+
+        self::assertSame(5000, mb_strlen($this->em->find(CategoryEntity::class, $category->getId())->description));
+    }
+
     public function testSameTagNameAllowedInDifferentCategories(): void
     {
         $user = $this->user('a@example.com');

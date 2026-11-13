@@ -20,6 +20,8 @@ final class TagEntity
 
     private(set) Uuid $id;
     private(set) string $name;
+    /** Case-insensitive form of $name, for uniq_tag_category_name; see nameKey() */
+    private string $nameKey;
     private(set) CategoryEntity $category;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
@@ -35,9 +37,18 @@ final class TagEntity
         OwnershipMismatchException::assertSameUser($category->user, $user, 'category');
 
         $this->id = Uuid::v7();
-        $this->name = self::normalizeName($name);
+        $this->setName($name);
         $this->category = $category;
         $category->addTag($this);
+    }
+
+    /**
+     * The form names are compared in for uniqueness: "PHP" and " php " clash.
+     * TagRepository::nameExistsInCategory() uses this too.
+     */
+    public static function nameKey(string $name): string
+    {
+        return mb_strtolower(trim($name));
     }
 
     public function getId(): Uuid
@@ -75,6 +86,7 @@ final class TagEntity
     public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
+        $this->nameKey = self::nameKey($this->name);
 
         return $this;
     }

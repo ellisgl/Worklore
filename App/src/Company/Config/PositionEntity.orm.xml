@@ -6,8 +6,8 @@
 
     <entity name="App\Company\PositionEntity" table="position" repository-class="App\Company\PositionRepository">
         <indexes>
-            <index name="idx_position_archived_at" columns="archived_at"/>
-            <index name="idx_position_start_date" columns="start_date" />
+            <!-- Positions are listed per company, newest start date first -->
+            <index name="idx_position_company_start" columns="company_id,start_date"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
