@@ -14,6 +14,7 @@ use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryId;
 use App\Taxonomy\CategoryRepository;
+use App\Taxonomy\TagEntity;
 use App\Taxonomy\TagId;
 use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
@@ -137,6 +138,36 @@ final class AggregateTest extends KernelTestCase
         $category = new CategoryEntity($this->user, 'Area', id: $categoryId);
         self::assertSame($categoryId, $category->id);
         self::assertSame($tagId, $category->addTag('php', id: $tagId)->id);
+    }
+
+    /**
+     * Regression: with both categories reloaded, their tag lists aren't loaded
+     * until the move touches them, and loading the old one used to reset the
+     * tag's category.
+     *
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function testMovingASavedTagBetweenReloadedCategories(): void
+    {
+        $area = new CategoryEntity($this->user, 'Area');
+        $skill = new CategoryEntity($this->user, 'Skill');
+        $tag = $area->addTag('php');
+        $area->addTag('sql');
+        $this->em->persist($area);
+        $this->em->persist($skill);
+        $this->em->flush();
+        $this->em->clear();
+
+        $loadedTag = self::findOrFail($this->em, TagEntity::class, $tag->id);
+        $loadedSkill = self::findOrFail($this->em, CategoryEntity::class, $skill->id);
+        $loadedTag->setCategory($loadedSkill);
+        $this->em->flush();
+        $this->em->clear();
+
+        self::assertSame((string) $skill->id, (string) self::findOrFail($this->em, TagEntity::class, $tag->id)->category->id);
+        self::assertCount(1, self::findOrFail($this->em, CategoryEntity::class, $area->id)->getTags());
+        self::assertCount(1, self::findOrFail($this->em, CategoryEntity::class, $skill->id)->getTags());
     }
 
     public function testMovingATagUpdatesBothCategories(): void

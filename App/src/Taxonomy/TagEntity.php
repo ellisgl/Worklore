@@ -64,8 +64,11 @@ final class TagEntity
 
         OwnershipMismatchException::assertSameOwner($category->owner, $this->owner, 'category');
 
-        $this->category = $category;
+        // Detach first, while the tag still points at $previous: if that
+        // category's tag list isn't loaded yet, loading it sets each tag's
+        // category back to $previous, which would undo the move.
         $previous->detachTag($this);
+        $this->category = $category;
         $category->attachTag($this);
 
         return $this;

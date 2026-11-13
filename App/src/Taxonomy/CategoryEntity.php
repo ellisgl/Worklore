@@ -79,12 +79,16 @@ final class CategoryEntity
     }
 
     /**
-     * @internal called by TagEntity::setCategory()
+     * Removes a tag that is about to move to another category. Called by
+     * TagEntity::setCategory(), just before it changes the tag's category;
+     * use that, not this.
+     *
+     * @internal
      */
     public function detachTag(TagEntity $tag): void
     {
-        if ($tag->category === $this) {
-            throw new LogicException('Use TagEntity::setCategory() to move a tag out of a category');
+        if ($tag->category !== $this) {
+            throw new LogicException('Tag belongs to a different category');
         }
 
         $this->tags->removeElement($tag);
