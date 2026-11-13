@@ -48,7 +48,7 @@
         <!-- A user can hold several positions at one company; newest first -->
         <one-to-many field="positions" target-entity="App\Company\PositionEntity" mapped-by="company">
             <order-by>
-                <order-by-field name="startDate" direction="DESC"/>
+                <order-by-field name="period.start" direction="DESC"/>
             </order-by>
         </one-to-many>
 

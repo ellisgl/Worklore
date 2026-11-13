@@ -26,9 +26,8 @@ final class PositionEntity
     private(set) PositionId $id;
     private(set) Name $title;
     private(set) ?string $overview;
-    private(set) DateTimeImmutable $startDate;
-    /** Null while the position is current */
-    private(set) ?DateTimeImmutable $endDate = null;
+    /** Start and (once ended) end day */
+    private(set) Period $period;
     private(set) ?string $reasonLeft = null;
     private(set) ?DateTimeImmutable $archivedAt = null;
     private(set) DateTimeImmutable $createdAt;
@@ -49,7 +48,7 @@ final class PositionEntity
         $this->id = PositionId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Position title');
-        $this->startDate = self::dateOnly($startDate);
+        $this->period = Period::startingOn($startDate);
         $this->overview = self::normalizeText($overview);
 
         $company->addPosition($this);
@@ -57,7 +56,7 @@ final class PositionEntity
 
     public function isCurrent(): bool
     {
-        return null === $this->endDate;
+        return $this->period->isOngoing();
     }
 
     public function setTitle(string $title): self
@@ -79,9 +78,7 @@ final class PositionEntity
      */
     public function setStartDate(DateTimeImmutable $startDate): self
     {
-        $startDate = self::dateOnly($startDate);
-        self::assertChronological($startDate, $this->endDate);
-        $this->startDate = $startDate;
+        $this->period = $this->period->withStart($startDate);
 
         return $this;
     }
@@ -93,10 +90,9 @@ final class PositionEntity
      */
     public function end(DateTimeImmutable $endDate, ?string $reasonLeft = null): self
     {
-        $endDate = self::dateOnly($endDate);
-        self::assertChronological($this->startDate, $endDate);
+        $period = $this->period->endingOn($endDate);
         $reasonLeft = self::normalizeReasonLeft($reasonLeft);
-        $this->endDate = $endDate;
+        $this->period = $period;
         $this->reasonLeft = $reasonLeft;
 
         return $this;
@@ -121,7 +117,7 @@ final class PositionEntity
      */
     public function reopen(): self
     {
-        $this->endDate = null;
+        $this->period = $this->period->reopened();
         $this->reasonLeft = null;
 
         return $this;
@@ -162,21 +158,5 @@ final class PositionEntity
         }
 
         return $reasonLeft;
-    }
-
-    /**
-     * The columns are DATE, so drop the time now rather than having it vanish
-     * on the next load. Keeps the date as written in the given timezone.
-     */
-    private static function dateOnly(DateTimeImmutable $date): DateTimeImmutable
-    {
-        return $date->setTime(0, 0);
-    }
-
-    private static function assertChronological(DateTimeImmutable $start, ?DateTimeImmutable $end): void
-    {
-        if (null !== $end && $end < $start) {
-            throw new InvalidArgumentException('A position cannot end before it starts');
-        }
     }
 }

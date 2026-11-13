@@ -46,7 +46,7 @@ class PositionRepository extends ServiceEntityRepository
             ->andWhere('p.company = :company')
             ->setParameter('user', $user)
             ->setParameter('company', $company)
-            ->orderBy('p.startDate', 'DESC')
+            ->orderBy('p.period.start', 'DESC')
             ->addOrderBy('p.id', 'DESC');
 
         if (!$includeArchived) {
@@ -70,11 +70,11 @@ class PositionRepository extends ServiceEntityRepository
             ->innerJoin('p.company', 'c')
             ->addSelect('c')
             ->where('p.user = :user')
-            ->andWhere('p.endDate IS NULL')
+            ->andWhere('p.period.end IS NULL')
             ->andWhere('p.archivedAt IS NULL')
             ->andWhere('c.archivedAt IS NULL')
             ->setParameter('user', $user)
-            ->orderBy('p.startDate', 'DESC')
+            ->orderBy('p.period.start', 'DESC')
             ->addOrderBy('p.id', 'DESC')
             ->getQuery()
             ->getResult();

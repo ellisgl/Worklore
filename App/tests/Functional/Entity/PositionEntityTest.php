@@ -45,7 +45,7 @@ final class PositionEntityTest extends KernelTestCase
 
         $developer = $company->getPositions()[1];
         self::assertFalse($developer->isCurrent());
-        self::assertSame('2022-05-31', $developer->endDate->format('Y-m-d'));
+        self::assertSame('2022-05-31', $developer->period->end->format('Y-m-d'));
         self::assertSame('Promoted', $developer->reasonLeft);
         self::assertTrue($company->getPositions()[0]->isCurrent());
     }
@@ -55,8 +55,8 @@ final class PositionEntityTest extends KernelTestCase
         $position = $this->position(new \DateTimeImmutable('2024-01-15 17:45:00'));
         $position->end(new \DateTimeImmutable('2024-02-01 09:30:00'));
 
-        self::assertSame('2024-01-15 00:00:00', $position->startDate->format('Y-m-d H:i:s'));
-        self::assertSame('2024-02-01 00:00:00', $position->endDate->format('Y-m-d H:i:s'));
+        self::assertSame('2024-01-15 00:00:00', $position->period->start->format('Y-m-d H:i:s'));
+        self::assertSame('2024-02-01 00:00:00', $position->period->end->format('Y-m-d H:i:s'));
     }
 
     public function testCanStartAndEndOnTheSameDay(): void
@@ -65,7 +65,7 @@ final class PositionEntityTest extends KernelTestCase
 
         $position->end(new \DateTimeImmutable('2024-01-15 08:00'));
 
-        self::assertSame('2024-01-15', $position->endDate->format('Y-m-d'));
+        self::assertSame('2024-01-15', $position->period->end->format('Y-m-d'));
     }
 
     public function testCannotEndBeforeStart(): void

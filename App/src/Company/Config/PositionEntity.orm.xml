@@ -22,16 +22,8 @@
                 <option name="comment">Overview of the position</option>
             </options>
         </field>
-        <field name="startDate" column="start_date" type="date_immutable">
-            <options>
-                <option name="comment">When the user started in this position</option>
-            </options>
-        </field>
-        <field name="endDate" column="end_date" type="date_immutable" nullable="true">
-            <options>
-                <option name="comment">When the position was ended</option>
-            </options>
-        </field>
+        <!-- start_date and end_date columns -->
+        <embedded name="period" class="App\Company\Period" use-column-prefix="false"/>
         <field name="reasonLeft" column="reason_left" nullable="true">
             <options>
                 <option name="comment">Why the user left the position</option>
