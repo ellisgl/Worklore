@@ -102,7 +102,7 @@ final class CategoryRepositoryTest extends KernelTestCase
      */
     private function names(array $categories): array
     {
-        return array_map(static fn (CategoryEntity $c) => $c->name, $categories);
+        return array_map(static fn (CategoryEntity $c) => $c->name->value, $categories);
     }
 
     /**

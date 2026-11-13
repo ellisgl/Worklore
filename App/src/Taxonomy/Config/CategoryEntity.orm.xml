@@ -12,7 +12,7 @@
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
         <id name="id" type="category_id"/>
 
-        <field name="name">
+        <field name="name" type="name" length="255">
             <options>
                 <option name="comment">Name of the category</option>
             </options>

@@ -123,7 +123,7 @@ final class ListMethodsTest extends KernelTestCase
         $this->persist(new JournalEntryEntity($project, $this->user, 'Second', 'Body', new \DateTimeImmutable('2024-02-01 09:00')));
         $this->em->flush();
 
-        $titles = array_map(static fn (JournalEntryEntity $j) => $j->title, $this->repo(JournalEntryRepository::class)->getAllEntriesByProject($this->user, $project));
+        $titles = array_map(static fn (JournalEntryEntity $j) => $j->title->value, $this->repo(JournalEntryRepository::class)->getAllEntriesByProject($this->user, $project));
 
         self::assertSame(['Third', 'Second', 'First'], $titles);
     }
@@ -186,7 +186,7 @@ final class ListMethodsTest extends KernelTestCase
 
         $current = $this->repo(PositionRepository::class)->getCurrentPositionsByUser($this->em->find(User::class, $this->user->id));
 
-        self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title, $current));
+        self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title->value, $current));
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($current[0]->company), 'Company is fetched in the same query');
     }
 
@@ -258,7 +258,7 @@ final class ListMethodsTest extends KernelTestCase
      */
     private function names(array $records): array
     {
-        return array_map(static fn (object $r) => $r->name, $records);
+        return array_map(static fn (object $r) => $r->name->value, $records);
     }
 
     /**

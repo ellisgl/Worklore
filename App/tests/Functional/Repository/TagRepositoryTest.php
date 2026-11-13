@@ -40,7 +40,7 @@ final class TagRepositoryTest extends KernelTestCase
 
         self::assertSame(
             ['area/backend', 'area/frontend', 'skill/go', 'skill/php'],
-            array_map(static fn (TagEntity $t) => $t->category->name.'/'.$t->name, $result),
+            array_map(static fn (TagEntity $t) => $t->category->name->value.'/'.$t->name->value, $result),
         );
     }
 
@@ -52,7 +52,7 @@ final class TagRepositoryTest extends KernelTestCase
         $this->persist(new TagEntity($this->persist(new CategoryEntity($other, 'area')), $other, 'theirs'));
         $this->em->flush();
 
-        $names = array_map(static fn (TagEntity $t) => $t->name, $this->tags->getAllTagsByUser($me));
+        $names = array_map(static fn (TagEntity $t) => $t->name->value, $this->tags->getAllTagsByUser($me));
 
         self::assertSame(['mine'], $names);
     }
@@ -113,7 +113,7 @@ final class TagRepositoryTest extends KernelTestCase
      */
     private function labels(array $tags): array
     {
-        return array_map(static fn (TagEntity $t) => $t->category->name.'/'.$t->name, $tags);
+        return array_map(static fn (TagEntity $t) => $t->category->name->value.'/'.$t->name->value, $tags);
     }
 
     /**

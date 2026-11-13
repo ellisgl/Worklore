@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Company;
 
 use App\Identity\User;
+use App\Shared\Name;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -67,7 +68,7 @@ class CompanyRepository extends ServiceEntityRepository
             ->where('c.user = :user')
             ->andWhere('c.nameKey = :nameKey')
             ->setParameter('user', $user)
-            ->setParameter('nameKey', CompanyEntity::nameKey($name))
+            ->setParameter('nameKey', Name::keyOf($name))
             ->setMaxResults(1);
 
         if (null !== $except) {

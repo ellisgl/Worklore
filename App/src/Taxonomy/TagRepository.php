@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Taxonomy;
 
 use App\Identity\User;
+use App\Shared\Name;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -44,7 +45,7 @@ class TagRepository extends ServiceEntityRepository
             ->where('t.category = :category')
             ->andWhere('t.nameKey = :nameKey')
             ->setParameter('category', $category)
-            ->setParameter('nameKey', TagEntity::nameKey($name))
+            ->setParameter('nameKey', Name::keyOf($name))
             ->setMaxResults(1);
 
         if (null !== $except) {

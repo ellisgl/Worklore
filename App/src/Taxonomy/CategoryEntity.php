@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Taxonomy;
 
 use App\Identity\User;
+use App\Shared\Name;
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -19,10 +19,8 @@ use function Symfony\Component\Clock\now;
  */
 final class CategoryEntity
 {
-    public const int MAX_NAME_LENGTH = 255;
-
     private(set) CategoryId $id;
-    private(set) string $name;
+    private(set) Name $name;
     private(set) ?string $description;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
@@ -38,7 +36,7 @@ final class CategoryEntity
     ) {
         $this->id = CategoryId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
-        $this->name = self::normalizeName($name);
+        $this->name = Name::of($name, 'Category name');
         $this->description = self::normalizeDescription($description);
         $this->tags = new ArrayCollection();
     }
@@ -87,7 +85,7 @@ final class CategoryEntity
 
     public function setName(string $name): self
     {
-        $this->name = self::normalizeName($name);
+        $this->name = Name::of($name, 'Category name');
 
         return $this;
     }
@@ -111,19 +109,6 @@ final class CategoryEntity
         $this->archivedAt = null;
 
         return $this;
-    }
-
-    private static function normalizeName(string $name): string
-    {
-        $name = trim($name);
-        if ('' === $name) {
-            throw new InvalidArgumentException('Category name cannot be blank');
-        }
-        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Category name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
-        }
-
-        return $name;
     }
 
     /**

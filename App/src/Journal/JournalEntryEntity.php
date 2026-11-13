@@ -7,6 +7,7 @@ namespace App\Journal;
 use App\Company\ProjectEntity;
 use App\Shared\OwnershipMismatchException;
 use App\Identity\User;
+use App\Shared\Name;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -21,10 +22,8 @@ use function Symfony\Component\Clock\now;
  */
 final class JournalEntryEntity
 {
-    public const int MAX_TITLE_LENGTH = 255;
-
     private(set) JournalEntryId $id;
-    private(set) string $title;
+    private(set) Name $title;
     private(set) string $entry;
     private(set) ?DateTimeImmutable $archivedAt = null;
     /** @var Collection<int, TagEntity> */
@@ -45,7 +44,7 @@ final class JournalEntryEntity
 
         $this->id = JournalEntryId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
-        $this->title = self::normalizeTitle($title);
+        $this->title = Name::of($title, 'Journal entry title');
         $this->entry = self::normalizeEntry($entry);
         $this->tags = new ArrayCollection();
         $project->addJournalEntry($this);
@@ -106,7 +105,7 @@ final class JournalEntryEntity
 
     public function setTitle(string $title): self
     {
-        $this->title = self::normalizeTitle($title);
+        $this->title = Name::of($title, 'Journal entry title');
 
         return $this;
     }
@@ -116,19 +115,6 @@ final class JournalEntryEntity
         $this->archivedAt = null;
 
         return $this;
-    }
-
-    private static function normalizeTitle(string $title): string
-    {
-        $title = trim($title);
-        if ('' === $title) {
-            throw new InvalidArgumentException('Journal entry title cannot be blank');
-        }
-        if (mb_strlen($title) > self::MAX_TITLE_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Journal entry title cannot be longer than %d characters', self::MAX_TITLE_LENGTH));
-        }
-
-        return $title;
     }
 
     /**

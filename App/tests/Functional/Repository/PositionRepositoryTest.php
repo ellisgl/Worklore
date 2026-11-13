@@ -111,7 +111,7 @@ final class PositionRepositoryTest extends KernelTestCase
      */
     private function titles(array $positions): array
     {
-        return array_map(static fn (PositionEntity $p) => $p->title, $positions);
+        return array_map(static fn (PositionEntity $p) => $p->title->value, $positions);
     }
 
     /**

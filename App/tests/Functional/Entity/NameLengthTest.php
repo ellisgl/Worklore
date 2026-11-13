@@ -87,7 +87,7 @@ final class NameLengthTest extends KernelTestCase
         $record = end($entities);
         $this->em->clear();
         $loaded = $this->em->find($record::class, $record->id);
-        self::assertSame($name, $loaded->name ?? $loaded->title);
+        self::assertSame($name, ($loaded->name ?? $loaded->title)->value);
     }
 
     #[DataProvider('namedProvider')]
@@ -102,7 +102,7 @@ final class NameLengthTest extends KernelTestCase
     {
         $company = new CompanyEntity(new User('a@example.com'), '  '.str_repeat('x', 255).'  ');
 
-        self::assertSame(255, mb_strlen($company->name));
+        self::assertSame(255, mb_strlen($company->name->value));
     }
 
     public function testRenameOverMaxLengthIsRejectedAndKeepsOldName(): void
@@ -115,7 +115,7 @@ final class NameLengthTest extends KernelTestCase
         } catch (\InvalidArgumentException) {
         }
 
-        self::assertSame('Acme', $company->name);
+        self::assertSame('Acme', $company->name->value);
     }
 
     public function testReasonLeftOverMaxLengthIsRejected(): void

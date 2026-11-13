@@ -19,6 +19,8 @@ doctrine:
             project_id: App\Company\Doctrine\ProjectIdType
             tag_id: App\Taxonomy\Doctrine\TagIdType
             user_id: App\Identity\Doctrine\UserIdType
+            # App\Shared\Name: trimmed, non-blank, <= 255 characters
+            name: App\Shared\Doctrine\NameType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore

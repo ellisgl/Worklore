@@ -12,7 +12,7 @@
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
         <id name="id" type="position_id"/>
-        <field name="title">
+        <field name="title" type="name" length="255">
             <options>
                 <option name="comment">Title of the position</option>
             </options>

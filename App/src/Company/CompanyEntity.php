@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Company;
 
 use App\Identity\User;
+use App\Shared\Name;
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -19,11 +19,9 @@ use function Symfony\Component\Clock\now;
  */
 final class CompanyEntity
 {
-    public const int MAX_NAME_LENGTH = 255;
-
     private(set) CompanyId $id;
-    private(set) string $name;
-    /** Case-insensitive form of $name, for uniq_company_user_name; see nameKey() */
+    private(set) Name $name;
+    /** Case-insensitive form of $name, for uniq_company_user_name; see Name::key() */
     private string $nameKey;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -47,15 +45,6 @@ final class CompanyEntity
         $this->overview = self::normalizeOverview($overview);
         $this->products = new ArrayCollection();
         $this->positions = new ArrayCollection();
-    }
-
-    /**
-     * The form names are compared in for uniqueness: "Acme" and " ACME " clash.
-     * CompanyRepository::nameExistsForUser() uses this too.
-     */
-    public static function nameKey(string $name): string
-    {
-        return mb_strtolower(trim($name));
     }
 
     /**
@@ -118,8 +107,8 @@ final class CompanyEntity
 
     public function setName(string $name): self
     {
-        $this->name = self::normalizeName($name);
-        $this->nameKey = self::nameKey($this->name);
+        $this->name = Name::of($name, 'Company name');
+        $this->nameKey = $this->name->key();
 
         return $this;
     }
@@ -143,19 +132,6 @@ final class CompanyEntity
         $this->archivedAt = null;
 
         return $this;
-    }
-
-    private static function normalizeName(string $name): string
-    {
-        $name = trim($name);
-        if ('' === $name) {
-            throw new InvalidArgumentException('Company name cannot be blank');
-        }
-        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Company name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
-        }
-
-        return $name;
     }
 
     /**

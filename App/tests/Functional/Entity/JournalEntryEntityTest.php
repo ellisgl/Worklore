@@ -40,10 +40,10 @@ final class JournalEntryEntityTest extends KernelTestCase
         self::assertCount(1, $project->getJournalEntries(), 'The project loads its entries from the database');
 
         $loaded = $project->getJournalEntries()->first();
-        self::assertSame('Kickoff', $loaded->title, 'Title is trimmed');
+        self::assertSame('Kickoff', $loaded->title->value, 'Title is trimmed');
         self::assertSame('Agreed on the scope.', $loaded->entry, 'Entry is trimmed');
         self::assertSame('a@example.com', $loaded->user->email);
-        self::assertSame(['backend'], array_map(static fn (TagEntity $t) => $t->name, $loaded->getTags()->toArray()));
+        self::assertSame(['backend'], array_map(static fn (TagEntity $t) => $t->name->value, $loaded->getTags()->toArray()));
     }
 
     public function testBlankTitleIsRejected(): void

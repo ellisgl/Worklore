@@ -6,6 +6,7 @@ namespace App\Company;
 
 use App\Shared\OwnershipMismatchException;
 use App\Identity\User;
+use App\Shared\Name;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -20,11 +21,10 @@ use function Symfony\Component\Clock\now;
  */
 final class PositionEntity
 {
-    public const int MAX_TITLE_LENGTH = 255;
     public const int MAX_REASON_LEFT_LENGTH = 255;
 
     private(set) PositionId $id;
-    private(set) string $title;
+    private(set) Name $title;
     private(set) ?string $overview;
     private(set) DateTimeImmutable $startDate;
     /** Null while the position is current */
@@ -48,7 +48,7 @@ final class PositionEntity
 
         $this->id = PositionId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
-        $this->title = self::normalizeTitle($title);
+        $this->title = Name::of($title, 'Position title');
         $this->startDate = self::dateOnly($startDate);
         $this->overview = self::normalizeText($overview);
 
@@ -62,7 +62,7 @@ final class PositionEntity
 
     public function setTitle(string $title): self
     {
-        $this->title = self::normalizeTitle($title);
+        $this->title = Name::of($title, 'Position title');
 
         return $this;
     }
@@ -144,19 +144,6 @@ final class PositionEntity
         $this->archivedAt = null;
 
         return $this;
-    }
-
-    private static function normalizeTitle(string $title): string
-    {
-        $title = trim($title);
-        if ('' === $title) {
-            throw new InvalidArgumentException('Position title cannot be blank');
-        }
-        if (mb_strlen($title) > self::MAX_TITLE_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Position title cannot be longer than %d characters', self::MAX_TITLE_LENGTH));
-        }
-
-        return $title;
     }
 
     /**

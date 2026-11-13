@@ -6,10 +6,10 @@ namespace App\Company;
 
 use App\Shared\OwnershipMismatchException;
 use App\Identity\User;
+use App\Shared\Name;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -21,10 +21,8 @@ use function Symfony\Component\Clock\now;
  */
 final class ProductEntity
 {
-    public const int MAX_NAME_LENGTH = 255;
-
     private(set) ProductId $id;
-    private(set) string $name;
+    private(set) Name $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
@@ -49,7 +47,7 @@ final class ProductEntity
 
         $this->id = ProductId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
-        $this->name = self::normalizeName($name);
+        $this->name = Name::of($name, 'Product name');
         $this->overview = self::normalizeOverview($overview);
         $this->projects = new ArrayCollection();
         $this->tags = new ArrayCollection();
@@ -123,7 +121,7 @@ final class ProductEntity
 
     public function setName(string $name): self
     {
-        $this->name = self::normalizeName($name);
+        $this->name = Name::of($name, 'Product name');
 
         return $this;
     }
@@ -147,19 +145,6 @@ final class ProductEntity
         $this->archivedAt = null;
 
         return $this;
-    }
-
-    private static function normalizeName(string $name): string
-    {
-        $name = trim($name);
-        if ('' === $name) {
-            throw new InvalidArgumentException('Product name cannot be blank');
-        }
-        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Product name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
-        }
-
-        return $name;
     }
 
     /**

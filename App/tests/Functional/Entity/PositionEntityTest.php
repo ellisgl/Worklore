@@ -40,7 +40,7 @@ final class PositionEntityTest extends KernelTestCase
         $this->em->clear();
 
         $company = $this->em->find(CompanyEntity::class, $company->id);
-        $titles = array_map(static fn (PositionEntity $p) => $p->title, $company->getPositions()->toArray());
+        $titles = array_map(static fn (PositionEntity $p) => $p->title->value, $company->getPositions()->toArray());
         self::assertSame(['Senior Developer', 'Developer', 'Intern'], $titles, 'Newest start date first');
 
         $developer = $company->getPositions()[1];

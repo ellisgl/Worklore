@@ -17,7 +17,7 @@
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
         <id name="id" type="company_id"/>
 
-        <field name="name">
+        <field name="name" type="name" length="255">
             <options>
                 <option name="comment">Name of the company</option>
             </options>

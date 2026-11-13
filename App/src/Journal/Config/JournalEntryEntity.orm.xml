@@ -13,7 +13,7 @@
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
         <id name="id" type="journal_entry_id"/>
 
-        <field name="title">
+        <field name="title" type="name" length="255">
             <options>
                 <option name="comment">The title of the entry</option>
             </options>

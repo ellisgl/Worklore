@@ -6,9 +6,9 @@ namespace App\Taxonomy;
 
 use App\Shared\OwnershipMismatchException;
 use App\Identity\User;
+use App\Shared\Name;
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 use function Symfony\Component\Clock\now;
 
 /**
@@ -16,11 +16,9 @@ use function Symfony\Component\Clock\now;
  */
 final class TagEntity
 {
-    public const int MAX_NAME_LENGTH = 255;
-
     private(set) TagId $id;
-    private(set) string $name;
-    /** Case-insensitive form of $name, for uniq_tag_category_name; see nameKey() */
+    private(set) Name $name;
+    /** Case-insensitive form of $name, for uniq_tag_category_name; see Name::key() */
     private string $nameKey;
     private(set) CategoryEntity $category;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -42,15 +40,6 @@ final class TagEntity
         $this->setName($name);
         $this->category = $category;
         $category->addTag($this);
-    }
-
-    /**
-     * The form names are compared in for uniqueness: "PHP" and " php " clash.
-     * TagRepository::nameExistsInCategory() uses this too.
-     */
-    public static function nameKey(string $name): string
-    {
-        return mb_strtolower(trim($name));
     }
 
     /**
@@ -82,8 +71,8 @@ final class TagEntity
 
     public function setName(string $name): self
     {
-        $this->name = self::normalizeName($name);
-        $this->nameKey = self::nameKey($this->name);
+        $this->name = Name::of($name, 'Tag name');
+        $this->nameKey = $this->name->key();
 
         return $this;
     }
@@ -102,16 +91,4 @@ final class TagEntity
         return $this;
     }
 
-    private static function normalizeName(string $name): string
-    {
-        $name = trim($name);
-        if ('' === $name) {
-            throw new InvalidArgumentException('Tag name cannot be blank');
-        }
-        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Tag name cannot be longer than %d characters', self::MAX_NAME_LENGTH));
-        }
-
-        return $name;
-    }
 }
