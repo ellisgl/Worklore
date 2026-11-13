@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Company;
 
 use App\Entity\User;
+use App\Journal\JournalEntryEntity;
 use App\Taxonomy\TagEntity;
 use DateMalformedStringException;
 use \DateTimeImmutable;
@@ -13,6 +14,7 @@ use \InvalidArgumentException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
+use \LogicException;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -27,6 +29,9 @@ final class ProjectEntity
 
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
+
+    /** @var Collection<int, JournalEntryEntity> */
+    private Collection $journalEntries;
 
     /**
      * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
@@ -64,7 +69,24 @@ final class ProjectEntity
         return $this->tags->contains($tag);
     }
 
-    public function addTag(TagEntity $tag): static
+    /**
+     * Keeps the inverse side in sync. Called by JournalEntryEntity's constructor;
+     * create journal entry with `new JournalEntryEntity($project, ...)`, not this.
+     *
+     * @internal
+     */
+    public function addJournalEntry(JournalEntryEntity $entry): void
+    {
+        if ($entry->project !== $this) {
+            throw new LogicException('Position belongs to a different company');
+        }
+
+        if (!$this->journalEntries->contains($entry)) {
+            $this->journalEntries->add($entry);
+        }
+    }
+
+    public function addTag(TagEntity $tag): self
     {
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);
@@ -73,7 +95,7 @@ final class ProjectEntity
         return $this;
     }
 
-    public function removeTag(TagEntity $tag): static
+    public function removeTag(TagEntity $tag): self
     {
         $this->tags->removeElement($tag);
 
@@ -85,28 +107,28 @@ final class ProjectEntity
         return null !== $this->archivedAt;
     }
 
-    public function setName(string $name): static
+    public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
 
         return $this;
     }
 
-    public function setOverview(?string $overview): static
+    public function setOverview(?string $overview): self
     {
         $this->overview = self::normalizeOverview($overview);
 
         return $this;
     }
 
-    public function archive(DateTimeImmutable $at): static
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
 
         return $this;
     }
 
-    public function unarchive(): static
+    public function unarchive(): self
     {
         $this->archivedAt = null;
 

@@ -90,28 +90,28 @@ final class CategoryEntity
         return null !== $this->archivedAt;
     }
 
-    public function setName(string $name): static
+    public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
 
         return $this;
     }
 
-    public function setDescription(?string $description): static
+    public function setDescription(?string $description): self
     {
         $this->description = self::normalizeDescription($description);
 
         return $this;
     }
 
-    public function archive(DateTimeImmutable $at): static
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
 
         return $this;
     }
 
-    public function unarchive(): static
+    public function unarchive(): self
     {
         $this->archivedAt = null;
 

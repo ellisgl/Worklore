@@ -45,7 +45,7 @@ final class TagEntity
      * Moves the tag to another category and updates both categories' tag lists.
      * The name must be free in the new category (uniq_tag_category_name).
      */
-    public function setCategory(CategoryEntity $category): static
+    public function setCategory(CategoryEntity $category): self
     {
         $previous = $this->category;
         if ($previous === $category) {
@@ -64,21 +64,21 @@ final class TagEntity
         return null !== $this->archivedAt;
     }
 
-    public function setName(string $name): static
+    public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
 
         return $this;
     }
 
-    public function archive(DateTimeImmutable $at): static
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
 
         return $this;
     }
 
-    public function unarchive(): static
+    public function unarchive(): self
     {
         $this->archivedAt = null;
 

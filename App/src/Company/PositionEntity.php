@@ -58,14 +58,14 @@ final class PositionEntity
         return null === $this->endDate;
     }
 
-    public function setTitle(string $title): static
+    public function setTitle(string $title): self
     {
         $this->title = self::normalizeTitle($title);
 
         return $this;
     }
 
-    public function setOverview(?string $overview): static
+    public function setOverview(?string $overview): self
     {
         $this->overview = self::normalizeText($overview);
 
@@ -75,7 +75,7 @@ final class PositionEntity
     /**
      * @throws InvalidArgumentException if the position has ended before this date
      */
-    public function setStartDate(DateTimeImmutable $startDate): static
+    public function setStartDate(DateTimeImmutable $startDate): self
     {
         $startDate = self::dateOnly($startDate);
         self::assertChronological($startDate, $this->endDate);
@@ -89,7 +89,7 @@ final class PositionEntity
      *
      * @throws InvalidArgumentException if $endDate is before the start date
      */
-    public function end(DateTimeImmutable $endDate, ?string $reasonLeft = null): static
+    public function end(DateTimeImmutable $endDate, ?string $reasonLeft = null): self
     {
         $endDate = self::dateOnly($endDate);
         self::assertChronological($this->startDate, $endDate);
@@ -102,7 +102,7 @@ final class PositionEntity
     /**
      * @throws LogicException if the position hasn't ended
      */
-    public function setReasonLeft(?string $reasonLeft): static
+    public function setReasonLeft(?string $reasonLeft): self
     {
         if ($this->isCurrent()) {
             throw new LogicException('A current position has no reason for leaving; use end()');
@@ -116,7 +116,7 @@ final class PositionEntity
     /**
      * Makes the position current again, e.g. to undo end(). Clears the reason.
      */
-    public function reopen(): static
+    public function reopen(): self
     {
         $this->endDate = null;
         $this->reasonLeft = null;
@@ -129,14 +129,14 @@ final class PositionEntity
         return null !== $this->archivedAt;
     }
 
-    public function archive(DateTimeImmutable $at): static
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
 
         return $this;
     }
 
-    public function unarchive(): static
+    public function unarchive(): self
     {
         $this->archivedAt = null;
 

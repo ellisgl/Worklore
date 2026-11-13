@@ -110,28 +110,28 @@ final class CompanyEntity
         return null !== $this->archivedAt;
     }
 
-    public function setName(string $name): static
+    public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
 
         return $this;
     }
 
-    public function setOverview(?string $overview): static
+    public function setOverview(?string $overview): self
     {
         $this->overview = self::normalizeOverview($overview);
 
         return $this;
     }
 
-    public function archive(DateTimeImmutable $at): static
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
 
         return $this;
     }
 
-    public function unarchive(): static
+    public function unarchive(): self
     {
         $this->archivedAt = null;
 

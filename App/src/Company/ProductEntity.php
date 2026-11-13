@@ -94,7 +94,7 @@ final class ProductEntity
         return $this->tags->contains($tag);
     }
 
-    public function addTag(TagEntity $tag): static
+    public function addTag(TagEntity $tag): self
     {
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);
@@ -103,7 +103,7 @@ final class ProductEntity
         return $this;
     }
 
-    public function removeTag(TagEntity $tag): static
+    public function removeTag(TagEntity $tag): self
     {
         $this->tags->removeElement($tag);
 
@@ -115,28 +115,28 @@ final class ProductEntity
         return null !== $this->archivedAt;
     }
 
-    public function setName(string $name): static
+    public function setName(string $name): self
     {
         $this->name = self::normalizeName($name);
 
         return $this;
     }
 
-    public function setOverview(?string $overview): static
+    public function setOverview(?string $overview): self
     {
         $this->overview = self::normalizeOverview($overview);
 
         return $this;
     }
 
-    public function archive(DateTimeImmutable $at): static
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
 
         return $this;
     }
 
-    public function unarchive(): static
+    public function unarchive(): self
     {
         $this->archivedAt = null;
 
