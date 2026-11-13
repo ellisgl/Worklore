@@ -61,6 +61,7 @@ final class DomainExceptionListenerTest extends TestCase
      */
     public static function nameConstraintProvider(): iterable
     {
+        yield 'account email' => ['uniq_app_user_email', 'An account with this email already exists.'];
         yield 'company' => ['uniq_company_user_name', 'You already have a company with this name.'];
         yield 'product' => ['uniq_product_company_name', 'This company already has a product with this name.'];
         yield 'project' => ['uniq_project_product_name', 'This product already has a project with this name.'];
@@ -81,7 +82,7 @@ final class DomainExceptionListenerTest extends TestCase
 
     public function testLeavesOtherUniqueConstraintsAlone(): void
     {
-        self::assertNull($this->dispatch('/api/companies', self::uniqueViolation('uniq_app_user_email'))->getResponse());
+        self::assertNull($this->dispatch('/api/companies', self::uniqueViolation('uniq_api_token_access'))->getResponse());
         self::assertNull($this->dispatch('/api/companies', new UniqueConstraintViolationException(new DriverException('no constraint named'), null))->getResponse());
     }
 

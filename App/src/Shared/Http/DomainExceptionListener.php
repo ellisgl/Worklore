@@ -40,11 +40,12 @@ use function preg_match;
 final class DomainExceptionListener
 {
     /**
-     * The unique constraints on names (see the modules' *.orm.xml), and what
-     * to tell the request that lost the race. Other unique constraints, such
-     * as a user's email, aren't reachable that way, so they stay a 500.
+     * The unique constraints a request can race on (see the modules'
+     * *.orm.xml): names, and a sign-up's email. Others, such as token hashes,
+     * aren't reachable that way, so they stay a 500.
      */
     private const array NAME_CONSTRAINTS = [
+        'uniq_app_user_email' => 'An account with this email already exists.',
         'uniq_company_user_name' => 'You already have a company with this name.',
         'uniq_product_company_name' => 'This company already has a product with this name.',
         'uniq_project_product_name' => 'This product already has a project with this name.',

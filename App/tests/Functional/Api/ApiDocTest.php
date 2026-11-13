@@ -73,7 +73,7 @@ final class ApiDocTest extends ApiTestCase
     /**
      * @throws JsonException
      */
-    public function testOnlyLoginAndRefreshArePublic(): void
+    public function testOnlyLoginRefreshAndSignUpArePublic(): void
     {
         $paths = $this->spec()['paths'] ?? null;
         self::assertIsArray($paths);
@@ -90,7 +90,7 @@ final class ApiDocTest extends ApiTestCase
         }
         sort($public);
 
-        self::assertSame(['post /api/auth/login', 'post /api/auth/refresh'], $public);
+        self::assertSame(['post /api/auth/login', 'post /api/auth/refresh', 'post /api/auth/signup'], $public);
     }
 
     /**

@@ -18,8 +18,8 @@ nelmio_api_doc:
                 `Authorization: Bearer <token>`. Every record belongs to the user who
                 created it; another user's record answers 404, as if it didn't exist.
 
-                Without a valid access token, every endpoint except login and refresh
-                answers 401 `{"error": "..."}` with `WWW-Authenticate: Bearer`.
+                Without a valid access token, every endpoint except login, refresh and
+                sign-up answers 401 `{"error": "..."}` with `WWW-Authenticate: Bearer`.
 
                 Lists are paged: `?page=` (from 1) and `?per_page=` (1 to 100, default
                 50), returned as `{"items": [...], "page", "per_page", "total"}`. They

@@ -1,0 +1,8 @@
+# Sign-ups per client IP (POST /api/auth/signup). Login throttling is
+# configured on the firewall in security.yaml.
+framework:
+    rate_limiter:
+        signup:
+            policy: fixed_window
+            limit: 5
+            interval: '1 hour'
