@@ -14,6 +14,7 @@ use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
+use function Symfony\Component\Clock\now;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -33,6 +34,7 @@ final class ProductEntity
 
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
+    private(set) DateTimeImmutable $createdAt;
 
     /**
      * @throws OwnershipMismatchException if the company belongs to another user
@@ -42,11 +44,12 @@ final class ProductEntity
         private(set) readonly User $user,
         string $name,
         ?string $overview = null,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ?DateTimeImmutable $createdAt = null,
     ) {
         OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
 
         $this->id = Uuid::v7();
+        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = self::normalizeName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->projects = new ArrayCollection();

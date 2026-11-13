@@ -9,6 +9,7 @@ use App\Identity\User;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
+use function Symfony\Component\Clock\now;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -24,6 +25,7 @@ final class TagEntity
     private string $nameKey;
     private(set) CategoryEntity $category;
     private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) DateTimeImmutable $createdAt;
 
     /**
      * @throws OwnershipMismatchException if the category belongs to another user
@@ -32,11 +34,12 @@ final class TagEntity
         CategoryEntity $category,
         private(set) readonly User $user,
         string $name,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ?DateTimeImmutable $createdAt = null,
     ) {
         OwnershipMismatchException::assertSameUser($category->user, $user, 'category');
 
         $this->id = Uuid::v7();
+        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->category = $category;
         $category->addTag($this);

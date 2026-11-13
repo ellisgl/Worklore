@@ -10,6 +10,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
 use LogicException;
+use function Symfony\Component\Clock\now;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -31,6 +32,7 @@ final class PositionEntity
     private(set) ?DateTimeImmutable $endDate = null;
     private(set) ?string $reasonLeft = null;
     private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) DateTimeImmutable $createdAt;
 
     /**
      * @throws OwnershipMismatchException if the company belongs to another user
@@ -41,11 +43,12 @@ final class PositionEntity
         string $title,
         DateTimeImmutable $startDate,
         ?string $overview = null,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ?DateTimeImmutable $createdAt = null,
     ) {
         OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
 
         $this->id = Uuid::v7();
+        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = self::normalizeTitle($title);
         $this->startDate = self::dateOnly($startDate);
         $this->overview = self::normalizeText($overview);

@@ -14,6 +14,7 @@ use InvalidArgumentException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
+use function Symfony\Component\Clock\now;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -29,6 +30,7 @@ final class JournalEntryEntity
     private(set) ?DateTimeImmutable $archivedAt = null;
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
+    private(set) DateTimeImmutable $createdAt;
 
     /**
      * @throws OwnershipMismatchException if the project belongs to another user
@@ -38,11 +40,12 @@ final class JournalEntryEntity
         private(set) readonly User $user,
         string $title,
         string $entry,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ?DateTimeImmutable $createdAt = null,
     ) {
         OwnershipMismatchException::assertSameUser($project->user, $user, 'project');
 
         $this->id = Uuid::v7();
+        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = self::normalizeTitle($title);
         $this->entry = self::normalizeEntry($entry);
         $this->tags = new ArrayCollection();

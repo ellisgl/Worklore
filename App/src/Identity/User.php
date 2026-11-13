@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use function Symfony\Component\Clock\now;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -23,12 +24,14 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     /** Password hash; read through getPassword() (required by the interface) */
     private ?string $password = null;
     private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) DateTimeImmutable $createdAt;
 
     public function __construct(
         string $email,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ?DateTimeImmutable $createdAt = null,
     ) {
         $this->id = Uuid::v7();
+        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setEmail($email);
     }
 

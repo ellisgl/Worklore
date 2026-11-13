@@ -12,6 +12,7 @@ use LogicException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
+use function Symfony\Component\Clock\now;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -33,14 +34,16 @@ final class CompanyEntity
 
     /** @var Collection<int, PositionEntity> */
     private Collection $positions;
+    private(set) DateTimeImmutable $createdAt;
 
     public function __construct(
         private(set) readonly User $user,
         string $name,
         ?string $overview = null,
-        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ?DateTimeImmutable $createdAt = null,
     ) {
         $this->id = Uuid::v7();
+        $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->products = new ArrayCollection();
