@@ -9,12 +9,16 @@
             <unique-constraint name="uniq_app_user_email" columns="email"/>
         </unique-constraints>
 
-        <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
         <id name="id" type="uuid"/>
 
         <field name="email" type="string" length="180"/>
         <field name="roles" type="json"/>
         <field name="password" type="string" nullable="true"/>
         <field name="createdAt" column="created_at" type="datetime_immutable"/>
+        <field name="archivedAt" column="archived_at" type="datetime_immutable" nullable="true">
+            <options>
+                <option name="comment">A date time denotes the item was archived</option>
+            </options>
+        </field>
     </entity>
 </doctrine-mapping>

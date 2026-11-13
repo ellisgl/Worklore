@@ -85,7 +85,7 @@ final class PositionRepositoryTest extends KernelTestCase
         $this->em->flush();
 
         self::assertSame(
-            ['Developer', 'Archived'],
+            ['Archived', 'Developer'],
             $this->titles($this->positions->getAllPositionsByCompany($user, $acme, includeArchived: true)),
         );
     }

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+    https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Company\PositionEntity" table="position" repository-class="App\Company\PositionRepository">
+        <indexes>
+            <index name="idx_position_archived_at" columns="archived_at"/>
+            <index name="idx_position_start_date" columns="start_date" />
+        </indexes>
+
+        <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
+        <id name="id" type="uuid"/>
+        <field name="title" nullable="false">
+            <options>
+                <option name="comment">Title of the position</option>
+            </options>
+        </field>
+        <field name="overview" type="text" nullable="true">
+            <options>
+                <option name="comment">Overview of the position</option>
+            </options>
+        </field>
+        <field name="startDate" column="start_date" type="date_immutable" nullable="false">
+            <options>
+                <option name="comment">When the user started in this position</option>
+            </options>
+        </field>
+        <field name="endDate" column="end_date" type="date_immutable" nullable="true">
+            <options>
+                <option name="comment">When the position was ended</option>
+            </options>
+        </field>
+        <field name="reasonLeft" column="reason_left" type="string" nullable="true">
+            <options>
+                <option name="comment">Why the user left the position</option>
+            </options>
+        </field>
+        <field name="createdAt" column="created_at" type="datetime_immutable" nullable="false">
+            <options>
+                <option name="comment">When the record was added</option>
+            </options>
+        </field>
+        <field name="archivedAt" column="archived_at" type="datetime_immutable" nullable="true">
+            <options>
+                <option name="comment">A date time denotes the item was archived</option>
+            </options>
+        </field>
+
+        <many-to-one field="company" target-entity="App\Company\CompanyEntity" inversed-by="positions">
+            <join-column name="company_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+
+        <many-to-one field="user" target-entity="App\Entity\User">
+            <join-column name="user_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+
+    </entity>
+</doctrine-mapping>

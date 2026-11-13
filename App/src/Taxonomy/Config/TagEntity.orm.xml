@@ -5,8 +5,12 @@
     https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
     <entity name="App\Taxonomy\TagEntity" table="tag" repository-class="App\Taxonomy\TagRepository">
+        <unique-constraints>
+            <!-- Tag names are unique within their category (archived ones included) -->
+            <unique-constraint name="uniq_tag_category_name" columns="category_id,name"/>
+        </unique-constraints>
         <indexes>
-            <index name="idx_archivedAt" columns="archived_at"/>
+            <index name="idx_tag_archived_at" columns="archived_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
@@ -28,8 +32,8 @@
             </options>
         </field>
 
-        <many-to-one field="category" target-entity="App\Taxonomy\CategoryEntity">
-            <join-column name="category_id" referenced-column-name="id" nullable="true" on-delete="CASCADE"/>
+        <many-to-one field="category" target-entity="App\Taxonomy\CategoryEntity" inversed-by="tags">
+            <join-column name="category_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
         </many-to-one>
 
         <many-to-one field="user" target-entity="App\Entity\User">

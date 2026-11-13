@@ -5,8 +5,12 @@
     https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
     <entity name="App\Company\CompanyEntity" table="company" repository-class="App\Company\CompanyRepository">
+        <unique-constraints>
+            <!-- A user can't have two companies with the same name (archived ones included) -->
+            <unique-constraint name="uniq_company_user_name" columns="user_id,name"/>
+        </unique-constraints>
         <indexes>
-            <index name="idx_archivedAt" columns="archived_at"/>
+            <index name="idx_company_archived_at" columns="archived_at"/>
         </indexes>
 
         <!-- UUIDv7, assigned in the constructor; native PostgreSQL UUID column -->
@@ -14,7 +18,7 @@
 
         <field name="name" nullable="false">
             <options>
-                <option name="comment">Name of the comapny</option>
+                <option name="comment">Name of the company</option>
             </options>
         </field>
         <field name="overview" type="text" nullable="true">
@@ -34,7 +38,14 @@
         </field>
 
         <one-to-many field="products" target-entity="App\Company\ProductEntity" mapped-by="company"/>
-        
+
+        <!-- A user can hold several positions at one company; newest first -->
+        <one-to-many field="positions" target-entity="App\Company\PositionEntity" mapped-by="company">
+            <order-by>
+                <order-by-field name="startDate" direction="DESC"/>
+            </order-by>
+        </one-to-many>
+
         <many-to-one field="user" target-entity="App\Entity\User">
             <join-column name="user_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
         </many-to-one>
