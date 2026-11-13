@@ -32,7 +32,7 @@ final class CompanyEntity
     private Collection $positions;
 
     /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
+     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
      */
     public function __construct(
         private(set) readonly User $user,

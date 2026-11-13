@@ -34,7 +34,7 @@ final class ProjectEntity
     private Collection $journalEntries;
 
     /**
-     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
+     * @throws DateMalformedStringException - I hate to have logic in my constructor, but it makes it easier.
      */
     public function __construct(
         private(set) readonly ProductEntity $product,
