@@ -37,8 +37,8 @@ final class ProjectEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @internal Create through ProductEntity::addProject(), which adds it to the
-     *           product's list; the owner is taken from the product.
+     * @internal create through ProductEntity::addProject(), which adds it to the
+     *           product's list; the owner is taken from the product
      */
     public function __construct(
         private(set) readonly ProductEntity $product,

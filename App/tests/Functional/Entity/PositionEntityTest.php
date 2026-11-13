@@ -36,7 +36,7 @@ final class PositionEntityTest extends KernelTestCase
     {
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
-        ($company->addPosition('Developer', new DateTimeImmutable('2019-03-01')))
+        $company->addPosition('Developer', new DateTimeImmutable('2019-03-01'))
             ->end(new DateTimeImmutable('2022-05-31'), 'Promoted');
         $company->addPosition('Senior Developer', new DateTimeImmutable('2022-06-01'));
         $company->addPosition('Intern', new DateTimeImmutable('2018-06-01'));

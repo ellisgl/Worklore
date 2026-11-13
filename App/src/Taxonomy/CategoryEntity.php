@@ -78,7 +78,7 @@ final class CategoryEntity
     }
 
     /**
-     * @internal Called by TagEntity::setCategory().
+     * @internal called by TagEntity::setCategory()
      */
     public function detachTag(TagEntity $tag): void
     {

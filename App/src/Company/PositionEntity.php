@@ -36,8 +36,8 @@ final class PositionEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @internal Create through CompanyEntity::addPosition(), which adds it to the
-     *           company's list; the owner is taken from the company.
+     * @internal create through CompanyEntity::addPosition(), which adds it to the
+     *           company's list; the owner is taken from the company
      */
     public function __construct(
         private(set) readonly CompanyEntity $company,

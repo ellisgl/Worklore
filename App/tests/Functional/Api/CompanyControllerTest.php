@@ -215,10 +215,11 @@ final class CompanyControllerTest extends ApiTestCase
     {
         $response = $this->jsonRequest('GET', '/api/companies'.$query, headers: $this->auth);
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-        $companies = $this->decode($response);
-        self::assertIsList($companies);
-
+        $decoded = $this->decode($response);
+        self::assertIsList($decoded);
         /** @var list<array<string, mixed>> $companies */
+        $companies = $decoded;
+
         return $companies;
     }
 

@@ -33,8 +33,8 @@ final class TagEntity
     private(set) DateTimeImmutable $createdAt;
 
     /**
-     * @internal Create through CategoryEntity::addTag(), which adds it to the
-     *           category's list; the owner is taken from the category.
+     * @internal create through CategoryEntity::addTag(), which adds it to the
+     *           category's list; the owner is taken from the category
      */
     public function __construct(
         CategoryEntity $category,
@@ -96,5 +96,4 @@ final class TagEntity
 
         return $this;
     }
-
 }
