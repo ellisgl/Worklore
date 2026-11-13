@@ -5,6 +5,11 @@
     https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
     <entity name="App\Company\ProjectEntity" table="project">
+        <unique-constraints>
+            <!-- Project names are unique within its product, ignoring case
+                 (archived ones included) -->
+            <unique-constraint name="uniq_project_product_name" columns="product_id,name_key"/>
+        </unique-constraints>
         <indexes>
             <index name="idx_project_product_archived" columns="product_id,archived_at"/>
         </indexes>
@@ -14,6 +19,11 @@
         <field name="name" type="name" length="255">
             <options>
                 <option name="comment">Name of the project</option>
+            </options>
+        </field>
+        <field name="nameKey" column="name_key" length="255">
+            <options>
+                <option name="comment">Lowercased, trimmed name; makes the unique constraint case-insensitive</option>
             </options>
         </field>
         <field name="overview" type="text" nullable="true">

@@ -22,6 +22,7 @@ final readonly class EditProjectHandler
     /**
      * @throws InvalidValueException if the name is blank or too long
      * @throws ORMException
+     * @throws ProjectNameTaken
      * @throws ProjectNotFound
      */
     public function __invoke(EditProject $command): void
@@ -30,6 +31,9 @@ final readonly class EditProjectHandler
             ?? throw new ProjectNotFound();
 
         if (null !== $command->name) {
+            if ($this->companies->projectNameExistsInProduct($project->product, $command->name, except: $project)) {
+                throw new ProjectNameTaken($command->name);
+            }
             $project->setName($command->name);
         }
         if (null !== $command->overview) {

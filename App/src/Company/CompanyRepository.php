@@ -117,6 +117,33 @@ class CompanyRepository extends ServiceEntityRepository
         return $this->getEntityManager()->getRepository(ProjectEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
+    /**
+     * Whether the product already has a project with this name, ignoring case
+     * (archived ones included, matching uniq_project_product_name). Pass the project
+     * being renamed as $except so keeping its current name isn't a clash.
+     *
+     * Check this before saving to answer 409; the unique constraint stays as
+     * the backstop for two requests racing each other.
+     */
+    public function projectNameExistsInProduct(ProductEntity $product, string $name, ?ProjectEntity $except = null): bool
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('1')
+            ->from(ProjectEntity::class, 'pj')
+            ->where('pj.product = :parent')
+            ->andWhere('pj.nameKey = :nameKey')
+            ->setParameter('parent', $product)
+            ->setParameter('nameKey', Name::keyOf($name))
+            ->setMaxResults(1);
+
+        if (null !== $except) {
+            $qb->andWhere('pj <> :except')
+                ->setParameter('except', $except);
+        }
+
+        return null !== $qb->getQuery()->getOneOrNullResult();
+    }
+
     // ---- positions --------------------------------------------------------
 
     public function findPositionByIdForOwner(PositionId $id, Owner $owner): ?PositionEntity

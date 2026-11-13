@@ -15,6 +15,7 @@ use App\Company\ProjectId;
 use App\Company\Query\ProductQueries;
 use App\Company\Query\ProjectQueries;
 use App\Company\Query\ProjectSummary;
+use App\Shared\Http\OpenApi\Conflict;
 use App\Shared\Http\OpenApi\Created;
 use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
@@ -93,6 +94,7 @@ final class ProjectController extends AbstractController
     #[Created('Created')]
     #[Invalid]
     #[NotFound('Product not found.')]
+    #[Conflict('The product already has a project with this name, ignoring case', 'This product already has a project named "Launch".')]
     #[Route('/products/{productId}/projects', name: 'create', requirements: ['productId' => Requirement::UUID], methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -133,6 +135,7 @@ final class ProjectController extends AbstractController
     #[NoContent('Saved')]
     #[Invalid]
     #[NotFound('Project not found.')]
+    #[Conflict('The product already has a project with this name, ignoring case', 'This product already has a project named "Launch".')]
     #[Route('/projects/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,

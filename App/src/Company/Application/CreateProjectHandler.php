@@ -27,11 +27,16 @@ final readonly class CreateProjectHandler
      * @throws InvalidValueException if the name is blank or too long
      * @throws ORMException
      * @throws ProductNotFound
+     * @throws ProjectNameTaken
      */
     public function __invoke(CreateProject $command): void
     {
         $product = $this->companies->findProductByIdForOwner($command->productId, $this->owners->get($command->ownerId))
             ?? throw new ProductNotFound();
+
+        if ($this->companies->projectNameExistsInProduct($product, $command->name)) {
+            throw new ProjectNameTaken($command->name);
+        }
 
         $product->addProject($command->name, $command->overview, id: $command->projectId);
     }

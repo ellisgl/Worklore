@@ -186,6 +186,25 @@ final class ProjectControllerTest extends ApiTestCase
         self::assertSame('Widget', $this->show($id)['name']);
     }
 
+    /**
+     * @throws JsonException
+     */
+    public function testNamesAreUniqueWithinTheProduct(): void
+    {
+        $launch = $this->createProject('Launch');
+        $archived = $this->createProject('Beta');
+        $this->jsonRequest('POST', '/api/projects/'.$archived.'/archive', headers: $this->auth);
+
+        $create = $this->jsonRequest('POST', '/api/products/'.$this->productId.'/projects', ['name' => ' launch '], $this->auth);
+        $rename = $this->jsonRequest('PATCH', '/api/projects/'.$launch, ['name' => 'BETA'], $this->auth);
+        $ownName = $this->jsonRequest('PATCH', '/api/projects/'.$launch, ['name' => 'LAUNCH'], $this->auth);
+
+        $this->assertJsonError($create, Response::HTTP_CONFLICT, 'This product already has a project named "launch".');
+        $this->assertJsonError($rename, Response::HTTP_CONFLICT, 'This product already has a project named "BETA".');
+        self::assertSame(Response::HTTP_NO_CONTENT, $ownName->getStatusCode(), 'Its own name in another case');
+        self::assertSame('LAUNCH', $this->show($launch)['name']);
+    }
+
     // ---- archive ----------------------------------------------------------
 
     /**
