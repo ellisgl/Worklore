@@ -57,9 +57,11 @@ final readonly class JournalEntryQueries
     /**
      * Text search configuration: English stemming, so "deploying" finds
      * "deploy". The query side uses websearch syntax: "quoted phrases", or,
-     * and -excluded words.
+     * and -excluded words. The left side must stay identical to the
+     * expression of idx_journal_entry_search (migration Version20261114100000),
+     * or PostgreSQL can't use the index; JournalSearchIndexTest checks this.
      */
-    private const string SEARCH = "to_tsvector('english', j.title || ' ' || j.entry) @@ websearch_to_tsquery('english', :search)";
+    public const string SEARCH = "to_tsvector('english', j.title || ' ' || j.entry) @@ websearch_to_tsquery('english', :search)";
 
     /**
      * The owner's journal entries for a project, newest first.
