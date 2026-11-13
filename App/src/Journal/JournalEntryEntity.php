@@ -35,12 +35,12 @@ final class JournalEntryEntity
      */
     public function __construct(
         private(set) readonly ProjectEntity $project,
-        private(set) readonly Owner $user,
+        private(set) readonly Owner $owner,
         string $title,
         string $entry,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        OwnershipMismatchException::assertSameUser($project->user, $user, 'project');
+        OwnershipMismatchException::assertSameOwner($project->owner, $owner, 'project');
 
         $this->id = JournalEntryId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
@@ -73,7 +73,7 @@ final class JournalEntryEntity
      */
     public function addTag(TagEntity $tag): self
     {
-        OwnershipMismatchException::assertSameUser($tag->user, $this->user, 'tag');
+        OwnershipMismatchException::assertSameOwner($tag->owner, $this->owner, 'tag');
 
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);

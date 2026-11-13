@@ -64,7 +64,7 @@ final class ModuleBoundaryTest extends KernelTestCase
         $em->flush();
         $em->clear();
 
-        $owner = $em->find(CompanyEntity::class, $company->id)->user;
+        $owner = $em->find(CompanyEntity::class, $company->id)->owner;
 
         self::assertInstanceOf(Owner::class, $owner);
         self::assertInstanceOf(User::class, $owner, 'Doctrine resolves Owner to User');

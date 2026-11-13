@@ -31,9 +31,9 @@ class CompanyRepository extends ServiceEntityRepository
 
     // ---- companies --------------------------------------------------------
 
-    public function findOneByIdForUser(CompanyId $id, Owner $user): ?CompanyEntity
+    public function findOneByIdForOwner(CompanyId $id, Owner $owner): ?CompanyEntity
     {
-        return $this->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -41,11 +41,11 @@ class CompanyRepository extends ServiceEntityRepository
      *
      * @return list<CompanyEntity>
      */
-    public function getAllCompaniesByUser(Owner $user, bool $includeArchived = false): array
+    public function getAllCompaniesByOwner(Owner $owner, bool $includeArchived = false): array
     {
         $qb = $this->createQueryBuilder('c')
-            ->where('c.user = :user')
-            ->setParameter('user', $user)
+            ->where('c.owner = :owner')
+            ->setParameter('owner', $owner)
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC');
 
@@ -65,13 +65,13 @@ class CompanyRepository extends ServiceEntityRepository
      * Check this before saving to answer 409/422; the unique constraint stays
      * as the backstop for two requests racing each other.
      */
-    public function nameExistsForUser(Owner $user, string $name, ?CompanyEntity $except = null): bool
+    public function nameExistsForOwner(Owner $owner, string $name, ?CompanyEntity $except = null): bool
     {
         $qb = $this->createQueryBuilder('c')
             ->select('1')
-            ->where('c.user = :user')
+            ->where('c.owner = :owner')
             ->andWhere('c.nameKey = :nameKey')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->setParameter('nameKey', Name::keyOf($name))
             ->setMaxResults(1);
 
@@ -85,9 +85,9 @@ class CompanyRepository extends ServiceEntityRepository
 
     // ---- products ---------------------------------------------------------
 
-    public function findProductByIdForUser(ProductId $id, Owner $user): ?ProductEntity
+    public function findProductByIdForOwner(ProductId $id, Owner $owner): ?ProductEntity
     {
-        return $this->getEntityManager()->getRepository(ProductEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->getEntityManager()->getRepository(ProductEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -95,13 +95,13 @@ class CompanyRepository extends ServiceEntityRepository
      *
      * @return list<ProductEntity>
      */
-    public function getAllProductsByCompany(Owner $user, CompanyEntity $company, bool $includeArchived = false): array
+    public function getAllProductsByCompany(Owner $owner, CompanyEntity $company, bool $includeArchived = false): array
     {
         $qb = $this->select(ProductEntity::class, 'p')
             ->innerJoin('p.company', 'c')
-            ->where('p.user = :user')
+            ->where('p.owner = :owner')
             ->andWhere('p.company = :company')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->setParameter('company', $company)
             ->orderBy('p.name', 'ASC')
             ->addOrderBy('p.id', 'ASC');
@@ -116,9 +116,9 @@ class CompanyRepository extends ServiceEntityRepository
 
     // ---- projects ---------------------------------------------------------
 
-    public function findProjectByIdForUser(ProjectId $id, Owner $user): ?ProjectEntity
+    public function findProjectByIdForOwner(ProjectId $id, Owner $owner): ?ProjectEntity
     {
-        return $this->getEntityManager()->getRepository(ProjectEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->getEntityManager()->getRepository(ProjectEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -126,14 +126,14 @@ class CompanyRepository extends ServiceEntityRepository
      *
      * @return list<ProjectEntity>
      */
-    public function getAllProjectsByProduct(Owner $user, ProductEntity $product, bool $includeArchived = false): array
+    public function getAllProjectsByProduct(Owner $owner, ProductEntity $product, bool $includeArchived = false): array
     {
         $qb = $this->select(ProjectEntity::class, 'pj')
             ->innerJoin('pj.product', 'p')
             ->innerJoin('p.company', 'c')
-            ->where('pj.user = :user')
+            ->where('pj.owner = :owner')
             ->andWhere('pj.product = :product')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->setParameter('product', $product)
             ->orderBy('pj.name', 'ASC')
             ->addOrderBy('pj.id', 'ASC');
@@ -149,9 +149,9 @@ class CompanyRepository extends ServiceEntityRepository
 
     // ---- positions --------------------------------------------------------
 
-    public function findPositionByIdForUser(PositionId $id, Owner $user): ?PositionEntity
+    public function findPositionByIdForOwner(PositionId $id, Owner $owner): ?PositionEntity
     {
-        return $this->getEntityManager()->getRepository(PositionEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->getEntityManager()->getRepository(PositionEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -159,13 +159,13 @@ class CompanyRepository extends ServiceEntityRepository
      *
      * @return list<PositionEntity>
      */
-    public function getAllPositionsByCompany(Owner $user, CompanyEntity $company, bool $includeArchived = false): array
+    public function getAllPositionsByCompany(Owner $owner, CompanyEntity $company, bool $includeArchived = false): array
     {
         $qb = $this->select(PositionEntity::class, 'p')
             ->innerJoin('p.company', 'c')
-            ->where('p.user = :user')
+            ->where('p.owner = :owner')
             ->andWhere('p.company = :company')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->setParameter('company', $company)
             ->orderBy('p.period.start', 'DESC')
             ->addOrderBy('p.id', 'DESC');
@@ -185,16 +185,16 @@ class CompanyRepository extends ServiceEntityRepository
      *
      * @return list<PositionEntity>
      */
-    public function getCurrentPositionsByUser(Owner $user): array
+    public function getCurrentPositionsByOwner(Owner $owner): array
     {
         return $this->select(PositionEntity::class, 'p')
             ->innerJoin('p.company', 'c')
             ->addSelect('c')
-            ->where('p.user = :user')
+            ->where('p.owner = :owner')
             ->andWhere('p.period.end IS NULL')
             ->andWhere('p.archivedAt IS NULL')
             ->andWhere('c.archivedAt IS NULL')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->orderBy('p.period.start', 'DESC')
             ->addOrderBy('p.id', 'DESC')
             ->getQuery()

@@ -45,8 +45,8 @@ final class ListMethodsTest extends KernelTestCase
         $this->em->flush();
 
         $repo = $this->repo(CompanyRepository::class);
-        self::assertSame(['Acme', 'Globex'], $this->names($repo->getAllCompaniesByUser($this->user)));
-        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($repo->getAllCompaniesByUser($this->user, includeArchived: true)));
+        self::assertSame(['Acme', 'Globex'], $this->names($repo->getAllCompaniesByOwner($this->user)));
+        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($repo->getAllCompaniesByOwner($this->user, includeArchived: true)));
     }
 
     // ---- products ---------------------------------------------------------
@@ -144,14 +144,14 @@ final class ListMethodsTest extends KernelTestCase
         self::assertCount(1, $repo->getAllEntriesByProject($this->user, $project), 'Nothing archived');
     }
 
-    public function testJournalEntryFindOneByIdForUser(): void
+    public function testJournalEntryFindOneByIdForOwner(): void
     {
         $entry = $this->persist(new JournalEntryEntity($this->project(), $this->user, 'Kickoff', 'Body'));
         $this->em->flush();
         $repo = $this->repo(JournalEntryRepository::class);
 
-        self::assertSame($entry, $repo->findOneByIdForUser($entry->id, $this->user));
-        self::assertNull($repo->findOneByIdForUser($entry->id, $this->persist(new User('other@example.com'))));
+        self::assertSame($entry, $repo->findOneByIdForOwner($entry->id, $this->user));
+        self::assertNull($repo->findOneByIdForOwner($entry->id, $this->persist(new User('other@example.com'))));
     }
 
     // ---- positions --------------------------------------------------------
@@ -181,7 +181,7 @@ final class ListMethodsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $current = $this->repo(CompanyRepository::class)->getCurrentPositionsByUser($this->em->find(User::class, $this->user->id));
+        $current = $this->repo(CompanyRepository::class)->getCurrentPositionsByOwner($this->em->find(User::class, $this->user->id));
 
         self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title->value, $current));
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($current[0]->company), 'Company is fetched in the same query');
@@ -219,7 +219,7 @@ final class ListMethodsTest extends KernelTestCase
         $this->persist($first->addTag('b-first'));
         $this->em->flush();
 
-        $tags = $this->repo(CategoryRepository::class)->getAllTagsByUser($this->user);
+        $tags = $this->repo(CategoryRepository::class)->getAllTagsByOwner($this->user);
 
         self::assertSame(['b-first', 'z-first', 'a-second'], $this->names($tags));
     }

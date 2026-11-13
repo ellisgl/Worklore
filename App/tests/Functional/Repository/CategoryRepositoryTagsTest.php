@@ -36,7 +36,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $result = $this->tags->getAllTagsByUser($this->em->find(User::class, $user->id));
+        $result = $this->tags->getAllTagsByOwner($this->em->find(User::class, $user->id));
 
         self::assertSame(
             ['area/backend', 'area/frontend', 'skill/go', 'skill/php'],
@@ -52,7 +52,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->persist($this->persist(new CategoryEntity($other, 'area'))->addTag('theirs'));
         $this->em->flush();
 
-        $names = array_map(static fn (TagEntity $t) => $t->name->value, $this->tags->getAllTagsByUser($me));
+        $names = array_map(static fn (TagEntity $t) => $t->name->value, $this->tags->getAllTagsByOwner($me));
 
         self::assertSame(['mine'], $names);
     }
@@ -64,7 +64,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $tag = $this->tags->getAllTagsByUser($this->em->find(User::class, $user->id))[0];
+        $tag = $this->tags->getAllTagsByOwner($this->em->find(User::class, $user->id))[0];
 
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($tag->category));
     }
@@ -79,7 +79,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->persist($old->addTag('in-archived-category'));
         $this->em->flush();
 
-        self::assertSame(['area/active'], $this->labels($this->tags->getAllTagsByUser($user)));
+        self::assertSame(['area/active'], $this->labels($this->tags->getAllTagsByOwner($user)));
     }
 
     public function testIncludeArchivedReturnsEverything(): void
@@ -94,7 +94,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
 
         self::assertSame(
             ['area/active', 'area/archived', 'old/in-archived-category'],
-            $this->labels($this->tags->getAllTagsByUser($user, includeArchived: true)),
+            $this->labels($this->tags->getAllTagsByOwner($user, includeArchived: true)),
         );
     }
 
@@ -103,7 +103,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $this->em->flush();
 
-        self::assertSame([], $this->tags->getAllTagsByUser($user));
+        self::assertSame([], $this->tags->getAllTagsByOwner($user));
     }
 
     /**

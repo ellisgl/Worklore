@@ -18,10 +18,10 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Every by-id lookup (findOneByIdForUser(), findProductByIdForUser(), ...): a user sees their own records and
+ * Every by-id lookup (findOneByIdForOwner(), findProductByIdForOwner(), ...): a user sees their own records and
  * nothing else.
  */
-final class FindOneByIdForUserTest extends KernelTestCase
+final class FindOneByIdForOwnerTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
 
@@ -36,12 +36,12 @@ final class FindOneByIdForUserTest extends KernelTestCase
      */
     public static function repositoryProvider(): iterable
     {
-        yield 'company' => [CompanyRepository::class, 'findOneByIdForUser', 'company'];
-        yield 'product' => [CompanyRepository::class, 'findProductByIdForUser', 'product'];
-        yield 'project' => [CompanyRepository::class, 'findProjectByIdForUser', 'project'];
-        yield 'position' => [CompanyRepository::class, 'findPositionByIdForUser', 'position'];
-        yield 'category' => [CategoryRepository::class, 'findOneByIdForUser', 'category'];
-        yield 'tag' => [CategoryRepository::class, 'findTagByIdForUser', 'tag'];
+        yield 'company' => [CompanyRepository::class, 'findOneByIdForOwner', 'company'];
+        yield 'product' => [CompanyRepository::class, 'findProductByIdForOwner', 'product'];
+        yield 'project' => [CompanyRepository::class, 'findProjectByIdForOwner', 'project'];
+        yield 'position' => [CompanyRepository::class, 'findPositionByIdForOwner', 'position'];
+        yield 'category' => [CategoryRepository::class, 'findOneByIdForOwner', 'category'];
+        yield 'tag' => [CategoryRepository::class, 'findTagByIdForOwner', 'tag'];
     }
 
     #[DataProvider('repositoryProvider')]

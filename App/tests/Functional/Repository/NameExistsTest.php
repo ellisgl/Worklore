@@ -30,17 +30,17 @@ final class NameExistsTest extends KernelTestCase
         $this->tags = self::getContainer()->get(CategoryRepository::class);
     }
 
-    // ---- CompanyRepository::nameExistsForUser() ---------------------------
+    // ---- CompanyRepository::nameExistsForOwner() ---------------------------
 
-    public function testCompanyNameTakenByUser(): void
+    public function testCompanyNameTakenByOwner(): void
     {
         $user = $this->persist(new User('a@example.com'));
         $this->persist(new CompanyEntity($user, 'Acme'));
         $this->em->flush();
 
-        self::assertTrue($this->companies->nameExistsForUser($user, 'Acme'));
-        self::assertTrue($this->companies->nameExistsForUser($user, '  Acme  '), 'Input is trimmed like the stored name');
-        self::assertFalse($this->companies->nameExistsForUser($user, 'Globex'));
+        self::assertTrue($this->companies->nameExistsForOwner($user, 'Acme'));
+        self::assertTrue($this->companies->nameExistsForOwner($user, '  Acme  '), 'Input is trimmed like the stored name');
+        self::assertFalse($this->companies->nameExistsForOwner($user, 'Globex'));
     }
 
     public function testCompanyNameOfAnotherUserIsFree(): void
@@ -50,7 +50,7 @@ final class NameExistsTest extends KernelTestCase
         $this->persist(new CompanyEntity($other, 'Acme'));
         $this->em->flush();
 
-        self::assertFalse($this->companies->nameExistsForUser($me, 'Acme'));
+        self::assertFalse($this->companies->nameExistsForOwner($me, 'Acme'));
     }
 
     public function testArchivedCompanyStillHoldsItsName(): void
@@ -59,7 +59,7 @@ final class NameExistsTest extends KernelTestCase
         $this->persist((new CompanyEntity($user, 'Acme'))->archive(new \DateTimeImmutable()));
         $this->em->flush();
 
-        self::assertTrue($this->companies->nameExistsForUser($user, 'Acme'));
+        self::assertTrue($this->companies->nameExistsForOwner($user, 'Acme'));
     }
 
     public function testCompanyCanKeepItsOwnNameWhenExcluded(): void
@@ -69,8 +69,8 @@ final class NameExistsTest extends KernelTestCase
         $this->persist(new CompanyEntity($user, 'Globex'));
         $this->em->flush();
 
-        self::assertFalse($this->companies->nameExistsForUser($user, 'Acme', except: $acme), 'Saving under its current name');
-        self::assertTrue($this->companies->nameExistsForUser($user, 'Globex', except: $acme), 'Renaming onto another company');
+        self::assertFalse($this->companies->nameExistsForOwner($user, 'Acme', except: $acme), 'Saving under its current name');
+        self::assertTrue($this->companies->nameExistsForOwner($user, 'Globex', except: $acme), 'Renaming onto another company');
     }
 
     public function testCompanyNameCheckIgnoresCaseLikeTheConstraint(): void
@@ -79,8 +79,8 @@ final class NameExistsTest extends KernelTestCase
         $this->persist(new CompanyEntity($user, 'Acme'));
         $this->em->flush();
 
-        self::assertTrue($this->companies->nameExistsForUser($user, 'acme'));
-        self::assertTrue($this->companies->nameExistsForUser($user, ' ACME '));
+        self::assertTrue($this->companies->nameExistsForOwner($user, 'acme'));
+        self::assertTrue($this->companies->nameExistsForOwner($user, ' ACME '));
     }
 
     public function testTagNameCheckIgnoresCaseLikeTheConstraint(): void

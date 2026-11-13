@@ -34,7 +34,7 @@ final class CompanyEntity
     private(set) DateTimeImmutable $createdAt;
 
     public function __construct(
-        private(set) readonly Owner $user,
+        private(set) readonly Owner $owner,
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,

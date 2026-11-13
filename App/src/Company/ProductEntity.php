@@ -23,7 +23,7 @@ final class ProductEntity
 {
     private(set) ProductId $id;
     /** The aggregate owner, copied from the company; stored for owner-scoped queries */
-    private(set) readonly Owner $user;
+    private(set) readonly Owner $owner;
     private(set) Name $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -45,7 +45,7 @@ final class ProductEntity
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->user = $company->user;
+        $this->owner = $company->owner;
         $this->id = ProductId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Product name');
@@ -92,7 +92,7 @@ final class ProductEntity
      */
     public function addTag(TagEntity $tag): self
     {
-        OwnershipMismatchException::assertSameUser($tag->user, $this->user, 'tag');
+        OwnershipMismatchException::assertSameOwner($tag->owner, $this->owner, 'tag');
 
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);

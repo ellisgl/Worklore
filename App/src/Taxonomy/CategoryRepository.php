@@ -31,9 +31,9 @@ class CategoryRepository extends ServiceEntityRepository
 
     // ---- categories -------------------------------------------------------
 
-    public function findOneByIdForUser(CategoryId $id, Owner $user): ?CategoryEntity
+    public function findOneByIdForOwner(CategoryId $id, Owner $owner): ?CategoryEntity
     {
-        return $this->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -41,11 +41,11 @@ class CategoryRepository extends ServiceEntityRepository
      *
      * @return list<CategoryEntity>
      */
-    public function getAllCategoriesByUser(Owner $user, bool $includeArchived = false): array
+    public function getAllCategoriesByOwner(Owner $owner, bool $includeArchived = false): array
     {
         $qb = $this->createQueryBuilder('c')
-            ->where('c.user = :user')
-            ->setParameter('user', $user)
+            ->where('c.owner = :owner')
+            ->setParameter('owner', $owner)
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC');
 
@@ -58,9 +58,9 @@ class CategoryRepository extends ServiceEntityRepository
 
     // ---- tags -------------------------------------------------------------
 
-    public function findTagByIdForUser(TagId $id, Owner $user): ?TagEntity
+    public function findTagByIdForOwner(TagId $id, Owner $owner): ?TagEntity
     {
-        return $this->getEntityManager()->getRepository(TagEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->getEntityManager()->getRepository(TagEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -97,13 +97,13 @@ class CategoryRepository extends ServiceEntityRepository
      *
      * @return list<TagEntity>
      */
-    public function getAllTagsByUser(Owner $user, bool $includeArchived = false): array
+    public function getAllTagsByOwner(Owner $owner, bool $includeArchived = false): array
     {
         $qb = $this->select(TagEntity::class, 't')
             ->innerJoin('t.category', 'c')
             ->addSelect('c')
-            ->where('t.user = :user')
-            ->setParameter('user', $user)
+            ->where('t.owner = :owner')
+            ->setParameter('owner', $owner)
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC')     // keeps same-named categories' tags together
             ->addOrderBy('t.name', 'ASC')
@@ -122,13 +122,13 @@ class CategoryRepository extends ServiceEntityRepository
      *
      * @return list<TagEntity>
      */
-    public function getAllTagsByCategory(Owner $user, CategoryEntity $category, bool $includeArchived = false): array
+    public function getAllTagsByCategory(Owner $owner, CategoryEntity $category, bool $includeArchived = false): array
     {
         $qb = $this->select(TagEntity::class, 't')
             ->innerJoin('t.category', 'c')
-            ->where('t.user = :user')
+            ->where('t.owner = :owner')
             ->andWhere('t.category = :category')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->setParameter('category', $category)
             ->orderBy('t.name', 'ASC')
             ->addOrderBy('t.id', 'ASC');

@@ -48,7 +48,7 @@ final class OwnershipTest extends KernelTestCase
     #[DataProvider('childProvider')]
     public function testChildrenTakeTheirRootsOwner(\Closure $create): void
     {
-        self::assertSame($this->me, $create($this->me)->user);
+        self::assertSame($this->me, $create($this->me)->owner);
     }
 
     public function testCannotWriteAJournalEntryInAnotherUsersProject(): void

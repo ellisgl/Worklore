@@ -18,13 +18,13 @@ final class OwnershipMismatchException extends InvalidArgumentException
     /**
      * @param string $what what $owner owns, for the message ("company", "tag")
      *
-     * @throws self if $owner and $user are different users
+     * @throws self if $owner and $other are different owners
      */
-    public static function assertSameUser(Owner $owner, Owner $user, string $what): void
+    public static function assertSameOwner(Owner $owner, Owner $other, string $what): void
     {
         // Compare ids, not objects: a lazy reference and a loaded entity can
         // be the same owner.
-        if (!$owner->ownerId()->equals($user->ownerId())) {
+        if (!$owner->ownerId()->equals($other->ownerId())) {
             throw new self(\sprintf('The %s belongs to a different user', $what));
         }
     }

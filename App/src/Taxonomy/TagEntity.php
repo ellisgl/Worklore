@@ -18,7 +18,7 @@ final class TagEntity
 {
     private(set) TagId $id;
     /** The aggregate owner, copied from the category; stored for owner-scoped queries */
-    private(set) readonly Owner $user;
+    private(set) readonly Owner $owner;
     private(set) Name $name;
     /** Case-insensitive form of $name, for uniq_tag_category_name; see Name::key() */
     private string $nameKey;
@@ -35,7 +35,7 @@ final class TagEntity
         string $name,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->user = $category->user;
+        $this->owner = $category->owner;
         $this->id = TagId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->setName($name);
@@ -55,7 +55,7 @@ final class TagEntity
             return $this;
         }
 
-        OwnershipMismatchException::assertSameUser($category->user, $this->user, 'category');
+        OwnershipMismatchException::assertSameOwner($category->owner, $this->owner, 'category');
 
         $this->category = $category;
         $previous->detachTag($this);

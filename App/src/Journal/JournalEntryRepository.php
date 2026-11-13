@@ -24,9 +24,9 @@ class JournalEntryRepository extends ServiceEntityRepository
      * otherwise, so an endpoint answers 404 instead of revealing someone
      * else's record. Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(JournalEntryId $id, Owner $user): ?JournalEntryEntity
+    public function findOneByIdForOwner(JournalEntryId $id, Owner $owner): ?JournalEntryEntity
     {
-        return $this->findOneBy(['id' => $id, 'user' => $user]);
+        return $this->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
     /**
@@ -38,15 +38,15 @@ class JournalEntryRepository extends ServiceEntityRepository
      *
      * @return list<JournalEntryEntity>
      */
-    public function getAllEntriesByProject(Owner $user, ProjectEntity $project, bool $includeArchived = false): array
+    public function getAllEntriesByProject(Owner $owner, ProjectEntity $project, bool $includeArchived = false): array
     {
         $qb = $this->createQueryBuilder('j')
             ->innerJoin('j.project', 'pj')
             ->innerJoin('pj.product', 'p')
             ->innerJoin('p.company', 'c')
-            ->where('j.user = :user')
+            ->where('j.owner = :owner')
             ->andWhere('j.project = :project')
-            ->setParameter('user', $user)
+            ->setParameter('owner', $owner)
             ->setParameter('project', $project)
             ->orderBy('j.createdAt', 'DESC')
             ->addOrderBy('j.id', 'DESC');

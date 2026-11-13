@@ -35,7 +35,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $result = $this->categories->getAllCategoriesByUser($this->em->find(User::class, $user->id));
+        $result = $this->categories->getAllCategoriesByOwner($this->em->find(User::class, $user->id));
 
         self::assertSame(['area', 'location', 'skill'], $this->names($result));
     }
@@ -48,7 +48,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->persist(new CategoryEntity($other, 'theirs'));
         $this->em->flush();
 
-        self::assertSame(['mine'], $this->names($this->categories->getAllCategoriesByUser($me)));
+        self::assertSame(['mine'], $this->names($this->categories->getAllCategoriesByOwner($me)));
     }
 
     public function testArchivedCategoriesAreExcludedByDefault(): void
@@ -58,7 +58,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->persist((new CategoryEntity($user, 'archived'))->archive(new \DateTimeImmutable()));
         $this->em->flush();
 
-        self::assertSame(['active'], $this->names($this->categories->getAllCategoriesByUser($user)));
+        self::assertSame(['active'], $this->names($this->categories->getAllCategoriesByOwner($user)));
     }
 
     public function testIncludeArchivedReturnsEverything(): void
@@ -70,7 +70,7 @@ final class CategoryRepositoryTest extends KernelTestCase
 
         self::assertSame(
             ['active', 'archived'],
-            $this->names($this->categories->getAllCategoriesByUser($user, includeArchived: true)),
+            $this->names($this->categories->getAllCategoriesByOwner($user, includeArchived: true)),
         );
     }
 
@@ -84,7 +84,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->em->flush();
 
         // Each category appears once, however many tags it has
-        self::assertSame(['area', 'empty'], $this->names($this->categories->getAllCategoriesByUser($user)));
+        self::assertSame(['area', 'empty'], $this->names($this->categories->getAllCategoriesByOwner($user)));
     }
 
     public function testUserWithoutCategoriesGetsEmptyList(): void
@@ -92,7 +92,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $user = $this->persist(new User('a@example.com'));
         $this->em->flush();
 
-        self::assertSame([], $this->categories->getAllCategoriesByUser($user));
+        self::assertSame([], $this->categories->getAllCategoriesByOwner($user));
     }
 
     /**

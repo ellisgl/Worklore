@@ -43,11 +43,11 @@ final class AggregateTest extends KernelTestCase
 
         $companies = self::getContainer()->get(CompanyRepository::class);
         $user = $this->em->find(User::class, $this->user->id);
-        $loaded = $companies->findOneByIdForUser($company->id, $user);
+        $loaded = $companies->findOneByIdForOwner($company->id, $user);
         self::assertCount(1, $loaded->getProducts());
         self::assertCount(2, $loaded->getProducts()->first()->getProjects());
         self::assertCount(1, $loaded->getPositions());
-        self::assertNotNull($companies->findProductByIdForUser($widget->id, $user));
+        self::assertNotNull($companies->findProductByIdForOwner($widget->id, $user));
     }
 
     public function testPersistingTheCategorySavesItsTags(): void

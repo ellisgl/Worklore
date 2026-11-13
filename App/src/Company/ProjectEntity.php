@@ -24,7 +24,7 @@ final class ProjectEntity
 {
     private(set) ProjectId $id;
     /** The aggregate owner, copied from the product; stored for owner-scoped queries */
-    private(set) readonly Owner $user;
+    private(set) readonly Owner $owner;
     private(set) Name $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
@@ -46,7 +46,7 @@ final class ProjectEntity
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->user = $product->user;
+        $this->owner = $product->owner;
         $this->id = ProjectId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->name = Name::of($name, 'Project name');
@@ -98,7 +98,7 @@ final class ProjectEntity
      */
     public function addTag(TagEntity $tag): self
     {
-        OwnershipMismatchException::assertSameUser($tag->user, $this->user, 'tag');
+        OwnershipMismatchException::assertSameOwner($tag->owner, $this->owner, 'tag');
 
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);

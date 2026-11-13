@@ -24,7 +24,7 @@ final class PositionEntity
 
     private(set) PositionId $id;
     /** The aggregate owner, copied from the company; stored for owner-scoped queries */
-    private(set) readonly Owner $user;
+    private(set) readonly Owner $owner;
     private(set) Name $title;
     private(set) ?string $overview;
     /** Start and (once ended) end day */
@@ -44,7 +44,7 @@ final class PositionEntity
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,
     ) {
-        $this->user = $company->user;
+        $this->owner = $company->owner;
         $this->id = PositionId::generate();
         $this->createdAt = $createdAt ?? now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Position title');
