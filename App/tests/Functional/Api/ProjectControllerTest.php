@@ -236,6 +236,28 @@ final class ProjectControllerTest extends ApiTestCase
     /**
      * @throws JsonException
      */
+    public function testListFiltersByTag(): void
+    {
+        $skill = $this->createdId('/api/categories', ['name' => 'Skill'], $this->auth);
+        $php = $this->createdId('/api/categories/'.$skill.'/tags', ['name' => 'php'], $this->auth);
+        $this->createdId('/api/products/'.$this->productId.'/projects', ['name' => 'Api', 'tag_ids' => [$php]], $this->auth);
+        $this->createProject('Docs');
+        $other = $this->signIn('other@example.com');
+        $theirCategory = $this->createdId('/api/categories', ['name' => 'Theirs'], $other);
+        $theirTag = $this->createdId('/api/categories/'.$theirCategory.'/tags', ['name' => 'theirs'], $other);
+
+        self::assertSame(['Api'], array_column($this->list('?tag_id='.$php), 'name'));
+        self::assertSame(['Api', 'Docs'], array_column($this->list(), 'name'));
+        self::assertSame([], $this->list('?tag_id='.$theirTag), "Another user's tag matches nothing");
+
+        $notUuid = $this->jsonRequest('GET', '/api/products/'.$this->productId.'/projects?tag_id=php', headers: $this->auth);
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $notUuid->getStatusCode());
+        self::assertSame('tag_id', $this->firstViolationPath($notUuid));
+    }
+
+    /**
+     * @throws JsonException
+     */
     public function testAnotherUsersOrAnUnknownTagIsNotFound(): void
     {
         $other = $this->signIn('other@example.com');

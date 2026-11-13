@@ -10,8 +10,11 @@ use App\Company\ProjectId;
 use App\Company\Query\ProjectQueries;
 use App\Company\Query\ProjectSummary;
 use App\Identity\User;
+use App\Shared\InvalidValueException;
+use App\Shared\Query\Page;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\Query\TagRef;
+use App\Taxonomy\TagId;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
@@ -134,6 +137,32 @@ final class ProjectQueriesTest extends KernelTestCase
         self::assertNotNull($found);
         self::assertSame(['Area/backend', 'Skill/php'], self::tagLabels($found), 'By category, then name');
         self::assertSame([[], ['Area/backend', 'Skill/php']], array_map(self::tagLabels(...), $listed), 'Beta, then Launch');
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     * @throws InvalidValueException
+     */
+    public function testFilterByTag(): void
+    {
+        $widget = $this->product();
+        $area = new CategoryEntity($this->owner, 'Area');
+        $this->em->persist($area);
+        [$backend, $frontend] = [$area->addTag('backend'), $area->addTag('frontend')];
+        $widget->addProject('Both')->setTags($backend, $frontend);
+        $widget->addProject('Backend')->setTags($backend);
+        $widget->addProject('Untagged');
+        $widget->addProject('Old backend')->setTags($backend)->archive(new DateTimeImmutable());
+        $this->em->flush();
+
+        $byBackend = $this->queries->listForProduct($this->owner->id, $widget->id, tagId: $backend->id);
+
+        self::assertSame(['Backend', 'Both'], $this->names($byBackend->items));
+        self::assertSame(2, $byBackend->total);
+        self::assertSame(['Backend', 'Both', 'Old backend'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true, tagId: $backend->id)->items));
+        self::assertSame(['Both'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, page: new Page(2, 1), tagId: $backend->id)->items));
+        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id, tagId: TagId::generate())->items);
     }
 
     /**

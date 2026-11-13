@@ -62,7 +62,7 @@ final class ProjectController extends AbstractController
     /**
      * List a product's projects.
      *
-     * GET /api/products/{productId}/projects[?include_archived=1][&page=1&per_page=50]
+     * GET /api/products/{productId}/projects[?include_archived=1][&tag_id=...][&page=1&per_page=50]
      *
      * @throws DateMalformedStringException
      * @throws Exception
@@ -78,13 +78,14 @@ final class ProjectController extends AbstractController
         string $productId,
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] ProjectFilterRequest $filter = new ProjectFilterRequest(),
     ): JsonResponse {
         $product = ProductId::fromString($productId);
         if (!$this->products->existsForOwner($owner->ownerId(), $product)) {
             throw new ProductNotFound();
         }
 
-        return $this->json($this->projects->listForProduct($owner->ownerId(), $product, $includeArchived, $paging->toPage()));
+        return $this->json($this->projects->listForProduct($owner->ownerId(), $product, $includeArchived, $paging->toPage(), $filter->tagId()));
     }
 
     /**

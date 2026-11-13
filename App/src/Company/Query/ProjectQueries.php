@@ -12,6 +12,7 @@ use App\Shared\Query\Paginated;
 use App\Shared\Query\ReadsDatabaseTimes;
 use App\Shared\UserId;
 use App\Taxonomy\Query\TagRefs;
+use App\Taxonomy\TagId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
@@ -58,17 +59,27 @@ final readonly class ProjectQueries
      *
      * By default archived projects, and every project under an archived
      * product or company, are left out; pass $includeArchived = true for all.
+     * With $tagId, only projects with that tag.
      *
      * @return Paginated<ProjectSummary>
      *
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function listForProduct(UserId $ownerId, ProductId $productId, bool $includeArchived = false, Page $page = new Page()): Paginated
-    {
+    public function listForProduct(
+        UserId $ownerId,
+        ProductId $productId,
+        bool $includeArchived = false,
+        Page $page = new Page(),
+        ?TagId $tagId = null,
+    ): Paginated {
         $where = ' WHERE pj.user_id = :owner AND pj.product_id = :product'
             .($includeArchived ? '' : ' AND pj.archived_at IS NULL AND p.archived_at IS NULL AND c.archived_at IS NULL');
         $params = ['owner' => $ownerId->toRfc4122(), 'product' => $productId->toRfc4122()];
+        if (null !== $tagId) {
+            $where .= ' AND EXISTS (SELECT 1 FROM project_tag pt WHERE pt.project_id = pj.id AND pt.tag_id = :tag)';
+            $params['tag'] = $tagId->toRfc4122();
+        }
 
         /** @var list<ProjectRow> $rows */
         $rows = $this->db->fetchAllAssociative(self::SELECT.$where.' ORDER BY pj.name, pj.id'.PagedSql::limit($page), $params);
