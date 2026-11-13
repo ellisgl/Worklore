@@ -11,10 +11,12 @@ use App\Identity\User;
 use App\Identity\UserManager;
 use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
 use OpenApi\Attributes as OA;
 use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -46,6 +48,21 @@ final class AccountController extends AbstractController
     public function show(#[CurrentUser] User $user): JsonResponse
     {
         return $this->json(AccountSummary::of($user));
+    }
+
+    /**
+     * Log out everywhere.
+     *
+     * POST /api/me/sessions/revoke → 204. Ends every session (access and
+     * refresh tokens) on every device, this one included.
+     */
+    #[NoContent('Every session ended')]
+    #[Route('/sessions/revoke', name: 'revoke_sessions', methods: ['POST'])]
+    public function revokeSessions(#[CurrentUser] User $user): Response
+    {
+        $this->tokens->revokeAllForUser($user);
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
     }
 
     /**

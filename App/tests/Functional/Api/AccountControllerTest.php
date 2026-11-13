@@ -98,9 +98,31 @@ final class AccountControllerTest extends ApiTestCase
     /**
      * @throws JsonException
      */
+    public function testLogOutEverywhere(): void
+    {
+        $this->createUser();
+        $laptop = $this->login();
+        $phone = $this->login();
+
+        $response = $this->jsonRequest('POST', '/api/me/sessions/revoke', headers: $this->bearer($laptop['access_token']));
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+        self::assertFalse($this->accessTokenWorks($laptop['access_token']), 'This session ends too');
+        self::assertFalse($this->accessTokenWorks($phone['access_token']));
+        foreach ([$laptop, $phone] as $tokens) {
+            $refresh = $this->jsonRequest('POST', '/api/auth/refresh', ['refresh_token' => $tokens['refresh_token']]);
+            $this->assertJsonError($refresh, Response::HTTP_UNAUTHORIZED);
+        }
+        $this->login();
+    }
+
+    /**
+     * @throws JsonException
+     */
     public function testAccountRequiresAuthentication(): void
     {
         $this->assertJsonError($this->jsonRequest('GET', '/api/me'), Response::HTTP_UNAUTHORIZED);
+        $this->assertJsonError($this->jsonRequest('POST', '/api/me/sessions/revoke'), Response::HTTP_UNAUTHORIZED);
         $this->assertJsonError($this->jsonRequest('POST', '/api/me/password', ['current_password' => 'x', 'new_password' => self::NEW_PASSWORD]), Response::HTTP_UNAUTHORIZED);
     }
 }
