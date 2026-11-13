@@ -21,7 +21,7 @@ class TagRepository extends ServiceEntityRepository
     /**
      * The user's tags, sorted by category name and then tag name.
      *
-     * By default only active tags are returned: archived tags, and tags whose
+     * By default, only active tags are returned: archived tags, and tags whose
      * category is archived, are left out. Pass $includeArchived = true for all.
      *
      * The category is fetched in the same query, so reading $tag->category

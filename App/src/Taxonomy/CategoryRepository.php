@@ -21,7 +21,7 @@ class CategoryRepository extends ServiceEntityRepository
     /**
      * The user's categories, sorted by name.
      *
-     * By default only active categories are returned: Pass $includeArchived = true for all.
+     * By default, only active categories are returned: Pass $includeArchived = true for all.
      *
      * @return list<CategoryEntity>
      */
