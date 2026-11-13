@@ -28,6 +28,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Company/Config'
                 prefix: 'App\Company'
                 alias: Company
+            Journal:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Journal/Config'
+                prefix: 'App\Journal'
+                alias: Journal
             Taxonomy:
                 type: xml
                 is_bundle: false
