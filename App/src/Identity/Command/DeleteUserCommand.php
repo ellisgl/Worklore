@@ -12,6 +12,8 @@ use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+use function sprintf;
+
 #[AsCommand(name: 'app:user:delete', description: 'Delete a user and all of their sessions')]
 final readonly class DeleteUserCommand
 {
@@ -28,19 +30,19 @@ final readonly class DeleteUserCommand
     ): int {
         $user = $this->users->findOneByEmail($email);
         if (null === $user) {
-            $io->error(\sprintf('No user with email "%s".', $email));
+            $io->error(sprintf('No user with email "%s".', $email));
 
             return Command::FAILURE;
         }
 
-        if (!$force && !$io->confirm(\sprintf('Permanently delete %s?', $user->email), false)) {
+        if (!$force && !$io->confirm(sprintf('Permanently delete %s?', $user->email), false)) {
             $io->note('Aborted; nothing was deleted. Use --force when running non-interactively.');
 
             return Command::FAILURE;
         }
 
         $this->userManager->delete($user);
-        $io->success(\sprintf('Deleted user %s.', $email));
+        $io->success(sprintf('Deleted user %s.', $email));
 
         return Command::SUCCESS;
     }

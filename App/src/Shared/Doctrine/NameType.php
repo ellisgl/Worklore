@@ -11,6 +11,8 @@ use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\StringType;
 use InvalidArgumentException;
 
+use function is_string;
+
 /**
  * Stores a Name in a VARCHAR column (length from the mapping, 255 by default).
  */
@@ -24,7 +26,7 @@ final class NameType extends StringType
             return $value;
         }
 
-        if (!\is_string($value)) {
+        if (!is_string($value)) {
             throw InvalidType::new($value, self::class, ['null', 'string', Name::class]);
         }
 
@@ -47,7 +49,7 @@ final class NameType extends StringType
 
         // Plain strings are allowed as query parameters, e.g.
         // findBy(['name' => 'Acme']); they're normalized like a Name.
-        if (\is_string($value)) {
+        if (is_string($value)) {
             try {
                 return Name::of($value)->value;
             } catch (InvalidArgumentException $e) {

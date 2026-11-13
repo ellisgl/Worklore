@@ -14,6 +14,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
+use function sprintf;
+
 #[AsCommand(name: 'app:user:create', description: 'Create a user; the password is prompted for')]
 final readonly class CreateUserCommand
 {
@@ -44,7 +46,7 @@ final readonly class CreateUserCommand
             return Command::INVALID;
         }
 
-        $io->success(\sprintf('Created user %s (%s) [%s].', $user->email, $user->id, implode(', ', $user->getRoles())));
+        $io->success(sprintf('Created user %s (%s) [%s].', $user->email, $user->id, implode(', ', $user->getRoles())));
 
         return Command::SUCCESS;
     }

@@ -15,6 +15,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
+use const DATE_RFC3339;
+
 final class CompanyControllerTest extends ApiTestCase
 {
     private User $user;
@@ -112,7 +114,7 @@ final class CompanyControllerTest extends ApiTestCase
         $company = $this->list()[0];
 
         self::assertSame(['id', 'name', 'overview', 'created_at', 'archived_at', 'product_count', 'current_position'], array_keys($company));
-        self::assertNotFalse(DateTimeImmutable::createFromFormat(\DATE_RFC3339, $company['created_at']));
+        self::assertNotFalse(DateTimeImmutable::createFromFormat(DATE_RFC3339, $company['created_at']));
     }
 
     public function testArchivedCompaniesAreHiddenUnlessAskedFor(): void

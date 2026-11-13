@@ -6,10 +6,12 @@ namespace App\Identity;
 
 use RuntimeException;
 
+use function sprintf;
+
 final class UserAlreadyExistsException extends RuntimeException
 {
     public function __construct(string $email)
     {
-        parent::__construct(\sprintf('A user with email "%s" already exists.', $email));
+        parent::__construct(sprintf('A user with email "%s" already exists.', $email));
     }
 }

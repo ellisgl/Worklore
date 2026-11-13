@@ -11,6 +11,8 @@ use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 use InvalidArgumentException;
 
+use function is_string;
+
 /**
  * Maps one EntityId subclass to a native UUID column. Subclasses name the id
  * class and the type name it's registered under in doctrine.yaml.
@@ -39,7 +41,7 @@ abstract class EntityIdType extends Type
             return $value;
         }
 
-        if (!\is_string($value)) {
+        if (!is_string($value)) {
             throw InvalidType::new($value, static::class, ['null', 'string', $class]);
         }
 
@@ -64,7 +66,7 @@ abstract class EntityIdType extends Type
             return $value->toRfc4122();
         }
 
-        if (!\is_string($value)) {
+        if (!is_string($value)) {
             throw InvalidType::new($value, static::class, ['null', 'string', $class]);
         }
 

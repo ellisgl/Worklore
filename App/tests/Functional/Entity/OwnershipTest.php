@@ -16,6 +16,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+use function assert;
+
 /**
  * Records owned by different users can't be linked.
  *
@@ -117,7 +119,7 @@ final class OwnershipTest extends KernelTestCase
         // The check compares ids, so a lazy reference to the same user passes
         // even though it isn't the same object as the loaded project's user.
         $em = self::getContainer()->get('doctrine')->getManager();
-        \assert($em instanceof EntityManagerInterface);
+        assert($em instanceof EntityManagerInterface);
         $project = self::product($this->me)->addProject('Launch');
         $em->persist($this->me);
         $em->persist($project->product->company);

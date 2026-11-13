@@ -15,6 +15,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Throwable;
 
+use function count;
+
 /**
  * Turns domain exceptions from /api requests into JSON error responses, in
  * the same {"error": "..."} shape as the auth endpoints, so controllers and
@@ -55,7 +57,7 @@ final class DomainExceptionListener
      */
     private static function unwrap(Throwable $e): Throwable
     {
-        while ($e instanceof HandlerFailedException && 1 === \count($e->getWrappedExceptions())) {
+        while ($e instanceof HandlerFailedException && 1 === count($e->getWrappedExceptions())) {
             $e = current($e->getWrappedExceptions());
         }
 

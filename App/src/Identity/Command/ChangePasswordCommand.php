@@ -13,6 +13,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
+use function sprintf;
+
 #[AsCommand(name: 'app:user:change-password', description: "Set a user's password and revoke their sessions")]
 final readonly class ChangePasswordCommand
 {
@@ -29,7 +31,7 @@ final readonly class ChangePasswordCommand
     ): int {
         $user = $this->users->findOneByEmail($email);
         if (null === $user) {
-            $io->error(\sprintf('No user with email "%s".', $email));
+            $io->error(sprintf('No user with email "%s".', $email));
 
             return Command::FAILURE;
         }
@@ -47,7 +49,7 @@ final readonly class ChangePasswordCommand
             return Command::INVALID;
         }
 
-        $io->success(\sprintf('Password changed for %s; %d session(s) revoked.', $user->email, $revoked));
+        $io->success(sprintf('Password changed for %s; %d session(s) revoked.', $user->email, $revoked));
 
         return Command::SUCCESS;
     }

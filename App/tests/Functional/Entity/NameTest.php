@@ -15,6 +15,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+use function assert;
+
 final class NameTest extends KernelTestCase
 {
     public function testIsTrimmed(): void
@@ -83,7 +85,7 @@ final class NameTest extends KernelTestCase
     {
         self::bootKernel();
         $em = self::getContainer()->get('doctrine')->getManager();
-        \assert($em instanceof EntityManagerInterface);
+        assert($em instanceof EntityManagerInterface);
         $user = new User('a@example.com');
         $em->persist($user);
         $em->persist(new CompanyEntity($user, 'Acme'));

@@ -17,6 +17,8 @@ use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Uid\UuidV7;
 
+use function assert;
+
 final class TypedIdTest extends KernelTestCase
 {
     public function testGeneratedIdsAreUuidV7AndUnique(): void
@@ -71,7 +73,7 @@ final class TypedIdTest extends KernelTestCase
     {
         self::bootKernel();
         $em = self::getContainer()->get('doctrine')->getManager();
-        \assert($em instanceof EntityManagerInterface);
+        assert($em instanceof EntityManagerInterface);
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
         $em->persist($user);

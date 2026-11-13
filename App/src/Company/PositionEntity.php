@@ -10,6 +10,8 @@ use App\Shared\Owner;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
+
+use function sprintf;
 use function Symfony\Component\Clock\now;
 
 /**
@@ -152,7 +154,7 @@ final class PositionEntity
     {
         $reasonLeft = self::normalizeText($reasonLeft);
         if (null !== $reasonLeft && mb_strlen($reasonLeft) > self::MAX_REASON_LEFT_LENGTH) {
-            throw new InvalidValueException(\sprintf('Reason for leaving cannot be longer than %d characters', self::MAX_REASON_LEFT_LENGTH));
+            throw new InvalidValueException(sprintf('Reason for leaving cannot be longer than %d characters', self::MAX_REASON_LEFT_LENGTH));
         }
 
         return $reasonLeft;

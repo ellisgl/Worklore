@@ -11,6 +11,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Response;
 
+use const JSON_THROW_ON_ERROR;
+
 /**
  * Base class for API tests. Each test runs in a DB transaction that is rolled
  * back afterwards (dama/doctrine-test-bundle), so tests don't see each other's data.
@@ -51,7 +53,7 @@ abstract class ApiTestCase extends WebTestCase
             $server['HTTP_'.strtoupper(str_replace('-', '_', $name))] = $value;
         }
 
-        $this->client->request($method, $uri, server: $server, content: null === $body ? null : json_encode($body, \JSON_THROW_ON_ERROR));
+        $this->client->request($method, $uri, server: $server, content: null === $body ? null : json_encode($body, JSON_THROW_ON_ERROR));
 
         return $this->client->getResponse();
     }
@@ -77,7 +79,7 @@ abstract class ApiTestCase extends WebTestCase
      */
     protected function decode(Response $response): array
     {
-        return json_decode((string) $response->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        return json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
     }
 
     protected function assertJsonError(Response $response, int $status, ?string $error = null): void

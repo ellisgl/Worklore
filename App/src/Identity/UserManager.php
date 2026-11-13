@@ -14,6 +14,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+use function count;
+
 /**
  * Account lifecycle: shared by console commands and (later) API endpoints.
  */
@@ -117,7 +119,7 @@ final readonly class UserManager
     private function assertValid(mixed $value, array $constraints): void
     {
         $violations = $this->validator->validate($value, $constraints);
-        if (\count($violations) > 0) {
+        if (count($violations) > 0) {
             throw new ValidationFailedException($value, $violations);
         }
     }

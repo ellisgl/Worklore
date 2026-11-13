@@ -13,6 +13,15 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+use function assert;
+use function dirname;
+use function in_array;
+use function is_array;
+
+use const T_NAME_FULLY_QUALIFIED;
+use const T_NAME_QUALIFIED;
+use const T_STRING;
+
 /**
  * The domain modules depend on App\Shared\Owner, never on App\Identity (the
  * security user, its passwords, roles and tokens).
@@ -33,7 +42,7 @@ final class ModuleBoundaryTest extends KernelTestCase
     public function testModuleDoesNotDependOnIdentity(string $module): void
     {
         $offenders = [];
-        $dir = \dirname(__DIR__, 2).'/src/'.$module;
+        $dir = dirname(__DIR__, 2).'/src/'.$module;
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
 
         foreach ($files as $file) {
@@ -41,7 +50,7 @@ final class ModuleBoundaryTest extends KernelTestCase
             if (str_ends_with($path, '.php')) {
                 // Code only: comments may explain the relationship.
                 foreach (token_get_all((string) file_get_contents($path)) as $token) {
-                    if (\is_array($token) && \in_array($token[0], [\T_NAME_QUALIFIED, \T_NAME_FULLY_QUALIFIED, \T_STRING], true)
+                    if (is_array($token) && in_array($token[0], [T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_STRING], true)
                         && preg_match('/^\\\\?App\\\\Identity\b/', $token[1])) {
                         $offenders[] = basename($path).': '.$token[1];
                     }
@@ -58,7 +67,7 @@ final class ModuleBoundaryTest extends KernelTestCase
     {
         self::bootKernel();
         $em = self::getContainer()->get('doctrine')->getManager();
-        \assert($em instanceof EntityManagerInterface);
+        assert($em instanceof EntityManagerInterface);
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
         $em->persist($user);

@@ -6,6 +6,8 @@ namespace App\Shared;
 
 use Stringable;
 
+use function sprintf;
+
 /**
  * A short, required, single-line label: the name or title of a record.
  *
@@ -30,10 +32,10 @@ final readonly class Name implements Stringable
     {
         $value = trim($value);
         if ('' === $value) {
-            throw new InvalidValueException(\sprintf('%s cannot be blank', $label));
+            throw new InvalidValueException(sprintf('%s cannot be blank', $label));
         }
         if (mb_strlen($value) > self::MAX_LENGTH) {
-            throw new InvalidValueException(\sprintf('%s cannot be longer than %d characters', $label, self::MAX_LENGTH));
+            throw new InvalidValueException(sprintf('%s cannot be longer than %d characters', $label, self::MAX_LENGTH));
         }
 
         return new self($value);

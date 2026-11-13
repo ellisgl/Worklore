@@ -13,6 +13,8 @@ use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+use const DATE_RFC3339;
+
 final class CompanyQueriesTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
@@ -55,7 +57,7 @@ final class CompanyQueriesTest extends KernelTestCase
 
         self::assertSame((string) $acme->id, $summary->id);
         self::assertSame('Widgets', $summary->overview);
-        self::assertSame('2024-01-02T03:04:05+00:00', $summary->createdAt->format(\DATE_RFC3339));
+        self::assertSame('2024-01-02T03:04:05+00:00', $summary->createdAt->format(DATE_RFC3339));
         self::assertNull($summary->archivedAt);
         self::assertSame(1, $summary->productCount);
         self::assertSame('Lead', $summary->currentPosition, 'Newest current, non-archived position');

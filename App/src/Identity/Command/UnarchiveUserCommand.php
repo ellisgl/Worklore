@@ -11,6 +11,8 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+use function sprintf;
+
 #[AsCommand(name: 'app:user:unarchive', description: 'Let an archived user log in again')]
 final readonly class UnarchiveUserCommand
 {
@@ -26,19 +28,19 @@ final readonly class UnarchiveUserCommand
     ): int {
         $user = $this->users->findOneByEmail($email);
         if (null === $user) {
-            $io->error(\sprintf('No user with email "%s".', $email));
+            $io->error(sprintf('No user with email "%s".', $email));
 
             return Command::FAILURE;
         }
 
         if (!$user->isArchived()) {
-            $io->note(\sprintf('%s is not archived.', $user->email));
+            $io->note(sprintf('%s is not archived.', $user->email));
 
             return Command::SUCCESS;
         }
 
         $this->userManager->unarchive($user);
-        $io->success(\sprintf('Unarchived %s; they can log in again.', $user->email));
+        $io->success(sprintf('Unarchived %s; they can log in again.', $user->email));
 
         return Command::SUCCESS;
     }

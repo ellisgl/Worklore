@@ -11,6 +11,10 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+use function sprintf;
+
+use const DATE_ATOM;
+
 #[AsCommand(name: 'app:user:archive', description: 'Block a user from logging in and end their sessions (keeps their data)')]
 final readonly class ArchiveUserCommand
 {
@@ -26,19 +30,19 @@ final readonly class ArchiveUserCommand
     ): int {
         $user = $this->users->findOneByEmail($email);
         if (null === $user) {
-            $io->error(\sprintf('No user with email "%s".', $email));
+            $io->error(sprintf('No user with email "%s".', $email));
 
             return Command::FAILURE;
         }
 
         if ($user->isArchived()) {
-            $io->note(\sprintf('%s was already archived on %s.', $user->email, $user->archivedAt->format(\DATE_ATOM)));
+            $io->note(sprintf('%s was already archived on %s.', $user->email, $user->archivedAt->format(DATE_ATOM)));
 
             return Command::SUCCESS;
         }
 
         $revoked = $this->userManager->archive($user);
-        $io->success(\sprintf('Archived %s and revoked %d session(s).', $user->email, $revoked));
+        $io->success(sprintf('Archived %s and revoked %d session(s).', $user->email, $revoked));
 
         return Command::SUCCESS;
     }
