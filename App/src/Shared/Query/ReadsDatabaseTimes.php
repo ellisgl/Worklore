@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Company\Query;
+namespace App\Shared\Query;
 
 use DateMalformedStringException;
 use DateTimeImmutable;

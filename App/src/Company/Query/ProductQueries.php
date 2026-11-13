@@ -9,6 +9,7 @@ use App\Company\ProductId;
 use App\Shared\Query\Page;
 use App\Shared\Query\PagedSql;
 use App\Shared\Query\Paginated;
+use App\Shared\Query\ReadsDatabaseTimes;
 use App\Shared\UserId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
