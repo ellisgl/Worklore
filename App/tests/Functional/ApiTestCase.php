@@ -75,6 +75,70 @@ abstract class ApiTestCase extends WebTestCase
     }
 
     /**
+     * Creates a user and logs them in.
+     *
+     * @return array<string, string> their Authorization header, for jsonRequest()
+     *
+     * @throws JsonException
+     */
+    protected function signIn(string $email = 'user@example.com'): array
+    {
+        $this->createUser($email);
+
+        return $this->bearer($this->login($email)['access_token']);
+    }
+
+    /**
+     * POSTs a create request, expects 201 and returns the new id.
+     *
+     * @param array<string, mixed>  $body
+     * @param array<string, string> $auth
+     *
+     * @throws JsonException
+     */
+    protected function createdId(string $uri, array $body, array $auth): string
+    {
+        $response = $this->jsonRequest('POST', $uri, $body, $auth);
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
+
+        return $this->field($response, 'id');
+    }
+
+    /**
+     * GETs a JSON object, expecting 200.
+     *
+     * @param array<string, string> $auth
+     *
+     * @return array<array-key, mixed>
+     *
+     * @throws JsonException
+     */
+    protected function getJson(string $uri, array $auth): array
+    {
+        $response = $this->jsonRequest('GET', $uri, headers: $auth);
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        return $this->decode($response);
+    }
+
+    /**
+     * GETs a paginated list, expecting 200, and returns its items.
+     *
+     * @param array<string, string> $auth
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws JsonException
+     */
+    protected function getItems(string $uri, array $auth): array
+    {
+        $response = $this->jsonRequest('GET', $uri, headers: $auth);
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        return $this->items($response);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function bearer(string $accessToken): array

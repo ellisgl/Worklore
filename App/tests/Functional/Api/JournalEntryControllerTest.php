@@ -30,13 +30,12 @@ final class JournalEntryControllerTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createUser();
-        $this->auth = $this->bearer($this->login()['access_token']);
+        $this->auth = $this->signIn();
         $this->projectId = $this->projectFor($this->auth);
-        $skill = $this->post('/api/categories', ['name' => 'Skill'], $this->auth);
-        $area = $this->post('/api/categories', ['name' => 'Area'], $this->auth);
-        $this->php = $this->post('/api/categories/'.$skill.'/tags', ['name' => 'php'], $this->auth);
-        $this->backend = $this->post('/api/categories/'.$area.'/tags', ['name' => 'backend'], $this->auth);
+        $skill = $this->createdId('/api/categories', ['name' => 'Skill'], $this->auth);
+        $area = $this->createdId('/api/categories', ['name' => 'Area'], $this->auth);
+        $this->php = $this->createdId('/api/categories/'.$skill.'/tags', ['name' => 'php'], $this->auth);
+        $this->backend = $this->createdId('/api/categories/'.$area.'/tags', ['name' => 'backend'], $this->auth);
     }
 
     // ---- create and list --------------------------------------------------
@@ -112,7 +111,7 @@ final class JournalEntryControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownProjectIsNotFound(): void
     {
-        $theirProject = $this->projectFor($this->otherUser());
+        $theirProject = $this->projectFor($this->signIn('other@example.com'));
 
         foreach ([$theirProject, (string) ProjectId::generate()] as $projectId) {
             $create = $this->jsonRequest('POST', '/api/projects/'.$projectId.'/journal-entries', ['title' => 'Kickoff', 'entry' => 'Body'], $this->auth);
@@ -128,9 +127,9 @@ final class JournalEntryControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownTagIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirCategory = $this->post('/api/categories', ['name' => 'Theirs'], $other);
-        $theirTag = $this->post('/api/categories/'.$theirCategory.'/tags', ['name' => 'theirs'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirCategory = $this->createdId('/api/categories', ['name' => 'Theirs'], $other);
+        $theirTag = $this->createdId('/api/categories/'.$theirCategory.'/tags', ['name' => 'theirs'], $other);
         $id = $this->createEntry(['title' => 'Kickoff', 'entry' => 'Body', 'tag_ids' => [$this->php]]);
 
         foreach ([$theirTag, (string) TagId::generate()] as $tagId) {
@@ -153,8 +152,8 @@ final class JournalEntryControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownEntryIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirs = $this->post('/api/projects/'.$this->projectFor($other).'/journal-entries', ['title' => 'Theirs', 'entry' => 'Body'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirs = $this->createdId('/api/projects/'.$this->projectFor($other).'/journal-entries', ['title' => 'Theirs', 'entry' => 'Body'], $other);
 
         foreach ([$theirs, (string) JournalEntryId::generate()] as $entryId) {
             foreach ([['GET', ''], ['PATCH', ''], ['POST', '/archive'], ['POST', '/unarchive']] as [$method, $suffix]) {
@@ -250,7 +249,7 @@ final class JournalEntryControllerTest extends ApiTestCase
      */
     private function createEntry(array $body): string
     {
-        return $this->post($this->entriesUri(), $body, $this->auth);
+        return $this->createdId($this->entriesUri(), $body, $this->auth);
     }
 
     /**
@@ -262,10 +261,10 @@ final class JournalEntryControllerTest extends ApiTestCase
      */
     private function projectFor(array $auth): string
     {
-        $company = $this->post('/api/companies', ['name' => 'Acme'], $auth);
-        $product = $this->post('/api/companies/'.$company.'/products', ['name' => 'Widget'], $auth);
+        $company = $this->createdId('/api/companies', ['name' => 'Acme'], $auth);
+        $product = $this->createdId('/api/companies/'.$company.'/products', ['name' => 'Widget'], $auth);
 
-        return $this->post('/api/products/'.$product.'/projects', ['name' => 'Launch'], $auth);
+        return $this->createdId('/api/products/'.$product.'/projects', ['name' => 'Launch'], $auth);
     }
 
     /**
@@ -277,44 +276,13 @@ final class JournalEntryControllerTest extends ApiTestCase
     }
 
     /**
-     * POSTs a create request and returns the new id.
-     *
-     * @param array<string, mixed>  $body
-     * @param array<string, string> $auth
-     *
-     * @throws JsonException
-     */
-    private function post(string $uri, array $body, array $auth): string
-    {
-        $response = $this->jsonRequest('POST', $uri, $body, $auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
-    }
-
-    /**
-     * @return array<string, string>
-     *
-     * @throws JsonException
-     */
-    private function otherUser(): array
-    {
-        $this->createUser('other@example.com');
-
-        return $this->bearer($this->login('other@example.com')['access_token']);
-    }
-
-    /**
      * @return array<array-key, mixed>
      *
      * @throws JsonException
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/journal-entries/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/journal-entries/'.$id, $this->auth);
     }
 
     /**
@@ -324,10 +292,7 @@ final class JournalEntryControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', $this->entriesUri().$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems($this->entriesUri().$query, $this->auth);
     }
 
     /**

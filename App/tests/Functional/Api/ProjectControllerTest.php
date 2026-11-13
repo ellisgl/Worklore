@@ -26,10 +26,9 @@ final class ProjectControllerTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createUser();
-        $this->auth = $this->bearer($this->login()['access_token']);
-        $companyId = $this->post('/api/companies', ['name' => 'Acme'], $this->auth);
-        $this->productId = $this->post('/api/companies/'.$companyId.'/products', ['name' => 'Widget'], $this->auth);
+        $this->auth = $this->signIn();
+        $companyId = $this->createdId('/api/companies', ['name' => 'Acme'], $this->auth);
+        $this->productId = $this->createdId('/api/companies/'.$companyId.'/products', ['name' => 'Widget'], $this->auth);
     }
 
     // ---- create and list --------------------------------------------------
@@ -107,9 +106,9 @@ final class ProjectControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownProductIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirCompany = $this->post('/api/companies', ['name' => 'Theirs'], $other);
-        $theirProduct = $this->post('/api/companies/'.$theirCompany.'/products', ['name' => 'Theirs'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirCompany = $this->createdId('/api/companies', ['name' => 'Theirs'], $other);
+        $theirProduct = $this->createdId('/api/companies/'.$theirCompany.'/products', ['name' => 'Theirs'], $other);
 
         foreach ([$theirProduct, (string) ProductId::generate()] as $productId) {
             $create = $this->jsonRequest('POST', '/api/products/'.$productId.'/projects', ['name' => 'Launch'], $this->auth);
@@ -140,10 +139,10 @@ final class ProjectControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownProjectIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirCompany = $this->post('/api/companies', ['name' => 'Theirs'], $other);
-        $theirProduct = $this->post('/api/companies/'.$theirCompany.'/products', ['name' => 'Theirs'], $other);
-        $theirProject = $this->post('/api/products/'.$theirProduct.'/projects', ['name' => 'Theirs'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirCompany = $this->createdId('/api/companies', ['name' => 'Theirs'], $other);
+        $theirProduct = $this->createdId('/api/companies/'.$theirCompany.'/products', ['name' => 'Theirs'], $other);
+        $theirProject = $this->createdId('/api/products/'.$theirProduct.'/projects', ['name' => 'Theirs'], $other);
 
         foreach ([$theirProject, (string) ProjectId::generate()] as $projectId) {
             foreach ([['GET', ''], ['PATCH', ''], ['POST', '/archive'], ['POST', '/unarchive']] as [$method, $suffix]) {
@@ -228,35 +227,7 @@ final class ProjectControllerTest extends ApiTestCase
      */
     private function createProject(string $name, ?string $overview = null): string
     {
-        return $this->post('/api/products/'.$this->productId.'/projects', ['name' => $name, 'overview' => $overview], $this->auth);
-    }
-
-    /**
-     * POSTs a create request and returns the new id.
-     *
-     * @param array<string, mixed>  $body
-     * @param array<string, string> $auth
-     *
-     * @throws JsonException
-     */
-    private function post(string $uri, array $body, array $auth): string
-    {
-        $response = $this->jsonRequest('POST', $uri, $body, $auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
-    }
-
-    /**
-     * @return array<string, string>
-     *
-     * @throws JsonException
-     */
-    private function otherUser(): array
-    {
-        $this->createUser('other@example.com');
-
-        return $this->bearer($this->login('other@example.com')['access_token']);
+        return $this->createdId('/api/products/'.$this->productId.'/projects', ['name' => $name, 'overview' => $overview], $this->auth);
     }
 
     /**
@@ -266,10 +237,7 @@ final class ProjectControllerTest extends ApiTestCase
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/projects/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/projects/'.$id, $this->auth);
     }
 
     /**
@@ -279,9 +247,6 @@ final class ProjectControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', '/api/products/'.$this->productId.'/projects'.$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems('/api/products/'.$this->productId.'/projects'.$query, $this->auth);
     }
 }

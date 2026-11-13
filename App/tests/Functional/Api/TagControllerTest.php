@@ -26,9 +26,8 @@ final class TagControllerTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createUser();
-        $this->auth = $this->bearer($this->login()['access_token']);
-        $this->categoryId = $this->post('/api/categories', ['name' => 'Skill'], $this->auth);
+        $this->auth = $this->signIn();
+        $this->categoryId = $this->createdId('/api/categories', ['name' => 'Skill'], $this->auth);
     }
 
     // ---- create and list --------------------------------------------------
@@ -61,8 +60,8 @@ final class TagControllerTest extends ApiTestCase
 
         $this->assertJsonError($response, Response::HTTP_CONFLICT, 'This category already has a tag named "PHP".');
 
-        $area = $this->post('/api/categories', ['name' => 'Area'], $this->auth);
-        $this->post('/api/categories/'.$area.'/tags', ['name' => 'php'], $this->auth);  // fine elsewhere
+        $area = $this->createdId('/api/categories', ['name' => 'Area'], $this->auth);
+        $this->createdId('/api/categories/'.$area.'/tags', ['name' => 'php'], $this->auth);  // fine elsewhere
     }
 
     /**
@@ -74,8 +73,8 @@ final class TagControllerTest extends ApiTestCase
         $this->createTag('php');
         $old = $this->createTag('cobol');
         $this->jsonRequest('POST', '/api/tags/'.$old.'/archive', headers: $this->auth);
-        $area = $this->post('/api/categories', ['name' => 'Area'], $this->auth);
-        $this->post('/api/categories/'.$area.'/tags', ['name' => 'backend'], $this->auth);
+        $area = $this->createdId('/api/categories', ['name' => 'Area'], $this->auth);
+        $this->createdId('/api/categories/'.$area.'/tags', ['name' => 'backend'], $this->auth);
 
         self::assertSame(['php', 'sql'], array_column($this->list(), 'name'));
         self::assertSame(['cobol', 'php', 'sql'], array_column($this->list('?include_archived=1'), 'name'));
@@ -129,7 +128,7 @@ final class TagControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownCategoryIsNotFound(): void
     {
-        $theirCategory = $this->post('/api/categories', ['name' => 'Theirs'], $this->otherUser());
+        $theirCategory = $this->createdId('/api/categories', ['name' => 'Theirs'], $this->signIn('other@example.com'));
 
         foreach ([$theirCategory, (string) CategoryId::generate()] as $categoryId) {
             $create = $this->jsonRequest('POST', '/api/categories/'.$categoryId.'/tags', ['name' => 'php'], $this->auth);
@@ -147,9 +146,9 @@ final class TagControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownTagIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirCategory = $this->post('/api/categories', ['name' => 'Theirs'], $other);
-        $theirTag = $this->post('/api/categories/'.$theirCategory.'/tags', ['name' => 'theirs'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirCategory = $this->createdId('/api/categories', ['name' => 'Theirs'], $other);
+        $theirTag = $this->createdId('/api/categories/'.$theirCategory.'/tags', ['name' => 'theirs'], $other);
 
         foreach ([$theirTag, (string) TagId::generate()] as $tagId) {
             foreach ([['GET', ''], ['PATCH', ''], ['POST', '/archive'], ['POST', '/unarchive']] as [$method, $suffix]) {
@@ -188,7 +187,7 @@ final class TagControllerTest extends ApiTestCase
     public function testMoveToAnotherCategory(): void
     {
         $id = $this->createTag('backend');
-        $area = $this->post('/api/categories', ['name' => 'Area'], $this->auth);
+        $area = $this->createdId('/api/categories', ['name' => 'Area'], $this->auth);
 
         $response = $this->jsonRequest('PATCH', '/api/tags/'.$id, ['category_id' => $area], $this->auth);
 
@@ -204,9 +203,9 @@ final class TagControllerTest extends ApiTestCase
     public function testMoveChecksTheTargetCategory(): void
     {
         $id = $this->createTag('php');
-        $area = $this->post('/api/categories', ['name' => 'Area'], $this->auth);
-        $this->post('/api/categories/'.$area.'/tags', ['name' => 'PHP'], $this->auth);
-        $theirCategory = $this->post('/api/categories', ['name' => 'Theirs'], $this->otherUser());
+        $area = $this->createdId('/api/categories', ['name' => 'Area'], $this->auth);
+        $this->createdId('/api/categories/'.$area.'/tags', ['name' => 'PHP'], $this->auth);
+        $theirCategory = $this->createdId('/api/categories', ['name' => 'Theirs'], $this->signIn('other@example.com'));
 
         $clash = $this->jsonRequest('PATCH', '/api/tags/'.$id, ['category_id' => $area], $this->auth);
         $renamedMove = $this->jsonRequest('PATCH', '/api/tags/'.$id, ['category_id' => $area, 'name' => 'php 8'], $this->auth);
@@ -266,35 +265,7 @@ final class TagControllerTest extends ApiTestCase
      */
     private function createTag(string $name): string
     {
-        return $this->post($this->tagsUri(), ['name' => $name], $this->auth);
-    }
-
-    /**
-     * POSTs a create request and returns the new id.
-     *
-     * @param array<string, mixed>  $body
-     * @param array<string, string> $auth
-     *
-     * @throws JsonException
-     */
-    private function post(string $uri, array $body, array $auth): string
-    {
-        $response = $this->jsonRequest('POST', $uri, $body, $auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
-    }
-
-    /**
-     * @return array<string, string>
-     *
-     * @throws JsonException
-     */
-    private function otherUser(): array
-    {
-        $this->createUser('other@example.com');
-
-        return $this->bearer($this->login('other@example.com')['access_token']);
+        return $this->createdId($this->tagsUri(), ['name' => $name], $this->auth);
     }
 
     /**
@@ -304,10 +275,7 @@ final class TagControllerTest extends ApiTestCase
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/tags/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/tags/'.$id, $this->auth);
     }
 
     /**
@@ -317,9 +285,6 @@ final class TagControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', $this->tagsUri().$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems($this->tagsUri().$query, $this->auth);
     }
 }

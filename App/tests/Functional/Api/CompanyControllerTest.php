@@ -78,8 +78,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     public function testAnotherUserCanUseTheSameName(): void
     {
-        $this->createUser('other@example.com');
-        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $other = $this->signIn('other@example.com');
         $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme'], $other);
 
         $response = $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme'], $this->auth);
@@ -132,8 +131,7 @@ final class CompanyControllerTest extends ApiTestCase
         foreach (['Globex', 'Acme', 'Initech'] as $name) {
             $this->jsonRequest('POST', '/api/companies', ['name' => $name], $this->auth);
         }
-        $this->createUser('other@example.com');
-        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $other = $this->signIn('other@example.com');
         $this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other);
 
         self::assertSame(['Acme', 'Globex', 'Initech'], array_column($this->list(), 'name'));
@@ -287,8 +285,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     public function testAnotherUsersCompanyIsNotFound(): void
     {
-        $this->createUser('other@example.com');
-        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $other = $this->signIn('other@example.com');
         $theirs = $this->field($this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other), 'id');
 
         $response = $this->jsonRequest('GET', '/api/companies/'.$theirs, headers: $this->auth);
@@ -429,8 +426,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     public function testEditingAnotherUsersCompanyIsNotFound(): void
     {
-        $this->createUser('other@example.com');
-        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $other = $this->signIn('other@example.com');
         $theirs = $this->field($this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other), 'id');
 
         $response = $this->jsonRequest('PATCH', '/api/companies/'.$theirs, ['name' => 'Mine now'], $this->auth);
@@ -527,8 +523,7 @@ final class CompanyControllerTest extends ApiTestCase
     #[DataProvider('archiveActionProvider')]
     public function testArchivingAnotherUsersCompanyIsNotFound(string $action): void
     {
-        $this->createUser('other@example.com');
-        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $other = $this->signIn('other@example.com');
         $theirs = $this->field($this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other), 'id');
 
         $response = $this->jsonRequest('POST', '/api/companies/'.$theirs.'/'.$action, headers: $this->auth);
@@ -569,10 +564,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     private function create(string $name, ?string $overview = null): string
     {
-        $response = $this->jsonRequest('POST', '/api/companies', ['name' => $name, 'overview' => $overview], $this->auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
+        return $this->createdId('/api/companies', ['name' => $name, 'overview' => $overview], $this->auth);
     }
 
     /**
@@ -582,10 +574,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/companies/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/companies/'.$id, $this->auth);
     }
 
     /**
@@ -595,10 +584,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', '/api/companies'.$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems('/api/companies'.$query, $this->auth);
     }
 
     /**

@@ -26,9 +26,8 @@ final class ProductControllerTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createUser();
-        $this->auth = $this->bearer($this->login()['access_token']);
-        $this->companyId = $this->post('/api/companies', ['name' => 'Acme'], $this->auth);
+        $this->auth = $this->signIn();
+        $this->companyId = $this->createdId('/api/companies', ['name' => 'Acme'], $this->auth);
     }
 
     // ---- create and list --------------------------------------------------
@@ -106,7 +105,7 @@ final class ProductControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownCompanyIsNotFound(): void
     {
-        $theirCompany = $this->post('/api/companies', ['name' => 'Theirs'], $this->otherUser());
+        $theirCompany = $this->createdId('/api/companies', ['name' => 'Theirs'], $this->signIn('other@example.com'));
 
         foreach ([$theirCompany, (string) CompanyId::generate()] as $companyId) {
             $create = $this->jsonRequest('POST', '/api/companies/'.$companyId.'/products', ['name' => 'Widget'], $this->auth);
@@ -137,9 +136,9 @@ final class ProductControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownProductIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirCompany = $this->post('/api/companies', ['name' => 'Theirs'], $other);
-        $theirProduct = $this->post('/api/companies/'.$theirCompany.'/products', ['name' => 'Theirs'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirCompany = $this->createdId('/api/companies', ['name' => 'Theirs'], $other);
+        $theirProduct = $this->createdId('/api/companies/'.$theirCompany.'/products', ['name' => 'Theirs'], $other);
 
         foreach ([$theirProduct, (string) ProductId::generate()] as $productId) {
             foreach ([['GET', ''], ['PATCH', ''], ['POST', '/archive'], ['POST', '/unarchive']] as [$method, $suffix]) {
@@ -224,35 +223,7 @@ final class ProductControllerTest extends ApiTestCase
      */
     private function createProduct(string $name, ?string $overview = null): string
     {
-        return $this->post('/api/companies/'.$this->companyId.'/products', ['name' => $name, 'overview' => $overview], $this->auth);
-    }
-
-    /**
-     * POSTs a create request and returns the new id.
-     *
-     * @param array<string, mixed>  $body
-     * @param array<string, string> $auth
-     *
-     * @throws JsonException
-     */
-    private function post(string $uri, array $body, array $auth): string
-    {
-        $response = $this->jsonRequest('POST', $uri, $body, $auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
-    }
-
-    /**
-     * @return array<string, string>
-     *
-     * @throws JsonException
-     */
-    private function otherUser(): array
-    {
-        $this->createUser('other@example.com');
-
-        return $this->bearer($this->login('other@example.com')['access_token']);
+        return $this->createdId('/api/companies/'.$this->companyId.'/products', ['name' => $name, 'overview' => $overview], $this->auth);
     }
 
     /**
@@ -262,10 +233,7 @@ final class ProductControllerTest extends ApiTestCase
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/products/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/products/'.$id, $this->auth);
     }
 
     /**
@@ -275,9 +243,6 @@ final class ProductControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', '/api/companies/'.$this->companyId.'/products'.$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems('/api/companies/'.$this->companyId.'/products'.$query, $this->auth);
     }
 }

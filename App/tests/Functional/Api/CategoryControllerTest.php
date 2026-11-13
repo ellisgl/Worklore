@@ -24,8 +24,7 @@ final class CategoryControllerTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createUser();
-        $this->auth = $this->bearer($this->login()['access_token']);
+        $this->auth = $this->signIn();
     }
 
     // ---- create and list --------------------------------------------------
@@ -104,8 +103,8 @@ final class CategoryControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownCategoryIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirs = $this->postCategory(['name' => 'Theirs'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirs = $this->createdId('/api/categories', ['name' => 'Theirs'], $other);
 
         foreach ([$theirs, (string) CategoryId::generate()] as $categoryId) {
             foreach ([['GET', ''], ['PATCH', ''], ['POST', '/archive'], ['POST', '/unarchive']] as [$method, $suffix]) {
@@ -186,35 +185,7 @@ final class CategoryControllerTest extends ApiTestCase
      */
     private function createCategory(string $name, ?string $description = null): string
     {
-        return $this->postCategory(['name' => $name, 'description' => $description], $this->auth);
-    }
-
-    /**
-     * Creates a category as the given user and returns its id.
-     *
-     * @param array<string, mixed>  $body
-     * @param array<string, string> $auth
-     *
-     * @throws JsonException
-     */
-    private function postCategory(array $body, array $auth): string
-    {
-        $response = $this->jsonRequest('POST', '/api/categories', $body, $auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
-    }
-
-    /**
-     * @return array<string, string>
-     *
-     * @throws JsonException
-     */
-    private function otherUser(): array
-    {
-        $this->createUser('other@example.com');
-
-        return $this->bearer($this->login('other@example.com')['access_token']);
+        return $this->createdId('/api/categories', ['name' => $name, 'description' => $description], $this->auth);
     }
 
     /**
@@ -224,10 +195,7 @@ final class CategoryControllerTest extends ApiTestCase
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/categories/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/categories/'.$id, $this->auth);
     }
 
     /**
@@ -237,9 +205,6 @@ final class CategoryControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', '/api/categories'.$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems('/api/categories'.$query, $this->auth);
     }
 }

@@ -26,9 +26,8 @@ final class PositionControllerTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createUser();
-        $this->auth = $this->bearer($this->login()['access_token']);
-        $this->companyId = $this->post('/api/companies', ['name' => 'Acme'], $this->auth);
+        $this->auth = $this->signIn();
+        $this->companyId = $this->createdId('/api/companies', ['name' => 'Acme'], $this->auth);
     }
 
     // ---- create and list --------------------------------------------------
@@ -97,9 +96,9 @@ final class PositionControllerTest extends ApiTestCase
      */
     public function testCurrentListsOpenPositionsAcrossCompanies(): void
     {
-        $globex = $this->post('/api/companies', ['name' => 'Globex'], $this->auth);
+        $globex = $this->createdId('/api/companies', ['name' => 'Globex'], $this->auth);
         $this->createPosition(['title' => 'Consultant', 'start_date' => '2023-01-01']);
-        $this->post('/api/companies/'.$globex.'/positions', ['title' => 'Lead', 'start_date' => '2024-01-01'], $this->auth);
+        $this->createdId('/api/companies/'.$globex.'/positions', ['title' => 'Lead', 'start_date' => '2024-01-01'], $this->auth);
         $this->createPosition(['title' => 'Junior', 'start_date' => '2020-01-01', 'end_date' => '2022-12-31']);
 
         $response = $this->jsonRequest('GET', '/api/positions/current', headers: $this->auth);
@@ -142,7 +141,7 @@ final class PositionControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownCompanyIsNotFound(): void
     {
-        $theirCompany = $this->post('/api/companies', ['name' => 'Theirs'], $this->otherUser());
+        $theirCompany = $this->createdId('/api/companies', ['name' => 'Theirs'], $this->signIn('other@example.com'));
 
         foreach ([$theirCompany, (string) CompanyId::generate()] as $companyId) {
             $create = $this->jsonRequest('POST', '/api/companies/'.$companyId.'/positions', ['title' => 'Dev', 'start_date' => '2020-01-01'], $this->auth);
@@ -176,9 +175,9 @@ final class PositionControllerTest extends ApiTestCase
      */
     public function testAnotherUsersOrAnUnknownPositionIsNotFound(): void
     {
-        $other = $this->otherUser();
-        $theirCompany = $this->post('/api/companies', ['name' => 'Theirs'], $other);
-        $theirPosition = $this->post('/api/companies/'.$theirCompany.'/positions', ['title' => 'Theirs', 'start_date' => '2020-01-01'], $other);
+        $other = $this->signIn('other@example.com');
+        $theirCompany = $this->createdId('/api/companies', ['name' => 'Theirs'], $other);
+        $theirPosition = $this->createdId('/api/companies/'.$theirCompany.'/positions', ['title' => 'Theirs', 'start_date' => '2020-01-01'], $other);
 
         $requests = [
             ['GET', '', null],
@@ -337,35 +336,7 @@ final class PositionControllerTest extends ApiTestCase
      */
     private function createPosition(array $body): string
     {
-        return $this->post($this->positionsUri(), $body, $this->auth);
-    }
-
-    /**
-     * POSTs a create request and returns the new id.
-     *
-     * @param array<string, mixed>  $body
-     * @param array<string, string> $auth
-     *
-     * @throws JsonException
-     */
-    private function post(string $uri, array $body, array $auth): string
-    {
-        $response = $this->jsonRequest('POST', $uri, $body, $auth);
-        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->field($response, 'id');
-    }
-
-    /**
-     * @return array<string, string>
-     *
-     * @throws JsonException
-     */
-    private function otherUser(): array
-    {
-        $this->createUser('other@example.com');
-
-        return $this->bearer($this->login('other@example.com')['access_token']);
+        return $this->createdId($this->positionsUri(), $body, $this->auth);
     }
 
     /**
@@ -375,10 +346,7 @@ final class PositionControllerTest extends ApiTestCase
      */
     private function show(string $id): array
     {
-        $response = $this->jsonRequest('GET', '/api/positions/'.$id, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->decode($response);
+        return $this->getJson('/api/positions/'.$id, $this->auth);
     }
 
     /**
@@ -388,9 +356,6 @@ final class PositionControllerTest extends ApiTestCase
      */
     private function list(string $query = ''): array
     {
-        $response = $this->jsonRequest('GET', $this->positionsUri().$query, headers: $this->auth);
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-
-        return $this->items($response);
+        return $this->getItems($this->positionsUri().$query, $this->auth);
     }
 }
