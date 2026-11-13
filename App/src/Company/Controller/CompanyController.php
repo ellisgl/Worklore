@@ -6,6 +6,7 @@ namespace App\Company\Controller;
 
 use App\Company\Application\CompanyNotFound;
 use App\Company\Application\CreateCompany;
+use App\Company\Application\EditCompany;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
 use App\Shared\Owner;
@@ -80,5 +81,22 @@ final class CompanyController extends AbstractController
         $this->commandBus->dispatch(new CreateCompany($id, $owner->ownerId(), $payload->name, $payload->overview));
 
         return $this->json(['id' => $id->toRfc4122()], Response::HTTP_CREATED);
+    }
+
+    /**
+     * PATCH /api/companies/{id} {"name": "...", "overview": "..."} → 204.
+     * Only the fields sent are changed; an empty overview clears it.
+     *
+     * @throws ExceptionInterface
+     */
+    #[Route('/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
+    public function edit(
+        #[CurrentUser] Owner $owner,
+        string $id,
+        #[MapRequestPayload] EditCompanyRequest $payload,
+    ): Response {
+        $this->commandBus->dispatch(new EditCompany(CompanyId::fromString($id), $owner->ownerId(), $payload->name, $payload->overview));
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
     }
 }

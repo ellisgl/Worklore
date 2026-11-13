@@ -284,7 +284,157 @@ final class CompanyControllerTest extends ApiTestCase
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
     }
 
+    // ---- PATCH /api/companies/{id} ----------------------------------------
+
+    /**
+     * @throws JsonException
+     */
+    public function testEditChangesOnlyTheFieldsSent(): void
+    {
+        $id = $this->create('Acme', 'Widgets');
+
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.$id, ['name' => ' Acme Ltd '], $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+        $company = $this->show($id);
+        self::assertSame('Acme Ltd', $company['name'], 'Renamed and trimmed');
+        self::assertSame('Widgets', $company['overview'], 'Overview not sent, so unchanged');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testEditOverviewAndClearIt(): void
+    {
+        $id = $this->create('Acme');
+
+        $this->jsonRequest('PATCH', '/api/companies/'.$id, ['overview' => 'Widgets'], $this->auth);
+        self::assertSame('Widgets', $this->show($id)['overview']);
+        self::assertSame('Acme', $this->show($id)['name'], 'Name not sent, so unchanged');
+
+        $this->jsonRequest('PATCH', '/api/companies/'.$id, ['overview' => ''], $this->auth);
+        self::assertNull($this->show($id)['overview'], 'An empty overview clears it');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testEditWithNothingToChangeIsANoOp(): void
+    {
+        $id = $this->create('Acme', 'Widgets');
+
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.$id, ['name' => null], $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame('Acme', $this->show($id)['name']);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testRenameOntoAnotherCompanyIsAConflict(): void
+    {
+        $this->create('Globex');
+        $id = $this->create('Acme', 'Widgets');
+
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.$id, ['name' => 'GLOBEX', 'overview' => 'Changed'], $this->auth);
+
+        $this->assertJsonError($response, Response::HTTP_CONFLICT, 'You already have a company named "GLOBEX".');
+        self::assertSame('Widgets', $this->show($id)['overview'], 'Nothing applied: the edit is all or nothing');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testRenameToADifferentCaseOfItsOwnName(): void
+    {
+        $id = $this->create('acme');
+
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.$id, ['name' => 'ACME'], $this->auth);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame('ACME', $this->show($id)['name']);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function invalidEditProvider(): iterable
+    {
+        yield 'blank name' => [['name' => '   ']];
+        yield 'name too long' => [['name' => str_repeat('x', 256)]];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @throws JsonException
+     */
+    #[DataProvider('invalidEditProvider')]
+    public function testInvalidEditIsRejected(array $payload): void
+    {
+        $id = $this->create('Acme');
+
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.$id, $payload, $this->auth);
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertSame('name', $this->firstViolationPath($response));
+        self::assertSame('Acme', $this->show($id)['name']);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testEditingAnotherUsersCompanyIsNotFound(): void
+    {
+        $this->createUser('other@example.com');
+        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $theirs = $this->field($this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other), 'id');
+
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.$theirs, ['name' => 'Mine now'], $this->auth);
+
+        $this->assertJsonError($response, Response::HTTP_NOT_FOUND, 'Company not found.');
+        $check = $this->jsonRequest('GET', '/api/companies/'.$theirs, headers: $other);
+        self::assertSame('Theirs', $this->field($check, 'name'), 'Unchanged');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testEditRequiresAuthentication(): void
+    {
+        $response = $this->jsonRequest('PATCH', '/api/companies/'.CompanyId::generate(), ['name' => 'Acme']);
+
+        $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
+    }
+
     // ---- helpers ----------------------------------------------------------
+
+    /**
+     * Creates a company through the API and returns its id.
+     *
+     * @throws JsonException
+     */
+    private function create(string $name, ?string $overview = null): string
+    {
+        $response = $this->jsonRequest('POST', '/api/companies', ['name' => $name, 'overview' => $overview], $this->auth);
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
+
+        return $this->field($response, 'id');
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     *
+     * @throws JsonException
+     */
+    private function show(string $id): array
+    {
+        $response = $this->jsonRequest('GET', '/api/companies/'.$id, headers: $this->auth);
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        return $this->decode($response);
+    }
 
     /**
      * @return list<array<string, mixed>>
