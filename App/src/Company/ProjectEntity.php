@@ -47,7 +47,7 @@ final class ProjectEntity
         $this->name = self::normalizeName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->tags = new ArrayCollection();
-
+        $this->journalEntries = new ArrayCollection();
         $product->addProject($this);
     }
 
