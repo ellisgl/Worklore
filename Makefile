@@ -8,7 +8,7 @@ PHP     := $(DC) exec $(TTY) php
 CONSOLE := $(PHP) bin/console
 
 .DEFAULT_GOAL := help
-.PHONY: help init up down restart build ps logs sh console composer db-migrate psql test-db test
+.PHONY: help init up down restart build ps logs sh console composer db-migrate psql test-db test stan
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -62,3 +62,7 @@ test-db: ## Create (if missing) and migrate the test database
 
 test: test-db ## Prepare the test DB, then run PHPUnit, e.g. make test c='--filter Refresh'
 	$(PHP) bin/phpunit $(c)
+
+stan: ## Static analysis with PHPStan (level max), e.g. make stan c='--generate-baseline'
+	$(CONSOLE) cache:warmup --env=dev >/dev/null
+	$(PHP) vendor/bin/phpstan analyse --memory-limit=1G $(c)
