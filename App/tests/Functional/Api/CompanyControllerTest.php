@@ -204,6 +204,86 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
+    // ---- GET /api/companies/{id} ------------------------------------------
+
+    /**
+     * @throws JsonException
+     */
+    public function testShowReturnsTheCompany(): void
+    {
+        $created = $this->jsonRequest('POST', '/api/companies', ['name' => 'Acme', 'overview' => 'Widgets'], $this->auth);
+        $id = $this->field($created, 'id');
+
+        $response = $this->jsonRequest('GET', '/api/companies/'.$id, headers: $this->auth);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+        $company = $this->decode($response);
+        self::assertSame($id, $company['id']);
+        self::assertSame('Acme', $company['name']);
+        self::assertSame('Widgets', $company['overview']);
+        self::assertSame($this->list()[0], $company, 'Same fields as in the list');
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws JsonException
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function testShowIncludesArchivedCompanies(): void
+    {
+        $gone = $this->seed(static fn (CompanyEntity $c) => $c->archive(new DateTimeImmutable('2024-01-01')), 'Gone');
+
+        $response = $this->jsonRequest('GET', '/api/companies/'.$gone->id, headers: $this->auth);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertNotNull($this->decode($response)['archived_at']);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testAnotherUsersCompanyIsNotFound(): void
+    {
+        $this->createUser('other@example.com');
+        $other = $this->bearer($this->login('other@example.com')['access_token']);
+        $theirs = $this->field($this->jsonRequest('POST', '/api/companies', ['name' => 'Theirs'], $other), 'id');
+
+        $response = $this->jsonRequest('GET', '/api/companies/'.$theirs, headers: $this->auth);
+
+        $this->assertJsonError($response, Response::HTTP_NOT_FOUND, 'Company not found.');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testUnknownCompanyIsNotFound(): void
+    {
+        $response = $this->jsonRequest('GET', '/api/companies/'.CompanyId::generate(), headers: $this->auth);
+
+        $this->assertJsonError($response, Response::HTTP_NOT_FOUND, 'Company not found.');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testMalformedIdIsNotFound(): void
+    {
+        $response = $this->jsonRequest('GET', '/api/companies/not-a-uuid', headers: $this->auth);
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testShowRequiresAuthentication(): void
+    {
+        $response = $this->jsonRequest('GET', '/api/companies/'.CompanyId::generate());
+
+        $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
+    }
+
     // ---- helpers ----------------------------------------------------------
 
     /**
@@ -232,13 +312,15 @@ final class CompanyControllerTest extends ApiTestCase
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    private function seed(Closure $build, string $name): void
+    private function seed(Closure $build, string $name): CompanyEntity
     {
         $em = $this->em();
         $company = new CompanyEntity($this->reloadedUser(), $name);
         $build($company);
         $em->persist($company);
         $em->flush();
+
+        return $company;
     }
 
     /**

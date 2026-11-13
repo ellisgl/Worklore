@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Company;
 
 use App\Company\CompanyEntity;
+use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\CompanySummary;
 use App\Identity\User;
@@ -82,6 +83,36 @@ final class CompanyQueriesTest extends KernelTestCase
         $this->em->flush();
 
         self::assertSame([], $this->queries->listForOwner($this->owner->id));
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
+    public function testFindReturnsOwnCompanyIncludingArchived(): void
+    {
+        $acme = $this->company('Acme');
+        $gone = $this->company('Gone')->archive(new DateTimeImmutable('2024-01-01'));
+        $this->em->flush();
+
+        self::assertSame('Acme', $this->queries->findForOwner($this->owner->id, $acme->id)?->name);
+        self::assertNotNull($this->queries->findForOwner($this->owner->id, $gone->id)?->archivedAt);
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
+    public function testFindIgnoresOtherOwnersAndUnknownIds(): void
+    {
+        $other = new User('other@example.com');
+        $this->em->persist($other);
+        $theirs = new CompanyEntity($other, 'Theirs');
+        $this->em->persist($theirs);
+        $this->em->flush();
+
+        self::assertNull($this->queries->findForOwner($this->owner->id, $theirs->id));
+        self::assertNull($this->queries->findForOwner($this->owner->id, CompanyId::generate()));
     }
 
     private function company(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): CompanyEntity

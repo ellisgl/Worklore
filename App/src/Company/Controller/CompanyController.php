@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company\Controller;
 
+use App\Company\Application\CompanyNotFound;
 use App\Company\Application\CreateCompany;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
@@ -46,6 +48,22 @@ final class CompanyController extends AbstractController
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
     ): JsonResponse {
         return $this->json($this->queries->listForOwner($owner->ownerId(), $includeArchived));
+    }
+
+    /**
+     * GET /api/companies/{id}: one of the caller's companies, archived or not.
+     *
+     * @throws CompanyNotFound
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
+    #[Route('/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
+    public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
+    {
+        $company = $this->queries->findForOwner($owner->ownerId(), CompanyId::fromString($id))
+            ?? throw new CompanyNotFound();
+
+        return $this->json($company);
     }
 
     /**
