@@ -7,7 +7,6 @@ namespace App\Company;
 use App\Shared\Name;
 use App\Shared\Owner;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -96,58 +95,5 @@ class CompanyRepository extends ServiceEntityRepository
     public function findPositionByIdForOwner(PositionId $id, Owner $owner): ?PositionEntity
     {
         return $this->getEntityManager()->getRepository(PositionEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
-    }
-
-    /**
-     * The user's positions at a company, newest start date first.
-     *
-     * @return list<PositionEntity>
-     */
-    public function getAllPositionsByCompany(Owner $owner, CompanyEntity $company, bool $includeArchived = false): array
-    {
-        $qb = $this->positions()
-            ->innerJoin('p.company', 'c')
-            ->where('p.owner = :owner')
-            ->andWhere('p.company = :company')
-            ->setParameter('owner', $owner)
-            ->setParameter('company', $company)
-            ->orderBy('p.period.start', 'DESC')
-            ->addOrderBy('p.id', 'DESC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('p.archivedAt IS NULL')
-                ->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
-    }
-
-    /**
-     * The user's current positions (no end date) across all companies, newest
-     * start date first. Always leaves out archived positions and positions at
-     * archived companies. The company is fetched in the same query.
-     *
-     * @return list<PositionEntity>
-     */
-    public function getCurrentPositionsByOwner(Owner $owner): array
-    {
-        return $this->positions()
-            ->innerJoin('p.company', 'c')
-            ->addSelect('c')
-            ->where('p.owner = :owner')
-            ->andWhere('p.period.end IS NULL')
-            ->andWhere('p.archivedAt IS NULL')
-            ->andWhere('c.archivedAt IS NULL')
-            ->setParameter('owner', $owner)
-            ->orderBy('p.period.start', 'DESC')
-            ->addOrderBy('p.id', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /** A query over the aggregate's positions, aliased "p". */
-    private function positions(): QueryBuilder
-    {
-        return $this->getEntityManager()->createQueryBuilder()->select('p')->from(PositionEntity::class, 'p');
     }
 }

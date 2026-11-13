@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Repository;
 
 use App\Company\CompanyEntity;
-use App\Company\CompanyRepository;
-use App\Company\PositionEntity;
 use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
@@ -18,8 +16,6 @@ use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -82,43 +78,6 @@ final class ListMethodsTest extends KernelTestCase
 
         self::assertSame($entry, $repo->findOneByIdForOwner($entry->id, $this->user));
         self::assertNull($repo->findOneByIdForOwner($entry->id, $this->persist(new User('other@example.com'))));
-    }
-
-    // ---- positions --------------------------------------------------------
-
-    public function testArchivedCompanyHidesItsPositions(): void
-    {
-        $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));
-        $this->persist($acme->addPosition('Dev', new DateTimeImmutable('2024-01-01')));
-        $acme->archive(new DateTimeImmutable());
-        $this->em->flush();
-
-        $repo = $this->repo(CompanyRepository::class);
-        self::assertSame([], $repo->getAllPositionsByCompany($this->user, $acme));
-        self::assertCount(1, $repo->getAllPositionsByCompany($this->user, $acme, includeArchived: true));
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function testCurrentPositionsAcrossCompanies(): void
-    {
-        $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));
-        $globex = $this->persist(new CompanyEntity($this->user, 'Globex'));
-        $gone = $this->persist(new CompanyEntity($this->user, 'Gone')->archive(new DateTimeImmutable()));
-        $this->persist($acme->addPosition('Consultant', new DateTimeImmutable('2023-01-01')));
-        $this->persist($globex->addPosition('Lead', new DateTimeImmutable('2024-01-01')));
-        $this->persist($acme->addPosition('Junior', new DateTimeImmutable('2020-01-01'))->end(new DateTimeImmutable('2022-12-31')));
-        $this->persist($acme->addPosition('Hidden', new DateTimeImmutable('2021-01-01'))->archive(new DateTimeImmutable()));
-        $this->persist($gone->addPosition('At archived company', new DateTimeImmutable('2022-01-01')));
-        $this->em->flush();
-        $this->em->clear();
-
-        $current = $this->repo(CompanyRepository::class)->getCurrentPositionsByOwner(self::findOrFail($this->em, User::class, $this->user->id));
-
-        self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title->value, $current));
-        self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($current[0]->company), 'Company is fetched in the same query');
     }
 
     // ---- tags -------------------------------------------------------------
