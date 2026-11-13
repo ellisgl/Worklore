@@ -38,7 +38,7 @@ final class PositionEntity
         string $title,
         DateTimeImmutable $startDate,
         ?string $overview = null,
-        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->title = self::normalizeTitle($title);

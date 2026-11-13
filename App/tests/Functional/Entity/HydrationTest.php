@@ -1,0 +1,95 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Functional\Entity;
+
+use App\Company\CompanyEntity;
+use App\Company\PositionEntity;
+use App\Company\ProductEntity;
+use App\Company\ProjectEntity;
+use App\Entity\User;
+use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\TagEntity;
+use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+/**
+ * Guards the readonly properties on entities. Doctrine refuses to write a
+ * readonly property twice with a different object (ReadonlyAccessor uses
+ * !==), which happens when a lazy reference is loaded or an entity is
+ * refreshed. An id typed Uuid can't be readonly for that reason.
+ */
+final class HydrationTest extends KernelTestCase
+{
+    private EntityManagerInterface $em;
+
+    /** @var array<string, object> */
+    private array $graph;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->em = self::getContainer()->get('doctrine')->getManager();
+
+        $user = new User('a@example.com');
+        $company = new CompanyEntity($user, 'Acme');
+        $product = new ProductEntity($company, $user, 'Widget');
+        $category = new CategoryEntity($user, 'Area');
+        $this->graph = [
+            'company' => $company,
+            'product' => $product,
+            'project' => new ProjectEntity($product, $user, 'Launch'),
+            'position' => new PositionEntity($company, $user, 'Developer', new \DateTimeImmutable('2024-01-15')),
+            'category' => $category,
+            'tag' => new TagEntity($category, $user, 'backend'),
+        ];
+
+        $this->em->persist($user);
+        foreach ($this->graph as $entity) {
+            $this->em->persist($entity);
+        }
+        $this->em->flush();
+        $this->em->clear();
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function entityProvider(): iterable
+    {
+        foreach (['company', 'product', 'project', 'position', 'category', 'tag'] as $key) {
+            yield $key => [$key];
+        }
+    }
+
+    #[DataProvider('entityProvider')]
+    public function testLazyReferenceCanBeLoaded(string $key): void
+    {
+        $original = $this->graph[$key];
+
+        $reference = $this->em->getReference($original::class, $original->getId());
+        // Reading a non-id property initialises the lazy object.
+        self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $reference->createdAt->format('Y-m-d H:i:s'));
+    }
+
+    #[DataProvider('entityProvider')]
+    public function testEntityCanBeRefreshed(string $key): void
+    {
+        $original = $this->graph[$key];
+        $entity = $this->em->find($original::class, $original->getId());
+
+        $this->em->refresh($entity);
+
+        self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $entity->createdAt->format('Y-m-d H:i:s'));
+    }
+
+    public function testRelationsLoadLazilyAcrossTheGraph(): void
+    {
+        $project = $this->em->find(ProjectEntity::class, $this->graph['project']->getId());
+
+        self::assertSame('Acme', $project->product->company->name);
+        self::assertSame('a@example.com', $project->product->company->user->getEmail());
+    }
+}

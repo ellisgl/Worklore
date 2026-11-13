@@ -36,7 +36,7 @@ final class JournalEntryEntity
         private(set) readonly User $user,
         string $name,
         ?string $entry = null,
-        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);
