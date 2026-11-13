@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
+use App\Company\PositionEntity;
+use App\Company\ProductEntity;
+use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use Closure;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,19 +28,21 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class NameLengthTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
     }
 
     /**
      * Each closure builds the record with the given name/title and returns
      * every entity that needs persisting, the named record last.
      *
-     * @return iterable<string, array{Closure(User $u, string $name): list<object>}>
+     * @return iterable<string, array{Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity>}>
      */
     public static function namedProvider(): iterable
     {
@@ -72,6 +79,8 @@ final class NameLengthTest extends KernelTestCase
     }
 
     /**
+     * @param Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity> $build
+     *
      * @throws OptimisticLockException
      * @throws ORMException
      */
@@ -91,10 +100,14 @@ final class NameLengthTest extends KernelTestCase
 
         $record = $entities[array_key_last($entities)];
         $this->em->clear();
-        $loaded = $this->em->find($record::class, $record->id);
-        self::assertSame($name, ($loaded->name ?? $loaded->title)->value);
+        $loaded = self::findOrFail($this->em, $record::class, $record->id);
+        $saved = $loaded instanceof PositionEntity || $loaded instanceof JournalEntryEntity ? $loaded->title : $loaded->name;
+        self::assertSame($name, $saved->value);
     }
 
+    /**
+     * @param Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity> $build
+     */
     #[DataProvider('namedProvider')]
     public function testOneOverMaxLengthIsRejected(Closure $build): void
     {

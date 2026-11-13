@@ -8,6 +8,7 @@ use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
 use App\Company\PositionEntity;
 use App\Identity\User;
+use App\Tests\Functional\FindsEntities;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,13 +18,15 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CompanyRepositoryPositionsTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
     private CompanyRepository $positions;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->positions = self::getContainer()->get(CompanyRepository::class);
     }
 
@@ -44,8 +47,8 @@ final class CompanyRepositoryPositionsTest extends KernelTestCase
         $this->em->clear();
 
         $result = $this->positions->getAllPositionsByCompany(
-            $this->em->find(User::class, $user->id),
-            $this->em->find(CompanyEntity::class, $acme->id),
+            self::findOrFail($this->em, User::class, $user->id),
+            self::findOrFail($this->em, CompanyEntity::class, $acme->id),
         );
 
         self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($result));

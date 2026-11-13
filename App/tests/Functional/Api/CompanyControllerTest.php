@@ -9,6 +9,7 @@ use App\Company\CompanyId;
 use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
+use App\Tests\Functional\FindsEntities;
 use Closure;
 use DateMalformedStringException;
 use DateTimeImmutable;
@@ -23,6 +24,8 @@ use const DATE_RFC3339;
 
 final class CompanyControllerTest extends ApiTestCase
 {
+    use FindsEntities;
+
     private User $user;
     /** @var array<string, string> */
     private array $auth;
@@ -49,7 +52,7 @@ final class CompanyControllerTest extends ApiTestCase
         $response = $this->jsonRequest('POST', '/api/companies', ['name' => '  Acme Ltd ', 'overview' => 'Widgets'], $this->auth);
 
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-        $id = CompanyId::fromString($this->decode($response)['id']);
+        $id = CompanyId::fromString($this->field($response, 'id'));
 
         $company = $this->companies()->findOneByIdForOwner($id, $this->reloadedUser());
         self::assertNotNull($company, 'Saved, and owned by the caller');
@@ -95,6 +98,8 @@ final class CompanyControllerTest extends ApiTestCase
     }
 
     /**
+     * @param array<string, mixed> $payload
+     *
      * @throws JsonException
      */
     #[DataProvider('invalidPayloadProvider')]
@@ -103,7 +108,7 @@ final class CompanyControllerTest extends ApiTestCase
         $response = $this->jsonRequest('POST', '/api/companies', $payload, $this->auth);
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode(), (string) $response->getContent());
-        self::assertSame('name', $this->decode($response)['violations'][0]['propertyPath']);
+        self::assertSame('name', $this->firstViolationPath($response));
         self::assertSame([], $this->list(), 'Nothing saved');
     }
 
@@ -144,6 +149,7 @@ final class CompanyControllerTest extends ApiTestCase
         $company = $this->list()[0];
 
         self::assertSame(['id', 'name', 'overview', 'created_at', 'archived_at', 'product_count', 'current_position'], array_keys($company));
+        self::assertIsString($company['created_at']);
         self::assertNotFalse(DateTimeImmutable::createFromFormat(DATE_RFC3339, $company['created_at']));
     }
 
@@ -209,8 +215,11 @@ final class CompanyControllerTest extends ApiTestCase
     {
         $response = $this->jsonRequest('GET', '/api/companies'.$query, headers: $this->auth);
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+        $companies = $this->decode($response);
+        self::assertIsList($companies);
 
-        return $this->decode($response);
+        /** @var list<array<string, mixed>> $companies */
+        return $companies;
     }
 
     /**
@@ -237,7 +246,7 @@ final class CompanyControllerTest extends ApiTestCase
      */
     private function reloadedUser(): User
     {
-        return $this->em()->find(User::class, $this->user->id);
+        return self::findOrFail($this->em(), User::class, $this->user->id);
     }
 
     private function companies(): CompanyRepository
@@ -247,6 +256,6 @@ final class CompanyControllerTest extends ApiTestCase
 
     private function em(): EntityManagerInterface
     {
-        return self::getContainer()->get('doctrine')->getManager();
+        return self::getContainer()->get(EntityManagerInterface::class);
     }
 }

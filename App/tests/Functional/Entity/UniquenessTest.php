@@ -8,6 +8,7 @@ use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,12 +22,14 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class UniquenessTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
     }
 
     public function testCompanyNameIsUniquePerUser(): void
@@ -107,7 +110,9 @@ final class UniquenessTest extends KernelTestCase
         $category = $this->save(new CategoryEntity($user, 'Area', str_repeat('x', 5000)));
         $this->em->clear();
 
-        self::assertSame(5000, mb_strlen($this->em->find(CategoryEntity::class, $category->id)->description));
+        $description = self::findOrFail($this->em, CategoryEntity::class, $category->id)->description;
+        self::assertNotNull($description);
+        self::assertSame(5000, mb_strlen($description));
     }
 
     public function testSameTagNameAllowedInDifferentCategories(): void

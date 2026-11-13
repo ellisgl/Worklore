@@ -10,6 +10,7 @@ use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -18,12 +19,14 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class JournalEntryEntityTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
     }
 
     /**
@@ -42,12 +45,14 @@ final class JournalEntryEntityTest extends KernelTestCase
         $this->persistAll($user, $project->product->company, $project->product, $project, $tag->category, $tag, $entry);
         $this->em->clear();
 
-        $project = $this->em->find(ProjectEntity::class, $project->id);
+        $project = self::findOrFail($this->em, ProjectEntity::class, $project->id);
         self::assertCount(1, $project->getJournalEntries(), 'The project loads its entries from the database');
 
         $loaded = $project->getJournalEntries()->first();
+        self::assertInstanceOf(JournalEntryEntity::class, $loaded);
         self::assertSame('Kickoff', $loaded->title->value, 'Title is trimmed');
         self::assertSame('Agreed on the scope.', $loaded->entry, 'Entry is trimmed');
+        self::assertInstanceOf(User::class, $loaded->owner);
         self::assertSame('a@example.com', $loaded->owner->email);
         self::assertSame(['backend'], array_map(static fn (TagEntity $t) => $t->name->value, $loaded->getTags()->toArray()));
     }
@@ -114,8 +119,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $entry = $this->em->find(JournalEntryEntity::class, $entry->id);
-        self::assertNotNull($entry, 'The entry itself survives');
+        $entry = self::findOrFail($this->em, JournalEntryEntity::class, $entry->id); // the entry itself survives
         self::assertCount(0, $entry->getTags());
     }
 

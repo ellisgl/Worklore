@@ -9,6 +9,7 @@ use App\Company\CompanyId;
 use App\Company\Doctrine\CompanyIdType;
 use App\Identity\User;
 use App\Taxonomy\TagId;
+use App\Tests\Functional\FindsEntities;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Exception\InvalidType;
 use Doctrine\DBAL\Types\Exception\TypesException;
@@ -21,10 +22,10 @@ use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Uid\UuidV7;
 
-use function assert;
-
 final class TypedIdTest extends KernelTestCase
 {
+    use FindsEntities;
+
     public function testGeneratedIdsAreUuidV7AndUnique(): void
     {
         $a = CompanyId::generate();
@@ -88,8 +89,7 @@ final class TypedIdTest extends KernelTestCase
     public function testEntityLoadsWithItsTypedId(): void
     {
         self::bootKernel();
-        $em = self::getContainer()->get('doctrine')->getManager();
-        assert($em instanceof EntityManagerInterface);
+        $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
         $em->persist($user);
@@ -98,8 +98,7 @@ final class TypedIdTest extends KernelTestCase
         $em->clear();
 
         // find() accepts the typed id, and also its string form.
-        $byId = $em->find(CompanyEntity::class, $company->id);
-        self::assertInstanceOf(CompanyId::class, $byId->id);
+        $byId = self::findOrFail($em, CompanyEntity::class, $company->id);
         self::assertTrue($company->id->equals($byId->id));
         self::assertSame($byId, $em->find(CompanyEntity::class, (string) $company->id), 'Same managed instance');
     }

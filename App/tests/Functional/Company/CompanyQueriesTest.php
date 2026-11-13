@@ -26,7 +26,7 @@ final class CompanyQueriesTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->queries = self::getContainer()->get(CompanyQueries::class);
         $this->owner = new User('me@example.com');
         $this->em->persist($this->owner);

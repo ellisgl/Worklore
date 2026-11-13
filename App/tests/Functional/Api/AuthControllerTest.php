@@ -8,6 +8,7 @@ use App\Identity\ApiTokenRepository;
 use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use JsonException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
@@ -49,6 +50,7 @@ final class AuthControllerTest extends ApiTestCase
         self::assertNotNull($row);
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $raw = $connection->fetchAssociative('SELECT access_token_hash, refresh_token_hash FROM api_token WHERE id = ?', [$row->id->toRfc4122()]);
+        self::assertIsArray($raw);
         self::assertNotContains($tokens['access_token'], $raw);
         self::assertNotContains($tokens['refresh_token'], $raw);
     }
@@ -112,7 +114,7 @@ final class AuthControllerTest extends ApiTestCase
         $response = $this->jsonRequest('POST', '/api/auth/login', ['email' => 'user@example.com', 'password' => self::PASSWORD]);
 
         $this->assertJsonError($response, Response::HTTP_UNAUTHORIZED);
-        self::assertStringContainsString('Too many failed login attempts', $this->decode($response)['error']);
+        self::assertStringContainsString('Too many failed login attempts', $this->field($response, 'error'));
     }
 
     // ---- access tokens / protected routes ---------------------------------
@@ -192,7 +194,7 @@ final class AuthControllerTest extends ApiTestCase
         $response = $this->jsonRequest('POST', '/api/auth/refresh', ['refresh_token' => $old['refresh_token']]);
 
         self::assertResponseIsSuccessful();
-        $new = $this->decode($response);
+        $new = $this->tokens($response);
         self::assertNotSame($old['access_token'], $new['access_token']);
         self::assertNotSame($old['refresh_token'], $new['refresh_token']);
         self::assertSame(self::ACCESS_TTL, $new['expires_in']);
@@ -277,8 +279,7 @@ final class AuthControllerTest extends ApiTestCase
         $response = $this->jsonRequest('POST', '/api/auth/refresh', []);
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-        $violations = $this->decode($response)['violations'];
-        self::assertSame('refresh_token', $violations[0]['propertyPath']);
+        self::assertSame('refresh_token', $this->firstViolationPath($response));
     }
 
     // ---- logout -----------------------------------------------------------
@@ -377,7 +378,7 @@ final class AuthControllerTest extends ApiTestCase
         $user = $this->createUser();
         $this->archive($user);
         $user->unarchive();
-        self::getContainer()->get('doctrine')->getManager()->flush();
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
 
         $this->login();
 
@@ -409,6 +410,6 @@ final class AuthControllerTest extends ApiTestCase
     private function archive(User $user): void
     {
         $user->archive(new DateTimeImmutable());
-        self::getContainer()->get('doctrine')->getManager()->flush();
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
     }
 }

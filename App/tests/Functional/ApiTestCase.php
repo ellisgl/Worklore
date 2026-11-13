@@ -71,22 +71,73 @@ abstract class ApiTestCase extends WebTestCase
         $response = $this->jsonRequest('POST', '/api/auth/login', ['email' => $email, 'password' => $password]);
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
 
-        return $this->decode($response);
+        return $this->tokens($response);
     }
 
+    /**
+     * @return array<string, string>
+     */
     protected function bearer(string $accessToken): array
     {
         return ['Authorization' => 'Bearer '.$accessToken];
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      *
      * @throws JsonException
      */
     protected function decode(Response $response): array
     {
-        return json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        $data = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data, 'Expected a JSON object or array');
+
+        return $data;
+    }
+
+    /**
+     * The token pair from a login or refresh response.
+     *
+     * @return array{token_type: string, access_token: string, expires_in: int, refresh_token: string, refresh_expires_in: int}
+     *
+     * @throws JsonException
+     */
+    protected function tokens(Response $response): array
+    {
+        /** @var array{token_type: string, access_token: string, expires_in: int, refresh_token: string, refresh_expires_in: int} $tokens */
+        $tokens = $this->decode($response);
+
+        return $tokens;
+    }
+
+    /**
+     * A string field of a JSON object response.
+     *
+     * @throws JsonException
+     */
+    protected function field(Response $response, string $key): string
+    {
+        $value = $this->decode($response)[$key] ?? null;
+        self::assertIsString($value, "Expected a string \"$key\"");
+
+        return $value;
+    }
+
+    /**
+     * The propertyPath of the first violation in a 422 validation response.
+     *
+     * @throws JsonException
+     */
+    protected function firstViolationPath(Response $response): string
+    {
+        $violations = $this->decode($response)['violations'] ?? null;
+        self::assertIsArray($violations);
+        $first = $violations[0] ?? null;
+        self::assertIsArray($first);
+        $path = $first['propertyPath'] ?? null;
+        self::assertIsString($path);
+
+        return $path;
     }
 
     /**

@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Repository;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -15,13 +16,15 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CategoryRepositoryTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
     private CategoryRepository $categories;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->categories = self::getContainer()->get(CategoryRepository::class);
     }
 
@@ -41,7 +44,7 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $result = $this->categories->getAllCategoriesByOwner($this->em->find(User::class, $user->id));
+        $result = $this->categories->getAllCategoriesByOwner(self::findOrFail($this->em, User::class, $user->id));
 
         self::assertSame(['area', 'location', 'skill'], $this->names($result));
     }

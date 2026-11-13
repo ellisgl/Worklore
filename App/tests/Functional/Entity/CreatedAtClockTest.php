@@ -25,41 +25,49 @@ final class CreatedAtClockTest extends KernelTestCase
     use ClockSensitiveTrait;
 
     /**
-     * @return iterable<string, array{Closure(User $u, ?DateTimeImmutable $at): object}>
+     * @return iterable<string, array{Closure(User, ?DateTimeImmutable): DateTimeImmutable}>
      */
     public static function entityProvider(): iterable
     {
-        yield 'user' => [static fn (User $u, ?DateTimeImmutable $at) => new User('b@example.com', $at)];
-        yield 'company' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme', null, $at)];
-        yield 'product' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addProduct('Widget', null, $at)];
-        yield 'project' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addProduct('Widget')->addProject('Launch', null, $at)];
-        yield 'position' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addPosition('Dev', new DateTimeImmutable('2024-01-01'), null, $at)];
-        yield 'journal entry' => [static fn (User $u, ?DateTimeImmutable $at) => new JournalEntryEntity(new CompanyEntity($u, 'Acme')->addProduct('Widget')->addProject('Launch'), $u, 'Kickoff', 'Body', $at)];
-        yield 'category' => [static fn (User $u, ?DateTimeImmutable $at) => new CategoryEntity($u, 'Area', null, $at)];
-        yield 'tag' => [static fn (User $u, ?DateTimeImmutable $at) => new CategoryEntity($u, 'Area')->addTag('php', $at)];
+        yield 'user' => [static fn (User $u, ?DateTimeImmutable $at) => new User('b@example.com', $at)->createdAt];
+        yield 'company' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme', null, $at)->createdAt];
+        yield 'product' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addProduct('Widget', null, $at)->createdAt];
+        yield 'project' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addProduct('Widget')->addProject('Launch', null, $at)->createdAt];
+        yield 'position' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addPosition('Dev', new DateTimeImmutable('2024-01-01'), null, $at)->createdAt];
+        yield 'journal entry' => [static fn (User $u, ?DateTimeImmutable $at) => new JournalEntryEntity(new CompanyEntity($u, 'Acme')->addProduct('Widget')->addProject('Launch'), $u, 'Kickoff', 'Body', $at)->createdAt];
+        yield 'category' => [static fn (User $u, ?DateTimeImmutable $at) => new CategoryEntity($u, 'Area', null, $at)->createdAt];
+        yield 'tag' => [static fn (User $u, ?DateTimeImmutable $at) => new CategoryEntity($u, 'Area')->addTag('php', $at)->createdAt];
     }
 
+    /**
+     * @param Closure(User, ?DateTimeImmutable): DateTimeImmutable $create
+     */
     #[DataProvider('entityProvider')]
     public function testCreatedAtComesFromTheClock(Closure $create): void
     {
         self::mockTime('2026-01-02 03:04:05 UTC');
 
-        $entity = $create(new User('a@example.com'), null);
+        $createdAt = $create(new User('a@example.com'), null);
 
-        self::assertSame('2026-01-02 03:04:05 UTC', $entity->createdAt->format('Y-m-d H:i:s T'));
+        self::assertSame('2026-01-02 03:04:05 UTC', $createdAt->format('Y-m-d H:i:s T'));
     }
 
+    /**
+     * @param Closure(User, ?DateTimeImmutable): DateTimeImmutable $create
+     */
     #[DataProvider('entityProvider')]
     public function testCreatedAtIsStoredInUtc(Closure $create): void
     {
         self::mockTime('2026-01-02 12:00:00 Europe/Paris');
 
-        $entity = $create(new User('a@example.com'), null);
+        $createdAt = $create(new User('a@example.com'), null);
 
-        self::assertSame('2026-01-02 11:00:00 UTC', $entity->createdAt->format('Y-m-d H:i:s T'));
+        self::assertSame('2026-01-02 11:00:00 UTC', $createdAt->format('Y-m-d H:i:s T'));
     }
 
     /**
+     * @param Closure(User, ?DateTimeImmutable): DateTimeImmutable $create
+     *
      * @throws DateMalformedStringException
      */
     #[DataProvider('entityProvider')]
@@ -67,8 +75,6 @@ final class CreatedAtClockTest extends KernelTestCase
     {
         $at = new DateTimeImmutable('2020-05-06 07:08:09', new DateTimeZone('UTC'));
 
-        $entity = $create(new User('a@example.com'), $at);
-
-        self::assertSame($at, $entity->createdAt);
+        self::assertSame($at, $create(new User('a@example.com'), $at));
     }
 }

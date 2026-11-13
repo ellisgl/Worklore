@@ -13,6 +13,7 @@ use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -26,12 +27,14 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class FindOneByIdForOwnerTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
     }
 
     /**
@@ -60,7 +63,8 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
 
         $found = $this->repo($repository)->{$method}($mine[$key]->id, $this->reload($mine['user']));
 
-        self::assertNotNull($found);
+        // Repository methods are looked up by name here, so the result is untyped.
+        self::assertInstanceOf($mine[$key]::class, $found);
         self::assertTrue($mine[$key]->id->equals($found->id));
     }
 
@@ -131,6 +135,6 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
      */
     private function reload(User $user): User
     {
-        return $this->em->find(User::class, $user->id);
+        return self::findOrFail($this->em, User::class, $user->id);
     }
 }

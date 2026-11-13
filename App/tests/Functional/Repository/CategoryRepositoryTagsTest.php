@@ -8,6 +8,7 @@ use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -16,13 +17,15 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CategoryRepositoryTagsTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
     private CategoryRepository $tags;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->tags = self::getContainer()->get(CategoryRepository::class);
     }
 
@@ -43,7 +46,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $result = $this->tags->getAllTagsByOwner($this->em->find(User::class, $user->id));
+        $result = $this->tags->getAllTagsByOwner(self::findOrFail($this->em, User::class, $user->id));
 
         self::assertSame(
             ['area/backend', 'area/frontend', 'skill/go', 'skill/php'],
@@ -75,7 +78,7 @@ final class CategoryRepositoryTagsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $tag = $this->tags->getAllTagsByOwner($this->em->find(User::class, $user->id))[0];
+        $tag = $this->tags->getAllTagsByOwner(self::findOrFail($this->em, User::class, $user->id))[0];
 
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($tag->category));
     }

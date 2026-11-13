@@ -25,7 +25,7 @@ final class NameExistsTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->companies = self::getContainer()->get(CompanyRepository::class);
         $this->tags = self::getContainer()->get(CategoryRepository::class);
     }

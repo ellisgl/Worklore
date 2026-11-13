@@ -10,6 +10,7 @@ use App\Company\CompanyEntity;
 use App\Company\CompanyId;
 use App\Identity\User;
 use App\Shared\InvalidValueException;
+use App\Tests\Functional\FindsEntities;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -25,6 +26,8 @@ use Throwable;
  */
 final class CreateCompanyHandlerTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
     private MessageBusInterface $bus;
     private User $owner;
@@ -32,7 +35,7 @@ final class CreateCompanyHandlerTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->bus = self::getContainer()->get('command.bus');
         $this->owner = new User('a@example.com');
         $this->em->persist($this->owner);
@@ -52,8 +55,7 @@ final class CreateCompanyHandlerTest extends KernelTestCase
 
         // No flush here: the bus's doctrine_transaction middleware did it.
         $this->em->clear();
-        $company = $this->em->find(CompanyEntity::class, $id);
-        self::assertNotNull($company);
+        $company = self::findOrFail($this->em, CompanyEntity::class, $id);
         self::assertSame('Acme', $company->name->value);
         self::assertTrue($this->owner->id->equals($company->owner->ownerId()));
     }
@@ -97,7 +99,10 @@ final class CreateCompanyHandlerTest extends KernelTestCase
         try {
             $this->bus->dispatch($command);
         } catch (HandlerFailedException $e) {
-            return $e->getWrappedExceptions()[array_key_first($e->getWrappedExceptions())];
+            $wrapped = $e->getWrappedExceptions();
+            self::assertCount(1, $wrapped, 'A command has exactly one handler');
+
+            return array_values($wrapped)[0];
         }
 
         self::fail('Expected the command to fail');

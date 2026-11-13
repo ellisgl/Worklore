@@ -6,9 +6,11 @@ namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
 use App\Company\CompanyRepository;
+use App\Company\ProductEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -21,13 +23,15 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class AggregateTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
     private User $user;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->user = new User('a@example.com');
         $this->em->persist($this->user);
     }
@@ -49,10 +53,13 @@ final class AggregateTest extends KernelTestCase
         $this->em->clear();
 
         $companies = self::getContainer()->get(CompanyRepository::class);
-        $user = $this->em->find(User::class, $this->user->id);
+        $user = self::findOrFail($this->em, User::class, $this->user->id);
         $loaded = $companies->findOneByIdForOwner($company->id, $user);
+        self::assertNotNull($loaded);
         self::assertCount(1, $loaded->getProducts());
-        self::assertCount(2, $loaded->getProducts()->first()->getProjects());
+        $product = $loaded->getProducts()->first();
+        self::assertInstanceOf(ProductEntity::class, $product);
+        self::assertCount(2, $product->getProjects());
         self::assertCount(1, $loaded->getPositions());
         self::assertNotNull($companies->findProductByIdForOwner($widget->id, $user));
     }
@@ -71,7 +78,7 @@ final class AggregateTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $user = $this->em->find(User::class, $this->user->id);
+        $user = self::findOrFail($this->em, User::class, $this->user->id);
         self::assertCount(2, self::getContainer()->get(CategoryRepository::class)->getAllTagsByCategory($user, $category));
     }
 
@@ -89,7 +96,7 @@ final class AggregateTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $user = $this->em->find(User::class, $this->user->id);
+        $user = self::findOrFail($this->em, User::class, $this->user->id);
         self::assertCount(1, self::getContainer()->get(CompanyRepository::class)->getAllProductsByCompany($user, $company));
     }
 

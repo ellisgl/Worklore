@@ -14,6 +14,8 @@ use App\Journal\JournalEntryEntity;
 use App\Journal\JournalEntryRepository;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
+use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -26,13 +28,15 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class ListMethodsTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
     private User $user;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->user = $this->persist(new User('me@example.com'));
     }
 
@@ -172,7 +176,7 @@ final class ListMethodsTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $current = $this->repo(CompanyRepository::class)->getCurrentPositionsByOwner($this->em->find(User::class, $this->user->id));
+        $current = $this->repo(CompanyRepository::class)->getCurrentPositionsByOwner(self::findOrFail($this->em, User::class, $this->user->id));
 
         self::assertSame(['Lead', 'Consultant'], array_map(static fn (PositionEntity $p) => $p->title->value, $current));
         self::assertFalse($this->em->getUnitOfWork()->isUninitializedObject($current[0]->company), 'Company is fetched in the same query');
@@ -236,17 +240,20 @@ final class ListMethodsTest extends KernelTestCase
      */
     private function repo(string $class): object
     {
-        return self::getContainer()->get($class);
+        $service = self::getContainer()->get($class);
+        self::assertInstanceOf($class, $service);
+
+        return $service;
     }
 
     /**
-     * @param list<object> $records
+     * @param list<CompanyEntity|ProductEntity|ProjectEntity|CategoryEntity|TagEntity> $records
      *
      * @return list<string>
      */
     private function names(array $records): array
     {
-        return array_map(static fn (object $r) => $r->name->value, $records);
+        return array_map(static fn (CompanyEntity|ProductEntity|ProjectEntity|CategoryEntity|TagEntity $r) => $r->name->value, $records);
     }
 
     /**

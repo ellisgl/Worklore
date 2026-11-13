@@ -13,9 +13,9 @@ use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use SplFileInfo;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-use function assert;
 use function dirname;
 use function in_array;
 use function is_array;
@@ -30,6 +30,8 @@ use const T_STRING;
  */
 final class ModuleBoundaryTest extends KernelTestCase
 {
+    use FindsEntities;
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -45,6 +47,7 @@ final class ModuleBoundaryTest extends KernelTestCase
     {
         $offenders = [];
         $dir = dirname(__DIR__, 2).'/src/'.$module;
+        /** @var iterable<SplFileInfo> $files */
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
 
         foreach ($files as $file) {
@@ -72,8 +75,7 @@ final class ModuleBoundaryTest extends KernelTestCase
     public function testOwnerRelationsLoadTheUser(): void
     {
         self::bootKernel();
-        $em = self::getContainer()->get('doctrine')->getManager();
-        assert($em instanceof EntityManagerInterface);
+        $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
         $em->persist($user);
@@ -81,7 +83,7 @@ final class ModuleBoundaryTest extends KernelTestCase
         $em->flush();
         $em->clear();
 
-        $owner = $em->find(CompanyEntity::class, $company->id)->owner;
+        $owner = self::findOrFail($em, CompanyEntity::class, $company->id)->owner;
 
         self::assertSame(User::class, $owner::class, 'Doctrine resolves Owner to User');
         self::assertTrue($user->id->equals($owner->ownerId()));

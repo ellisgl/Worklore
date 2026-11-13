@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
+use App\Company\PositionEntity;
 use App\Company\ProductEntity;
+use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use Closure;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,8 +21,6 @@ use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-
-use function assert;
 
 /**
  * Records owned by different users can't be linked.
@@ -30,6 +32,8 @@ use function assert;
  */
 final class OwnershipTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private User $me;
     private User $other;
 
@@ -41,7 +45,7 @@ final class OwnershipTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{Closure(User $owner): object}>
+     * @return iterable<string, array{Closure(User): (ProductEntity|ProjectEntity|PositionEntity|TagEntity)}>
      */
     public static function childProvider(): iterable
     {
@@ -51,6 +55,9 @@ final class OwnershipTest extends KernelTestCase
         yield 'tag' => [static fn (User $owner) => new CategoryEntity($owner, 'Area')->addTag('php')];
     }
 
+    /**
+     * @param Closure(User): (ProductEntity|ProjectEntity|PositionEntity|TagEntity) $create
+     */
     #[DataProvider('childProvider')]
     public function testChildrenTakeTheirRootsOwner(Closure $create): void
     {
@@ -66,7 +73,7 @@ final class OwnershipTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{Closure(User $me): object}>
+     * @return iterable<string, array{Closure(User): (ProductEntity|ProjectEntity|JournalEntryEntity)}>
      */
     public static function taggableProvider(): iterable
     {
@@ -75,6 +82,9 @@ final class OwnershipTest extends KernelTestCase
         yield 'journal entry' => [static fn (User $me) => new JournalEntryEntity(self::product($me)->addProject('Launch'), $me, 'Title', 'Body')];
     }
 
+    /**
+     * @param Closure(User): (ProductEntity|ProjectEntity|JournalEntryEntity) $create
+     */
     #[DataProvider('taggableProvider')]
     public function testCannotAddAnotherUsersTag(Closure $create): void
     {
@@ -84,6 +94,9 @@ final class OwnershipTest extends KernelTestCase
         $create($this->me)->addTag($theirTag);
     }
 
+    /**
+     * @param Closure(User): (ProductEntity|ProjectEntity|JournalEntryEntity) $create
+     */
     #[DataProvider('taggableProvider')]
     public function testCanAddOwnTag(Closure $create): void
     {
@@ -124,16 +137,16 @@ final class OwnershipTest extends KernelTestCase
     {
         // The check compares ids, so a lazy reference to the same user passes
         // even though it isn't the same object as the loaded project's user.
-        $em = self::getContainer()->get('doctrine')->getManager();
-        assert($em instanceof EntityManagerInterface);
+        $em = self::getContainer()->get(EntityManagerInterface::class);
         $project = self::product($this->me)->addProject('Launch');
         $em->persist($this->me);
         $em->persist($project->product->company);
         $em->flush();
         $em->clear();
 
-        $project = $em->find($project::class, $project->id);
+        $project = self::findOrFail($em, $project::class, $project->id);
         $sameUser = $em->getReference(User::class, $this->me->id);
+        self::assertNotNull($sameUser);
 
         $entry = new JournalEntryEntity($project, $sameUser, 'Kickoff', 'Body');
 

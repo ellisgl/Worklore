@@ -17,8 +17,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-use function assert;
-
 final class NameTest extends KernelTestCase
 {
     public function testIsTrimmed(): void
@@ -65,7 +63,9 @@ final class NameTest extends KernelTestCase
         $type = Type::getType(NameType::NAME);
 
         self::assertSame('Acme', $type->convertToDatabaseValue(Name::of('Acme'), $platform));
-        self::assertTrue(Name::of('Acme')->equals($type->convertToPHPValue('Acme', $platform)));
+        $name = $type->convertToPHPValue('Acme', $platform);
+        self::assertInstanceOf(Name::class, $name);
+        self::assertTrue(Name::of('Acme')->equals($name));
         self::assertNull($type->convertToPHPValue(null, $platform));
     }
 
@@ -98,8 +98,7 @@ final class NameTest extends KernelTestCase
     public function testStringCriteriaWorkInQueries(): void
     {
         self::bootKernel();
-        $em = self::getContainer()->get('doctrine')->getManager();
-        assert($em instanceof EntityManagerInterface);
+        $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
         $em->persist($user);
         $em->persist(new CompanyEntity($user, 'Acme'));
@@ -108,7 +107,7 @@ final class NameTest extends KernelTestCase
 
         $found = $em->getRepository(CompanyEntity::class)->findOneBy(['name' => ' Acme ']);
 
-        self::assertNotNull($found);
-        self::assertInstanceOf(Name::class, $found->name);
+        self::assertNotNull($found, 'A plain string matched the Name column');
+        self::assertSame('Acme', $found->name->value);
     }
 }

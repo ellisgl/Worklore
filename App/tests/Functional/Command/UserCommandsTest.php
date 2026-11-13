@@ -9,7 +9,9 @@ use App\Identity\Security\TokenManager;
 use App\Identity\User;
 use App\Identity\UserManager;
 use App\Identity\UserRepository;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -20,6 +22,8 @@ use Symfony\Component\Uid\UuidV7;
 
 final class UserCommandsTest extends KernelTestCase
 {
+    use FindsEntities;
+
     use ClockSensitiveTrait;
 
     private const string PASSWORD = 'correct-horse-battery';
@@ -61,7 +65,9 @@ final class UserCommandsTest extends KernelTestCase
         $tester->execute(['email' => 'admin@example.com', '--admin' => true]);
 
         $tester->assertCommandIsSuccessful();
-        self::assertEqualsCanonicalizing(['ROLE_ADMIN', 'ROLE_USER'], $this->users->findOneByEmail('admin@example.com')->getRoles());
+        $admin = $this->users->findOneByEmail('admin@example.com');
+        self::assertNotNull($admin);
+        self::assertEqualsCanonicalizing(['ROLE_ADMIN', 'ROLE_USER'], $admin->getRoles());
     }
 
     public function testCreateRejectsDuplicateEmailCaseInsensitively(): void
@@ -180,7 +186,7 @@ final class UserCommandsTest extends KernelTestCase
         $tester->execute(['email' => 'user@example.com', '--force' => true]);
 
         $tester->assertCommandIsSuccessful();
-        self::getContainer()->get('doctrine')->getManager()->clear();
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
         self::assertNull($this->users->findOneByEmail('user@example.com'));
         self::assertSame(0, self::getContainer()->get(ApiTokenRepository::class)->count(['user' => $userId]));
     }
@@ -312,6 +318,8 @@ final class UserCommandsTest extends KernelTestCase
 
     private function command(string $name): CommandTester
     {
+        self::assertNotNull(self::$kernel, 'setUp() boots the kernel');
+
         return new CommandTester(new Application(self::$kernel)->find($name));
     }
 
@@ -322,10 +330,10 @@ final class UserCommandsTest extends KernelTestCase
 
     private function reload(User $user): User
     {
-        $em = self::getContainer()->get('doctrine')->getManager();
+        $em = self::getContainer()->get(EntityManagerInterface::class);
         $em->clear();
 
-        return $em->find(User::class, $user->id);
+        return self::findOrFail($em, User::class, $user->id);
     }
 
     private function passwordMatches(User $user, string $plain): bool

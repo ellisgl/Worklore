@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Entity;
 use App\Company\CompanyEntity;
 use App\Company\PositionEntity;
 use App\Identity\User;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -17,12 +18,14 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class PositionEntityTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
     }
 
     /**
@@ -48,15 +51,16 @@ final class PositionEntityTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $company = $this->em->find(CompanyEntity::class, $company->id);
+        $company = self::findOrFail($this->em, CompanyEntity::class, $company->id);
         $titles = array_map(static fn (PositionEntity $p) => $p->title->value, $company->getPositions()->toArray());
         self::assertSame(['Senior Developer', 'Developer', 'Intern'], $titles, 'Newest start date first');
 
-        $developer = $company->getPositions()[1];
+        $positions = $company->getPositions()->getValues();
+        $developer = $positions[1];
         self::assertFalse($developer->isCurrent());
-        self::assertSame('2022-05-31', $developer->period->end->format('Y-m-d'));
+        self::assertSame('2022-05-31', $developer->period->end?->format('Y-m-d'));
         self::assertSame('Promoted', $developer->reasonLeft);
-        self::assertTrue($company->getPositions()[0]->isCurrent());
+        self::assertTrue($positions[0]->isCurrent());
     }
 
     public function testDatesDropTheTime(): void
@@ -65,7 +69,7 @@ final class PositionEntityTest extends KernelTestCase
         $position->end(new DateTimeImmutable('2024-02-01 09:30:00'));
 
         self::assertSame('2024-01-15 00:00:00', $position->period->start->format('Y-m-d H:i:s'));
-        self::assertSame('2024-02-01 00:00:00', $position->period->end->format('Y-m-d H:i:s'));
+        self::assertSame('2024-02-01 00:00:00', $position->period->end?->format('Y-m-d H:i:s'));
     }
 
     public function testCanStartAndEndOnTheSameDay(): void
@@ -74,7 +78,7 @@ final class PositionEntityTest extends KernelTestCase
 
         $position->end(new DateTimeImmutable('2024-01-15 08:00'));
 
-        self::assertSame('2024-01-15', $position->period->end->format('Y-m-d'));
+        self::assertSame('2024-01-15', $position->period->end?->format('Y-m-d'));
     }
 
     public function testCannotEndBeforeStart(): void

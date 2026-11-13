@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyEntity;
+use App\Company\PositionEntity;
+use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\TagEntity;
+use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -24,15 +28,17 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class HydrationTest extends KernelTestCase
 {
+    use FindsEntities;
+
     private EntityManagerInterface $em;
 
-    /** @var array<string, object> */
+    /** @var array<string, CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity> */
     private array $graph;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get('doctrine')->getManager();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
 
         $user = new User('a@example.com');
         $company = new CompanyEntity($user, 'Acme');
@@ -76,6 +82,7 @@ final class HydrationTest extends KernelTestCase
         $original = $this->graph[$key];
 
         $reference = $this->em->getReference($original::class, $original->id);
+        self::assertNotNull($reference);
         // Reading a non-id property initialises the lazy object.
         self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $reference->createdAt->format('Y-m-d H:i:s'));
     }
@@ -88,7 +95,7 @@ final class HydrationTest extends KernelTestCase
     public function testEntityCanBeRefreshed(string $key): void
     {
         $original = $this->graph[$key];
-        $entity = $this->em->find($original::class, $original->id);
+        $entity = self::findOrFail($this->em, $original::class, $original->id);
 
         $this->em->refresh($entity);
 
@@ -101,9 +108,11 @@ final class HydrationTest extends KernelTestCase
      */
     public function testRelationsLoadLazilyAcrossTheGraph(): void
     {
-        $project = $this->em->find(ProjectEntity::class, $this->graph['project']->id);
+        $project = self::findOrFail($this->em, ProjectEntity::class, $this->graph['project']->id);
 
         self::assertSame('Acme', $project->product->company->name->value);
-        self::assertSame('a@example.com', $project->product->company->owner->email);
+        $owner = $project->product->company->owner;
+        self::assertInstanceOf(User::class, $owner);
+        self::assertSame('a@example.com', $owner->email);
     }
 }

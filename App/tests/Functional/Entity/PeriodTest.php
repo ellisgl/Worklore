@@ -24,7 +24,7 @@ final class PeriodTest extends TestCase
         $period = Period::between(new DateTimeImmutable('2024-01-15 17:45'), new DateTimeImmutable('2024-02-01 09:30'));
 
         self::assertSame('2024-01-15 00:00', $period->start->format('Y-m-d H:i'));
-        self::assertSame('2024-02-01 00:00', $period->end->format('Y-m-d H:i'));
+        self::assertSame('2024-02-01 00:00', $period->end?->format('Y-m-d H:i'));
     }
 
     public function testCannotEndBeforeStart(): void
@@ -49,9 +49,9 @@ final class PeriodTest extends TestCase
         $reopened = $moved->reopened();
 
         self::assertTrue($original->isOngoing(), 'Original untouched');
-        self::assertSame('2024-06-30', $ended->end->format('Y-m-d'));
+        self::assertSame('2024-06-30', $ended->end?->format('Y-m-d'));
         self::assertSame('2024-02-01', $moved->start->format('Y-m-d'));
-        self::assertSame('2024-06-30', $moved->end->format('Y-m-d'));
+        self::assertSame('2024-06-30', $moved->end?->format('Y-m-d'));
         self::assertTrue($reopened->isOngoing());
         self::assertSame('2024-02-01', $reopened->start->format('Y-m-d'));
     }
