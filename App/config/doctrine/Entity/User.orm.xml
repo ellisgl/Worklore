@@ -11,9 +11,9 @@
 
         <id name="id" type="uuid"/>
 
-        <field name="email" type="string" length="180"/>
+        <field name="email" length="180"/>
         <field name="roles" type="json"/>
-        <field name="password" type="string" nullable="true"/>
+        <field name="password" nullable="true"/>
         <field name="createdAt" column="created_at" type="datetime_immutable"/>
         <field name="archivedAt" column="archived_at" type="datetime_immutable" nullable="true">
             <options>

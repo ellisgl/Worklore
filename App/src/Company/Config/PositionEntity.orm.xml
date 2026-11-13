@@ -32,7 +32,7 @@
                 <option name="comment">When the position was ended</option>
             </options>
         </field>
-        <field name="reasonLeft" column="reason_left" type="string" nullable="true">
+        <field name="reasonLeft" column="reason_left" nullable="true">
             <options>
                 <option name="comment">Why the user left the position</option>
             </options>
