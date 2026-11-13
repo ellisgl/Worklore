@@ -1,0 +1,10 @@
+# Outside /api, so no firewall rule applies: the docs are readable without a token.
+app_api_doc_ui:
+    path: /doc
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger_ui }
+
+app_api_doc_json:
+    path: /doc.json
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger }

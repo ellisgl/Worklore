@@ -1,0 +1,81 @@
+# OpenAPI docs, built from the routes, the request/response classes and their
+# validation constraints, plus the #[OA\...] attributes on the controllers.
+# Swagger UI: GET /doc; the spec: GET /doc.json (config/routes/nelmio_api_doc.yaml).
+#
+# The attributes are swagger-php's OpenApi\Attributes (and the response
+# shorthands in App\Shared\Http\OpenApi). swagger-php 7 deprecates them for
+# OpenApi\Spec, but NelmioApiDocBundle 5.13 doesn't read those yet; switch
+# when it does.
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Worklore API
+            description: |
+                Track companies, their products, projects and positions, a journal
+                per project, and tags to label entries with.
+
+                Log in with POST /api/auth/login and send the access token as
+                `Authorization: Bearer <token>`. Every record belongs to the user who
+                created it; another user's record answers 404, as if it didn't exist.
+
+                Without a valid access token, every endpoint except login and refresh
+                answers 401 `{"error": "..."}` with `WWW-Authenticate: Bearer`.
+
+                Lists are paged: `?page=` (from 1) and `?per_page=` (1 to 100, default
+                50), returned as `{"items": [...], "page", "per_page", "total"}`. They
+                leave out archived records, and the children of archived parents,
+                unless `?include_archived=1`.
+            version: 1.0.0
+        # The order Swagger UI shows the groups in
+        tags:
+            - { name: Authentication }
+            - { name: Companies }
+            - { name: Products, description: 'What a company makes; projects belong to a product' }
+            - { name: Projects }
+            - { name: Positions, description: 'Jobs held at a company, current or ended' }
+            - { name: Journal entries, description: 'Notes written for a project, labelled with tags' }
+            - { name: Categories, description: 'Groups of tags, e.g. "Skill"' }
+            - { name: Tags }
+        components:
+            schemas:
+                Error:
+                    description: A rule was broken, or the record wasn't found
+                    type: object
+                    required: [error]
+                    properties:
+                        error: { type: string, example: 'Company not found.' }
+                ValidationProblem:
+                    description: The request failed validation; one violation per field
+                    type: object
+                    required: [violations]
+                    properties:
+                        type: { type: string, example: 'https://symfony.com/errors/validation' }
+                        title: { type: string, example: 'Validation Failed' }
+                        status: { type: integer, example: 422 }
+                        detail: { type: string, example: 'name: This value should not be blank.' }
+                        violations:
+                            type: array
+                            items:
+                                type: object
+                                required: [propertyPath, title]
+                                properties:
+                                    propertyPath: { type: string, example: name }
+                                    title: { type: string, example: 'This value should not be blank.' }
+                                    template: { type: string }
+                                    parameters: { type: object, additionalProperties: { type: string } }
+                                    type: { type: string }
+            securitySchemes:
+                Bearer:
+                    type: http
+                    scheme: bearer
+        security:
+            - Bearer: []
+    html_config:
+        # Serve Swagger UI from public/bundles (composer install runs
+        # assets:install) rather than an unpinned CDN copy
+        assets_mode: bundle
+        swagger_ui_config:
+            persistAuthorization: true   # keep the token across page reloads
+    areas:
+        default:
+            path_patterns: ['^/api/']
