@@ -20,25 +20,25 @@ use Symfony\Component\Uid\Uuid;
  */
 final class PositionEntity
 {
-    public private(set) Uuid $id;
-    public private(set) string $title;
-    public private(set) ?string $overview;
-    public private(set) DateTimeImmutable $startDate;
+    private(set) Uuid $id;
+    private(set) string $title;
+    private(set) ?string $overview;
+    private(set) DateTimeImmutable $startDate;
     /** Null while the position is current */
-    public private(set) ?DateTimeImmutable $endDate = null;
-    public private(set) ?string $reasonLeft = null;
-    public private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) ?DateTimeImmutable $endDate = null;
+    private(set) ?string $reasonLeft = null;
+    private(set) ?DateTimeImmutable $archivedAt = null;
 
     /**
      * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
      */
     public function __construct(
-        public private(set) readonly CompanyEntity $company,
-        public private(set) readonly User $user,
+        private(set) readonly CompanyEntity $company,
+        private(set) readonly User $user,
         string $title,
         DateTimeImmutable $startDate,
         ?string $overview = null,
-        public private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->title = self::normalizeTitle($title);

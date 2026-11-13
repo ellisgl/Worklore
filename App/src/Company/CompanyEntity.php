@@ -20,10 +20,10 @@ use Symfony\Component\Uid\Uuid;
  */
 final class CompanyEntity
 {
-    public private(set) Uuid $id;
-    public private(set) string $name;
-    public private(set) ?string $overview;
-    public private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) Uuid $id;
+    private(set) string $name;
+    private(set) ?string $overview;
+    private(set) ?DateTimeImmutable $archivedAt = null;
 
     /** @var Collection<int, ProductEntity> */
     private Collection $products;
@@ -35,10 +35,10 @@ final class CompanyEntity
      * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
      */
     public function __construct(
-        public private(set) readonly User $user,
+        private(set) readonly User $user,
         string $name,
         ?string $overview = null,
-        public private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);

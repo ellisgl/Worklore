@@ -8,10 +8,9 @@ use App\Company\ProjectEntity;
 use App\Entity\User;
 use App\Taxonomy\TagEntity;
 use DateMalformedStringException;
-use \DateTimeImmutable;
-use \DateTimeZone;
-use \InvalidArgumentException;
-use \LogicException;
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -22,10 +21,10 @@ use Symfony\Component\Uid\Uuid;
  */
 final class JournalEntryEntity
 {
-    public private(set) Uuid $id;
-    public private(set) string $name;
-    public private(set) ?string $entry;
-    public private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) Uuid $id;
+    private(set) string $name;
+    private(set) ?string $entry;
+    private(set) ?DateTimeImmutable $archivedAt = null;
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
 
@@ -33,11 +32,11 @@ final class JournalEntryEntity
      * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
      */
     public function __construct(
-        public private(set) readonly ProjectEntity $project,
-        public private(set) readonly User $user,
+        private(set) readonly ProjectEntity $project,
+        private(set) readonly User $user,
         string $name,
         ?string $entry = null,
-        public private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);

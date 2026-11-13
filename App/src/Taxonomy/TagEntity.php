@@ -16,19 +16,19 @@ use Symfony\Component\Uid\Uuid;
  */
 final class TagEntity
 {
-    public private(set) Uuid $id;
-    public private(set) string $name;
-    public private(set) CategoryEntity $category;
-    public private(set) ?DateTimeImmutable $archivedAt = null;
+    private(set) Uuid $id;
+    private(set) string $name;
+    private(set) CategoryEntity $category;
+    private(set) ?DateTimeImmutable $archivedAt = null;
 
     /**
      * @throws DateMalformedStringException - I hate to have logic in my constructor, but it make it easier.
      */
     public function __construct(
         CategoryEntity $category,
-        public private(set) readonly User $user,
+        private(set) readonly User $user,
         string $name,
-        public private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        private(set) readonly DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);
