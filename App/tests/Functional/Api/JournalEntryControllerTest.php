@@ -51,6 +51,7 @@ final class JournalEntryControllerTest extends ApiTestCase
 
         self::assertSame($id, $entry['id']);
         self::assertSame($this->projectId, $entry['project_id']);
+        self::assertSame('Launch', $entry['project_name']);
         self::assertSame('Kickoff', $entry['title'], 'Trimmed');
         self::assertSame('Agreed on the scope.', $entry['entry'], 'Trimmed');
         self::assertNull($entry['archived_at']);
@@ -145,6 +146,65 @@ final class JournalEntryControllerTest extends ApiTestCase
         self::assertSame(['php'], $this->tagNames($this->show($id)));
     }
 
+    /**
+     * @throws JsonException
+     */
+    public function testFeedFiltersAndSearch(): void
+    {
+        $clock = self::mockTime('2026-01-01 09:00:00 UTC');
+        $other = $this->createdId('/api/products/'.$this->productOf($this->projectId).'/projects', ['name' => 'Beta'], $this->auth);
+        $this->createEntry(['title' => 'Kickoff', 'entry' => 'Agreed on the scope.', 'tag_ids' => [$this->php]]);
+        $clock->sleep(60);
+        $this->createdId('/api/projects/'.$other.'/journal-entries', ['title' => 'Release', 'entry' => 'Deployed to staging.', 'tag_ids' => [$this->php, $this->backend]], $this->auth);
+        $clock->sleep(60);
+        $this->createEntry(['title' => 'Rollback', 'entry' => 'Deploys failed.']);
+
+        $feed = $this->getItems('/api/journal-entries', $this->auth);
+        self::assertSame(['Rollback', 'Release', 'Kickoff'], array_column($feed, 'title'));
+        self::assertSame(['Launch', 'Beta', 'Launch'], array_column($feed, 'project_name'));
+
+        self::assertSame(['Release', 'Kickoff'], array_column($this->getItems('/api/journal-entries?tag_id='.$this->php, $this->auth), 'title'));
+        self::assertSame(['Rollback', 'Release'], array_column($this->getItems('/api/journal-entries?q=deploying', $this->auth), 'title'));
+        self::assertSame(['Release'], array_column($this->getItems('/api/journal-entries?q=deploy&tag_id='.$this->backend, $this->auth), 'title'));
+        self::assertSame(['Rollback'], array_column($this->list('?q=deploy'), 'title'), 'The project list filters too');
+        self::assertSame(['Kickoff'], array_column($this->list('?tag_id='.$this->php), 'title'));
+        self::assertSame(['Rollback'], array_column($this->getItems('/api/journal-entries?q=deploy&per_page=1', $this->auth), 'title'));
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testFeedOnlyShowsOwnEntries(): void
+    {
+        $other = $this->signIn('other@example.com');
+        $this->createdId('/api/projects/'.$this->projectFor($other).'/journal-entries', ['title' => 'Theirs', 'entry' => 'Body'], $other);
+        $this->createEntry(['title' => 'Mine', 'entry' => 'Body']);
+
+        self::assertSame(['Mine'], array_column($this->getItems('/api/journal-entries', $this->auth), 'title'));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function invalidFilterProvider(): iterable
+    {
+        yield 'tag id not a uuid' => ['?tag_id=php', 'tag_id'];
+        yield 'search too long' => ['?q='.str_repeat('x', 201), 'q'];
+    }
+
+    /**
+     * @throws JsonException
+     */
+    #[DataProvider('invalidFilterProvider')]
+    public function testInvalidFilterIsRejected(string $query, string $field): void
+    {
+        foreach (['/api/journal-entries', $this->entriesUri()] as $uri) {
+            $response = $this->jsonRequest('GET', $uri.$query, headers: $this->auth);
+            self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode(), (string) $response->getContent());
+            self::assertSame($field, $this->firstViolationPath($response));
+        }
+    }
+
     // ---- show and edit ----------------------------------------------------
 
     /**
@@ -232,6 +292,7 @@ final class JournalEntryControllerTest extends ApiTestCase
     public function testJournalRequiresAuthentication(): void
     {
         $this->assertJsonError($this->jsonRequest('GET', $this->entriesUri()), Response::HTTP_UNAUTHORIZED);
+        $this->assertJsonError($this->jsonRequest('GET', '/api/journal-entries'), Response::HTTP_UNAUTHORIZED);
         $this->assertJsonError($this->jsonRequest('GET', '/api/journal-entries/'.JournalEntryId::generate()), Response::HTTP_UNAUTHORIZED);
     }
 
@@ -265,6 +326,17 @@ final class JournalEntryControllerTest extends ApiTestCase
         $product = $this->createdId('/api/companies/'.$company.'/products', ['name' => 'Widget'], $auth);
 
         return $this->createdId('/api/products/'.$product.'/projects', ['name' => 'Launch'], $auth);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    private function productOf(string $projectId): string
+    {
+        $productId = $this->getJson('/api/projects/'.$projectId, $this->auth)['product_id'] ?? null;
+        self::assertIsString($productId);
+
+        return $productId;
     }
 
     /**

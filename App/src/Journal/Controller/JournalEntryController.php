@@ -61,7 +61,7 @@ final class JournalEntryController extends AbstractController
     /**
      * List a project's journal entries.
      *
-     * GET /api/projects/{projectId}/journal-entries[?include_archived=1][&page=1&per_page=50],
+     * GET /api/projects/{projectId}/journal-entries[?include_archived=1][&tag_id=...][&q=...][&page=1&per_page=50],
      * newest first.
      *
      * @throws DateMalformedStringException
@@ -78,13 +78,36 @@ final class JournalEntryController extends AbstractController
         string $projectId,
         #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] JournalFilterRequest $filter = new JournalFilterRequest(),
     ): JsonResponse {
         $project = ProjectId::fromString($projectId);
         if (!$this->projects->existsForOwner($owner->ownerId(), $project)) {
             throw new ProjectNotFound();
         }
 
-        return $this->json($this->entries->listForProject($owner->ownerId(), $project, $includeArchived, $paging->toPage()));
+        return $this->json($this->entries->listForProject($owner->ownerId(), $project, $includeArchived, $paging->toPage(), $filter->toFilter()));
+    }
+
+    /**
+     * List all your journal entries.
+     *
+     * GET /api/journal-entries[?include_archived=1][&tag_id=...][&q=...][&page=1&per_page=50]:
+     * across every project, newest first. Each entry names its project.
+     *
+     * @throws DateMalformedStringException
+     * @throws Exception
+     * @throws InvalidValueException
+     */
+    #[PageOf(JournalEntrySummary::class, 'The entries, newest first')]
+    #[Invalid]
+    #[Route('/journal-entries', name: 'list_all', methods: ['GET'])]
+    public function listAll(
+        #[CurrentUser] Owner $owner,
+        #[MapQueryParameter(name: 'include_archived')] bool $includeArchived = false,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] PageRequest $paging = new PageRequest(),
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] JournalFilterRequest $filter = new JournalFilterRequest(),
+    ): JsonResponse {
+        return $this->json($this->entries->listForOwner($owner->ownerId(), $includeArchived, $paging->toPage(), $filter->toFilter()));
     }
 
     /**

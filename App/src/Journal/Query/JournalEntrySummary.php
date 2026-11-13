@@ -21,6 +21,7 @@ final readonly class JournalEntrySummary
         public string $id,
         #[OA\Property(format: 'uuid')]
         public string $projectId,
+        public string $projectName,
         public string $title,
         public string $entry,
         public array $tags,
