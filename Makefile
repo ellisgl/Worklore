@@ -8,7 +8,7 @@ PHP     := $(DC) exec $(TTY) php
 CONSOLE := $(PHP) bin/console
 
 .DEFAULT_GOAL := help
-.PHONY: help init up down restart build ps logs sh console composer db-migrate psql test-db test stan
+.PHONY: help init up down restart build ps logs sh console composer db-migrate psql test-db test stan cs cs-fix
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -66,3 +66,9 @@ test: test-db ## Prepare the test DB, then run PHPUnit, e.g. make test c='--filt
 stan: ## Static analysis with PHPStan (level max), e.g. make stan c='--generate-baseline'
 	$(CONSOLE) cache:warmup --env=dev >/dev/null
 	$(PHP) vendor/bin/phpstan analyse --memory-limit=1G $(c)
+
+cs: ## Check code style (PHP CS Fixer, dry run)
+	$(PHP) vendor/bin/php-cs-fixer fix --dry-run --diff $(c)
+
+cs-fix: ## Fix code style in place
+	$(PHP) vendor/bin/php-cs-fixer fix $(c)
