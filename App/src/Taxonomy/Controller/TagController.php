@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Controller;
 
+use App\Shared\Http\OpenApi\Conflict;
+use App\Shared\Http\OpenApi\Created;
+use App\Shared\Http\OpenApi\Invalid;
+use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Http\OpenApi\NotFound;
+use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
@@ -16,9 +23,11 @@ use App\Taxonomy\Application\UnarchiveTag;
 use App\Taxonomy\CategoryId;
 use App\Taxonomy\Query\CategoryQueries;
 use App\Taxonomy\Query\TagQueries;
+use App\Taxonomy\Query\TagSummary;
 use App\Taxonomy\TagId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +44,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Tags: listed and created under their category (or all at once), read and
  * changed by id. Reads call the query classes; writes dispatch a command.
  */
+#[OA\Tag(name: 'Tags')]
 #[Route('/api', name: 'api_tags_')]
 final class TagController extends AbstractController
 {
@@ -47,6 +57,8 @@ final class TagController extends AbstractController
     }
 
     /**
+     * List all the caller's tags.
+     *
      * GET /api/tags[?include_archived=1][&page=1&per_page=50]: all the
      * caller's tags, sorted by category and then name.
      *
@@ -54,6 +66,8 @@ final class TagController extends AbstractController
      * @throws Exception
      * @throws InvalidValueException
      */
+    #[PageOf(TagSummary::class, 'The tags, by category name and then tag name')]
+    #[Invalid]
     #[Route('/tags', name: 'list_all', methods: ['GET'])]
     public function listAll(
         #[CurrentUser] Owner $owner,
@@ -64,6 +78,8 @@ final class TagController extends AbstractController
     }
 
     /**
+     * List a category's tags.
+     *
      * GET /api/categories/{categoryId}/tags[?include_archived=1][&page=1&per_page=50]
      *
      * @throws CategoryNotFound
@@ -71,6 +87,9 @@ final class TagController extends AbstractController
      * @throws Exception
      * @throws InvalidValueException
      */
+    #[PageOf(TagSummary::class, 'The tags, sorted by name')]
+    #[NotFound('Category not found.')]
+    #[Invalid]
     #[Route('/categories/{categoryId}/tags', name: 'list', requirements: ['categoryId' => Requirement::UUID], methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
@@ -87,11 +106,17 @@ final class TagController extends AbstractController
     }
 
     /**
+     * Add a tag to a category.
+     *
      * POST /api/categories/{categoryId}/tags {"name": "..."} → 201 {"id": "..."}.
      * 409 if the category already has a tag with that name, ignoring case.
      *
      * @throws ExceptionInterface
      */
+    #[Created('Created')]
+    #[Invalid]
+    #[NotFound('Category not found.')]
+    #[Conflict('The category already has a tag with this name, ignoring case (archived tags included)', 'This category already has a tag named "php".')]
     #[Route('/categories/{categoryId}/tags', name: 'create', requirements: ['categoryId' => Requirement::UUID], methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -105,12 +130,16 @@ final class TagController extends AbstractController
     }
 
     /**
+     * Get a tag.
+     *
      * GET /api/tags/{id}: one of the caller's tags, archived or not.
      *
      * @throws DateMalformedStringException
      * @throws Exception
      * @throws TagNotFound
      */
+    #[Item(TagSummary::class, 'The tag')]
+    #[NotFound('Tag not found.')]
     #[Route('/tags/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
     {
@@ -118,12 +147,18 @@ final class TagController extends AbstractController
     }
 
     /**
+     * Rename a tag or move it to another category.
+     *
      * PATCH /api/tags/{id} {"name": "...", "category_id": "..."} → 204.
      * Renames and/or moves the tag; 409 if the name is taken in the category
      * it ends up in.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Saved')]
+    #[Invalid]
+    #[NotFound('Tag not found.', 'Category not found.')]
+    #[Conflict('The category already has a tag with this name, ignoring case (archived tags included)', 'This category already has a tag named "php".')]
     #[Route('/tags/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,
@@ -141,11 +176,15 @@ final class TagController extends AbstractController
     }
 
     /**
+     * Archive a tag.
+     *
      * POST /api/tags/{id}/archive → 204. Hides the tag from lists; it can
      * still be fetched by id and unarchived. Its name stays taken.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Archived')]
+    #[NotFound('Tag not found.')]
     #[Route('/tags/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archive(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -155,10 +194,14 @@ final class TagController extends AbstractController
     }
 
     /**
+     * Unarchive a tag.
+     *
      * POST /api/tags/{id}/unarchive → 204.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Unarchived')]
+    #[NotFound('Tag not found.')]
     #[Route('/tags/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
     {

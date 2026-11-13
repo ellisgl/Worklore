@@ -11,11 +11,20 @@ use App\Company\Application\EditCompany;
 use App\Company\Application\UnarchiveCompany;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
+use App\Company\Query\CompanySummary;
+use App\Shared\Http\OpenApi\Conflict;
+use App\Shared\Http\OpenApi\Created;
+use App\Shared\Http\OpenApi\Invalid;
+use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Http\OpenApi\NotFound;
+use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +41,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Reads call the query class; writes dispatch a command. Domain exceptions
  * become 404/409/422 in App\Shared\Http\DomainExceptionListener.
  */
+#[OA\Tag(name: 'Companies')]
 #[Route('/api/companies', name: 'api_companies_')]
 final class CompanyController extends AbstractController
 {
@@ -43,12 +53,16 @@ final class CompanyController extends AbstractController
     }
 
     /**
+     * List the caller's companies.
+     *
      * GET /api/companies[?include_archived=1][&page=1&per_page=50]
      *
      * @throws DateMalformedStringException
      * @throws Exception
      * @throws InvalidValueException
      */
+    #[PageOf(CompanySummary::class, 'The companies, sorted by name')]
+    #[Invalid]
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
@@ -59,12 +73,16 @@ final class CompanyController extends AbstractController
     }
 
     /**
+     * Get a company.
+     *
      * GET /api/companies/{id}: one of the caller's companies, archived or not.
      *
      * @throws CompanyNotFound
      * @throws DateMalformedStringException
      * @throws Exception
      */
+    #[Item(CompanySummary::class, 'The company')]
+    #[NotFound('Company not found.')]
     #[Route('/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
     {
@@ -75,10 +93,15 @@ final class CompanyController extends AbstractController
     }
 
     /**
+     * Create a company.
+     *
      * POST /api/companies {"name": "...", "overview": "..."} → 201 {"id": "..."}
      *
      * @throws ExceptionInterface
      */
+    #[Created('Created')]
+    #[Invalid]
+    #[Conflict('The caller already has a company with this name, ignoring case', 'You already have a company named "Acme".')]
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -91,11 +114,17 @@ final class CompanyController extends AbstractController
     }
 
     /**
+     * Change a company's name or overview.
+     *
      * PATCH /api/companies/{id} {"name": "...", "overview": "..."} → 204.
      * Only the fields sent are changed; an empty overview clears it.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Saved')]
+    #[Invalid]
+    #[NotFound('Company not found.')]
+    #[Conflict('The caller already has a company with this name, ignoring case', 'You already have a company named "Acme".')]
     #[Route('/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,
@@ -108,11 +137,15 @@ final class CompanyController extends AbstractController
     }
 
     /**
+     * Archive a company.
+     *
      * POST /api/companies/{id}/archive → 204. Hides the company (and what's
      * inside it) from lists; it can still be fetched by id and unarchived.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Archived')]
+    #[NotFound('Company not found.')]
     #[Route('/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archive(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -122,10 +155,14 @@ final class CompanyController extends AbstractController
     }
 
     /**
+     * Unarchive a company.
+     *
      * POST /api/companies/{id}/unarchive → 204.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Unarchived')]
+    #[NotFound('Company not found.')]
     #[Route('/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
     {

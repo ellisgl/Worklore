@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Journal\Controller;
 
 use App\Shared\Name;
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -23,6 +24,7 @@ final readonly class EditJournalEntryRequest
         #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
         public ?string $entry = null,
         #[Assert\All([new Assert\Type('string'), new Assert\Uuid()])]
+        #[OA\Property(description: 'Replaces the tags; [] removes them all', type: 'array', items: new OA\Items(type: 'string', format: 'uuid'), nullable: true)]
         public ?array $tagIds = null,
     ) {
     }

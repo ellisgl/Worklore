@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Company\Controller;
 
 use App\Shared\Name;
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -19,6 +20,7 @@ final readonly class EditPositionRequest
         public ?string $title = null,
         public ?string $overview = null,
         #[Assert\Date]
+        #[OA\Property(format: 'date', example: '2024-01-15')]
         public ?string $startDate = null,
     ) {
     }

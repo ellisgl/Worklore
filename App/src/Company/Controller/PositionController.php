@@ -16,6 +16,13 @@ use App\Company\CompanyId;
 use App\Company\PositionId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\PositionQueries;
+use App\Company\Query\PositionSummary;
+use App\Shared\Http\OpenApi\Created;
+use App\Shared\Http\OpenApi\Invalid;
+use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Http\OpenApi\NotFound;
+use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
@@ -23,6 +30,7 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Exception;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,6 +47,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Positions: listed and created under their company, read and changed by id.
  * Ending and reopening have their own endpoints. Dates are YYYY-MM-DD.
  */
+#[OA\Tag(name: 'Positions')]
 #[Route('/api', name: 'api_positions_')]
 final class PositionController extends AbstractController
 {
@@ -51,6 +60,8 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * List a company's positions.
+     *
      * GET /api/companies/{companyId}/positions[?include_archived=1][&page=1&per_page=50], newest
      * start date first.
      *
@@ -59,6 +70,9 @@ final class PositionController extends AbstractController
      * @throws Exception
      * @throws InvalidValueException
      */
+    #[PageOf(PositionSummary::class, 'The positions, newest start date first')]
+    #[NotFound('Company not found.')]
+    #[Invalid]
     #[Route('/companies/{companyId}/positions', name: 'list', requirements: ['companyId' => Requirement::UUID], methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
@@ -75,6 +89,8 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * List the caller's current positions.
+     *
      * GET /api/positions/current[?page=1&per_page=50]: the caller's current positions across all
      * companies (archived ones left out), newest start date first.
      *
@@ -83,6 +99,8 @@ final class PositionController extends AbstractController
      * @throws InvalidValueException
      * @throws InvalidValueException
      */
+    #[PageOf(PositionSummary::class, 'Positions with no end date, newest start date first')]
+    #[Invalid]
     #[Route('/positions/current', name: 'current', methods: ['GET'])]
     public function current(
         #[CurrentUser] Owner $owner,
@@ -92,6 +110,8 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * Record a position at a company.
+     *
      * POST /api/companies/{companyId}/positions
      * {"title": "...", "start_date": "...", "overview": "...", "end_date": "...", "reason_left": "..."}
      * → 201 {"id": "..."}. With end_date the position is recorded as ended.
@@ -99,6 +119,9 @@ final class PositionController extends AbstractController
      * @throws ExceptionInterface
      * @throws InvalidValueException
      */
+    #[Created('Created')]
+    #[Invalid('the position would end before it starts')]
+    #[NotFound('Company not found.')]
     #[Route('/companies/{companyId}/positions', name: 'create', requirements: ['companyId' => Requirement::UUID], methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -121,12 +144,16 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * Get a position.
+     *
      * GET /api/positions/{id}: one of the caller's positions, archived or not.
      *
      * @throws DateMalformedStringException
      * @throws Exception
      * @throws PositionNotFound
      */
+    #[Item(PositionSummary::class, 'The position')]
+    #[NotFound('Position not found.')]
     #[Route('/positions/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
     {
@@ -134,12 +161,17 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * Change a position's title, overview or start date.
+     *
      * PATCH /api/positions/{id} {"title": "...", "overview": "...", "start_date": "..."} → 204.
      * Only the fields sent are changed; an empty overview clears it.
      *
      * @throws ExceptionInterface
      * @throws InvalidValueException
      */
+    #[NoContent('Saved')]
+    #[Invalid('the new start date is after the end date')]
+    #[NotFound('Position not found.')]
     #[Route('/positions/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,
@@ -158,12 +190,17 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * End a position.
+     *
      * POST /api/positions/{id}/end {"end_date": "...", "reason_left": "..."} → 204.
      * Ending an ended position corrects its end date and reason.
      *
      * @throws ExceptionInterface
      * @throws InvalidValueException
      */
+    #[NoContent('Ended')]
+    #[Invalid('the position would end before it starts')]
+    #[NotFound('Position not found.')]
     #[Route('/positions/{id}/end', name: 'end', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function end(
         #[CurrentUser] Owner $owner,
@@ -176,11 +213,15 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * Make an ended position current again.
+     *
      * POST /api/positions/{id}/reopen → 204. Makes the position current
      * again, clearing the end date and reason.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Reopened')]
+    #[NotFound('Position not found.')]
     #[Route('/positions/{id}/reopen', name: 'reopen', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function reopen(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -190,11 +231,15 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * Archive a position.
+     *
      * POST /api/positions/{id}/archive → 204. Hides the position from lists;
      * it can still be fetched by id and unarchived.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Archived')]
+    #[NotFound('Position not found.')]
     #[Route('/positions/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archive(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -204,10 +249,14 @@ final class PositionController extends AbstractController
     }
 
     /**
+     * Unarchive a position.
+     *
      * POST /api/positions/{id}/unarchive → 204.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Unarchived')]
+    #[NotFound('Position not found.')]
     #[Route('/positions/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
     {

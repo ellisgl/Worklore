@@ -14,12 +14,20 @@ use App\Journal\Application\JournalEntryNotFound;
 use App\Journal\Application\UnarchiveJournalEntry;
 use App\Journal\JournalEntryId;
 use App\Journal\Query\JournalEntryQueries;
+use App\Journal\Query\JournalEntrySummary;
+use App\Shared\Http\OpenApi\Created;
+use App\Shared\Http\OpenApi\Invalid;
+use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Http\OpenApi\NotFound;
+use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use App\Taxonomy\TagId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,6 +46,7 @@ use function array_map;
  * Journal entries: listed and written under their project, read and changed
  * by id. Reads call the query classes; writes dispatch a command.
  */
+#[OA\Tag(name: 'Journal entries')]
 #[Route('/api', name: 'api_journal_entries_')]
 final class JournalEntryController extends AbstractController
 {
@@ -50,6 +59,8 @@ final class JournalEntryController extends AbstractController
     }
 
     /**
+     * List a project's journal entries.
+     *
      * GET /api/projects/{projectId}/journal-entries[?include_archived=1][&page=1&per_page=50],
      * newest first.
      *
@@ -58,6 +69,9 @@ final class JournalEntryController extends AbstractController
      * @throws InvalidValueException
      * @throws ProjectNotFound
      */
+    #[PageOf(JournalEntrySummary::class, 'The entries, newest first')]
+    #[NotFound('Project not found.')]
+    #[Invalid]
     #[Route('/projects/{projectId}/journal-entries', name: 'list', requirements: ['projectId' => Requirement::UUID], methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
@@ -74,11 +88,16 @@ final class JournalEntryController extends AbstractController
     }
 
     /**
+     * Write a journal entry for a project.
+     *
      * POST /api/projects/{projectId}/journal-entries
      * {"title": "...", "entry": "...", "tag_ids": ["..."]} → 201 {"id": "..."}
      *
      * @throws ExceptionInterface
      */
+    #[Created('Created')]
+    #[Invalid]
+    #[NotFound('Project not found.', 'Tag not found.')]
     #[Route('/projects/{projectId}/journal-entries', name: 'create', requirements: ['projectId' => Requirement::UUID], methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -99,12 +118,16 @@ final class JournalEntryController extends AbstractController
     }
 
     /**
+     * Get a journal entry.
+     *
      * GET /api/journal-entries/{id}: one of the caller's entries, archived or not.
      *
      * @throws DateMalformedStringException
      * @throws Exception
      * @throws JournalEntryNotFound
      */
+    #[Item(JournalEntrySummary::class, 'The entry, with its tags')]
+    #[NotFound('Journal entry not found.')]
     #[Route('/journal-entries/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
     {
@@ -112,11 +135,16 @@ final class JournalEntryController extends AbstractController
     }
 
     /**
+     * Change a journal entry's title, text or tags.
+     *
      * PATCH /api/journal-entries/{id} {"title": "...", "entry": "...", "tag_ids": [...]} → 204.
      * Only the fields sent are changed; tag_ids replaces the tags.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Saved')]
+    #[Invalid]
+    #[NotFound('Journal entry not found.', 'Tag not found.')]
     #[Route('/journal-entries/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,
@@ -135,11 +163,15 @@ final class JournalEntryController extends AbstractController
     }
 
     /**
+     * Archive a journal entry.
+     *
      * POST /api/journal-entries/{id}/archive → 204. Hides the entry from
      * lists; it can still be fetched by id and unarchived.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Archived')]
+    #[NotFound('Journal entry not found.')]
     #[Route('/journal-entries/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archive(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -149,10 +181,14 @@ final class JournalEntryController extends AbstractController
     }
 
     /**
+     * Unarchive a journal entry.
+     *
      * POST /api/journal-entries/{id}/unarchive → 204.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Unarchived')]
+    #[NotFound('Journal entry not found.')]
     #[Route('/journal-entries/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
     {

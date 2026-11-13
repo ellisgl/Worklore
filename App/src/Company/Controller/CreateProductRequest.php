@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Company\Controller;
 
 use App\Shared\Name;
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * POST /api/companies/{companyId}/products body.
  */
+#[OA\Schema(required: ['name'])]
 final readonly class CreateProductRequest
 {
     public function __construct(

@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Controller;
 
+use App\Shared\Http\OpenApi\Created;
+use App\Shared\Http\OpenApi\Invalid;
+use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Http\OpenApi\NotFound;
+use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
@@ -14,8 +20,10 @@ use App\Taxonomy\Application\EditCategory;
 use App\Taxonomy\Application\UnarchiveCategory;
 use App\Taxonomy\CategoryId;
 use App\Taxonomy\Query\CategoryQueries;
+use App\Taxonomy\Query\CategorySummary;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +40,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Categories group tags (e.g. "Skill": php, sql). Reads call the query
  * class; writes dispatch a command.
  */
+#[OA\Tag(name: 'Categories')]
 #[Route('/api/categories', name: 'api_categories_')]
 final class CategoryController extends AbstractController
 {
@@ -43,12 +52,16 @@ final class CategoryController extends AbstractController
     }
 
     /**
+     * List the caller's categories.
+     *
      * GET /api/categories[?include_archived=1][&page=1&per_page=50]
      *
      * @throws DateMalformedStringException
      * @throws Exception
      * @throws InvalidValueException
      */
+    #[PageOf(CategorySummary::class, 'The categories, sorted by name')]
+    #[Invalid]
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
@@ -59,10 +72,14 @@ final class CategoryController extends AbstractController
     }
 
     /**
+     * Create a category.
+     *
      * POST /api/categories {"name": "...", "description": "..."} → 201 {"id": "..."}
      *
      * @throws ExceptionInterface
      */
+    #[Created('Created')]
+    #[Invalid]
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -75,12 +92,16 @@ final class CategoryController extends AbstractController
     }
 
     /**
+     * Get a category.
+     *
      * GET /api/categories/{id}: one of the caller's categories, archived or not.
      *
      * @throws CategoryNotFound
      * @throws DateMalformedStringException
      * @throws Exception
      */
+    #[Item(CategorySummary::class, 'The category')]
+    #[NotFound('Category not found.')]
     #[Route('/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
     {
@@ -88,11 +109,16 @@ final class CategoryController extends AbstractController
     }
 
     /**
+     * Change a category's name or description.
+     *
      * PATCH /api/categories/{id} {"name": "...", "description": "..."} → 204.
      * Only the fields sent are changed; an empty description clears it.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Saved')]
+    #[Invalid]
+    #[NotFound('Category not found.')]
     #[Route('/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,
@@ -105,11 +131,15 @@ final class CategoryController extends AbstractController
     }
 
     /**
+     * Archive a category.
+     *
      * POST /api/categories/{id}/archive → 204. Hides the category (and its
      * tags) from lists; it can still be fetched by id and unarchived.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Archived')]
+    #[NotFound('Category not found.')]
     #[Route('/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archive(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -119,10 +149,14 @@ final class CategoryController extends AbstractController
     }
 
     /**
+     * Unarchive a category.
+     *
      * POST /api/categories/{id}/unarchive → 204.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Unarchived')]
+    #[NotFound('Category not found.')]
     #[Route('/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
     {

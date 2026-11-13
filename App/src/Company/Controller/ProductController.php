@@ -14,11 +14,19 @@ use App\Company\CompanyId;
 use App\Company\ProductId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\ProductQueries;
+use App\Company\Query\ProductSummary;
+use App\Shared\Http\OpenApi\Created;
+use App\Shared\Http\OpenApi\Invalid;
+use App\Shared\Http\OpenApi\Item;
+use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Http\OpenApi\NotFound;
+use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +43,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Products: listed and created under their company, read and changed by id.
  * Reads call the query classes; writes dispatch a command.
  */
+#[OA\Tag(name: 'Products')]
 #[Route('/api', name: 'api_products_')]
 final class ProductController extends AbstractController
 {
@@ -47,6 +56,8 @@ final class ProductController extends AbstractController
     }
 
     /**
+     * List a company's products.
+     *
      * GET /api/companies/{companyId}/products[?include_archived=1][&page=1&per_page=50]
      *
      * @throws CompanyNotFound
@@ -54,6 +65,9 @@ final class ProductController extends AbstractController
      * @throws Exception
      * @throws InvalidValueException
      */
+    #[PageOf(ProductSummary::class, 'The products, sorted by name')]
+    #[NotFound('Company not found.')]
+    #[Invalid]
     #[Route('/companies/{companyId}/products', name: 'list', requirements: ['companyId' => Requirement::UUID], methods: ['GET'])]
     public function list(
         #[CurrentUser] Owner $owner,
@@ -70,10 +84,15 @@ final class ProductController extends AbstractController
     }
 
     /**
+     * Add a product to a company.
+     *
      * POST /api/companies/{companyId}/products {"name": "...", "overview": "..."} → 201 {"id": "..."}
      *
      * @throws ExceptionInterface
      */
+    #[Created('Created')]
+    #[Invalid]
+    #[NotFound('Company not found.')]
     #[Route('/companies/{companyId}/products', name: 'create', requirements: ['companyId' => Requirement::UUID], methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -87,12 +106,16 @@ final class ProductController extends AbstractController
     }
 
     /**
+     * Get a product.
+     *
      * GET /api/products/{id}: one of the caller's products, archived or not.
      *
      * @throws DateMalformedStringException
      * @throws Exception
      * @throws ProductNotFound
      */
+    #[Item(ProductSummary::class, 'The product')]
+    #[NotFound('Product not found.')]
     #[Route('/products/{id}', name: 'show', requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(#[CurrentUser] Owner $owner, string $id): JsonResponse
     {
@@ -100,11 +123,16 @@ final class ProductController extends AbstractController
     }
 
     /**
+     * Change a product's name or overview.
+     *
      * PATCH /api/products/{id} {"name": "...", "overview": "..."} → 204.
      * Only the fields sent are changed; an empty overview clears it.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Saved')]
+    #[Invalid]
+    #[NotFound('Product not found.')]
     #[Route('/products/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,
@@ -117,11 +145,15 @@ final class ProductController extends AbstractController
     }
 
     /**
+     * Archive a product.
+     *
      * POST /api/products/{id}/archive → 204. Hides the product (and its
      * projects) from lists; it can still be fetched by id and unarchived.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Archived')]
+    #[NotFound('Product not found.')]
     #[Route('/products/{id}/archive', name: 'archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archive(#[CurrentUser] Owner $owner, string $id): Response
     {
@@ -131,10 +163,14 @@ final class ProductController extends AbstractController
     }
 
     /**
+     * Unarchive a product.
+     *
      * POST /api/products/{id}/unarchive → 204.
      *
      * @throws ExceptionInterface
      */
+    #[NoContent('Unarchived')]
+    #[NotFound('Product not found.')]
     #[Route('/products/{id}/unarchive', name: 'unarchive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function unarchive(#[CurrentUser] Owner $owner, string $id): Response
     {

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Journal\Controller;
 
 use App\Shared\Name;
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * POST /api/projects/{projectId}/journal-entries body.
  */
+#[OA\Schema(required: ['title', 'entry'])]
 final readonly class CreateJournalEntryRequest
 {
     /**
@@ -22,6 +24,7 @@ final readonly class CreateJournalEntryRequest
         #[Assert\NotBlank(normalizer: 'trim')]
         public string $entry = '',
         #[Assert\All([new Assert\Type('string'), new Assert\Uuid()])]
+        #[OA\Property(type: 'array', items: new OA\Items(type: 'string', format: 'uuid'))]
         public array $tagIds = [],
     ) {
     }

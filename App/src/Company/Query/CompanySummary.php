@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Company\Query;
 
 use DateTimeImmutable;
+use OpenApi\Attributes as OA;
 
 /**
  * Read model: one company in the owner's list, shaped for the API (serialized
@@ -13,6 +14,7 @@ use DateTimeImmutable;
 final readonly class CompanySummary
 {
     public function __construct(
+        #[OA\Property(format: 'uuid')]
         public string $id,
         public string $name,
         public ?string $overview,
