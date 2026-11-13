@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Company;
 
+use App\Shared\InvalidValueException;
 use DateTimeImmutable;
-use InvalidArgumentException;
 
 /**
  * The dates a position runs: a start day and, once it has ended, an end day.
@@ -23,14 +23,14 @@ final class Period
     private(set) ?DateTimeImmutable $end;
 
     /**
-     * @throws InvalidArgumentException if $end is before $start
+     * @throws InvalidValueException if $end is before $start
      */
     private function __construct(DateTimeImmutable $start, ?DateTimeImmutable $end)
     {
         $start = self::dateOnly($start);
         $end = null === $end ? null : self::dateOnly($end);
         if (null !== $end && $end < $start) {
-            throw new InvalidArgumentException('A position cannot end before it starts');
+            throw new InvalidValueException('A position cannot end before it starts');
         }
 
         $this->start = $start;
@@ -43,7 +43,7 @@ final class Period
     }
 
     /**
-     * @throws InvalidArgumentException if $end is before $start
+     * @throws InvalidValueException if $end is before $start
      */
     public static function between(DateTimeImmutable $start, DateTimeImmutable $end): self
     {
@@ -56,7 +56,7 @@ final class Period
     }
 
     /**
-     * @throws InvalidArgumentException if this would end before it starts
+     * @throws InvalidValueException if this would end before it starts
      */
     public function withStart(DateTimeImmutable $start): self
     {
@@ -64,7 +64,7 @@ final class Period
     }
 
     /**
-     * @throws InvalidArgumentException if $end is before the start
+     * @throws InvalidValueException if $end is before the start
      */
     public function endingOn(DateTimeImmutable $end): self
     {

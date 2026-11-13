@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Company;
 
+use App\Shared\InvalidValueException;
 use App\Shared\Name;
 use App\Shared\Owner;
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 use LogicException;
 use function Symfony\Component\Clock\now;
 
@@ -72,7 +72,7 @@ final class PositionEntity
     }
 
     /**
-     * @throws InvalidArgumentException if the position has ended before this date
+     * @throws InvalidValueException if the position has ended before this date
      */
     public function setStartDate(DateTimeImmutable $startDate): self
     {
@@ -84,7 +84,7 @@ final class PositionEntity
     /**
      * Marks the position as ended. Calling it again corrects the date/reason.
      *
-     * @throws InvalidArgumentException if $endDate is before the start date
+     * @throws InvalidValueException if $endDate is before the start date
      */
     public function end(DateTimeImmutable $endDate, ?string $reasonLeft = null): self
     {
@@ -152,7 +152,7 @@ final class PositionEntity
     {
         $reasonLeft = self::normalizeText($reasonLeft);
         if (null !== $reasonLeft && mb_strlen($reasonLeft) > self::MAX_REASON_LEFT_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('Reason for leaving cannot be longer than %d characters', self::MAX_REASON_LEFT_LENGTH));
+            throw new InvalidValueException(\sprintf('Reason for leaving cannot be longer than %d characters', self::MAX_REASON_LEFT_LENGTH));
         }
 
         return $reasonLeft;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared;
 
-use InvalidArgumentException;
 use Stringable;
 
 /**
@@ -25,16 +24,16 @@ final readonly class Name implements Stringable
     /**
      * @param string $label what the name is, for error messages ("Company name")
      *
-     * @throws InvalidArgumentException if blank or longer than MAX_LENGTH
+     * @throws InvalidValueException if blank or longer than MAX_LENGTH
      */
     public static function of(string $value, string $label = 'Name'): self
     {
         $value = trim($value);
         if ('' === $value) {
-            throw new InvalidArgumentException(\sprintf('%s cannot be blank', $label));
+            throw new InvalidValueException(\sprintf('%s cannot be blank', $label));
         }
         if (mb_strlen($value) > self::MAX_LENGTH) {
-            throw new InvalidArgumentException(\sprintf('%s cannot be longer than %d characters', $label, self::MAX_LENGTH));
+            throw new InvalidValueException(\sprintf('%s cannot be longer than %d characters', $label, self::MAX_LENGTH));
         }
 
         return new self($value);

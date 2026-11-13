@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Journal;
 
 use App\Company\ProjectEntity;
+use App\Shared\InvalidValueException;
 use App\Shared\OwnershipMismatchException;
 use App\Shared\Name;
 use App\Shared\Owner;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -124,7 +124,7 @@ final class JournalEntryEntity
     {
         $entry = trim($entry);
         if ('' === $entry) {
-            throw new InvalidArgumentException('Journal entry cannot be blank');
+            throw new InvalidValueException('Journal entry cannot be blank');
         }
 
         return $entry;
