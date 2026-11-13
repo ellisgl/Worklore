@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Taxonomy;
 
+use App\Entity\OwnershipMismatchException;
 use App\Entity\User;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -20,12 +21,17 @@ final class TagEntity
     private(set) CategoryEntity $category;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
+    /**
+     * @throws OwnershipMismatchException if the category belongs to another user
+     */
     public function __construct(
         CategoryEntity $category,
         private(set) readonly User $user,
         string $name,
         private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
+        OwnershipMismatchException::assertSameUser($category->user, $user, 'category');
+
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);
         $this->category = $category;
@@ -40,6 +46,8 @@ final class TagEntity
     /**
      * Moves the tag to another category and updates both categories' tag lists.
      * The name must be free in the new category (uniq_tag_category_name).
+     *
+     * @throws OwnershipMismatchException if the category belongs to another user
      */
     public function setCategory(CategoryEntity $category): self
     {
@@ -47,6 +55,8 @@ final class TagEntity
         if ($previous === $category) {
             return $this;
         }
+
+        OwnershipMismatchException::assertSameUser($category->user, $this->user, 'category');
 
         $this->category = $category;
         $previous->removeTag($this);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company;
 
+use App\Entity\OwnershipMismatchException;
 use App\Entity\User;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\TagEntity;
@@ -32,6 +33,9 @@ final class ProjectEntity
     /** @var Collection<int, JournalEntryEntity> */
     private Collection $journalEntries;
 
+    /**
+     * @throws OwnershipMismatchException if the product belongs to another user
+     */
     public function __construct(
         private(set) readonly ProductEntity $product,
         private(set) readonly User $user,
@@ -39,6 +43,8 @@ final class ProjectEntity
         ?string $overview = null,
         private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
+        OwnershipMismatchException::assertSameUser($product->user, $user, 'product');
+
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);
         $this->overview = self::normalizeOverview($overview);
@@ -90,8 +96,13 @@ final class ProjectEntity
         }
     }
 
+    /**
+     * @throws OwnershipMismatchException if the tag belongs to another user
+     */
     public function addTag(TagEntity $tag): self
     {
+        OwnershipMismatchException::assertSameUser($tag->user, $this->user, 'tag');
+
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company;
 
+use App\Entity\OwnershipMismatchException;
 use App\Entity\User;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -28,6 +29,9 @@ final class PositionEntity
     private(set) ?string $reasonLeft = null;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
+    /**
+     * @throws OwnershipMismatchException if the company belongs to another user
+     */
     public function __construct(
         private(set) readonly CompanyEntity $company,
         private(set) readonly User $user,
@@ -36,6 +40,8 @@ final class PositionEntity
         ?string $overview = null,
         private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
+        OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
+
         $this->id = Uuid::v7();
         $this->title = self::normalizeTitle($title);
         $this->startDate = self::dateOnly($startDate);

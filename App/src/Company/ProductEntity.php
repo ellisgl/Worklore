@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company;
 
+use App\Entity\OwnershipMismatchException;
 use App\Entity\User;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
@@ -31,6 +32,9 @@ final class ProductEntity
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
 
+    /**
+     * @throws OwnershipMismatchException if the company belongs to another user
+     */
     public function __construct(
         private(set) readonly CompanyEntity $company,
         private(set) readonly User $user,
@@ -38,6 +42,8 @@ final class ProductEntity
         ?string $overview = null,
         private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ) {
+        OwnershipMismatchException::assertSameUser($company->user, $user, 'company');
+
         $this->id = Uuid::v7();
         $this->name = self::normalizeName($name);
         $this->overview = self::normalizeOverview($overview);
@@ -90,8 +96,13 @@ final class ProductEntity
         return $this->tags->contains($tag);
     }
 
+    /**
+     * @throws OwnershipMismatchException if the tag belongs to another user
+     */
     public function addTag(TagEntity $tag): self
     {
+        OwnershipMismatchException::assertSameUser($tag->user, $this->user, 'tag');
+
         if (!$this->tags->contains($tag)) {
             $this->tags->add($tag);
         }
