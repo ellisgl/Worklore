@@ -22,7 +22,7 @@ use Symfony\Component\Uid\Uuid;
 final class JournalEntryEntity
 {
     private(set) Uuid $id;
-    private(set) string $name;
+    private(set) string $title;
     private(set) ?string $entry;
     private(set) ?DateTimeImmutable $archivedAt = null;
     /** @var Collection<int, TagEntity> */
