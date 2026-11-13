@@ -92,6 +92,24 @@ final class NameExistsTest extends KernelTestCase
         self::assertTrue($this->tags->nameExistsInCategory($area, 'php'));
     }
 
+    // ---- CompanyRepository::productNameExistsInCompany() --------------------
+
+    public function testProductNameCheck(): void
+    {
+        $user = $this->persist(new User('a@example.com'));
+        $acme = $this->persist(new CompanyEntity($user, 'Acme'));
+        $globex = $this->persist(new CompanyEntity($user, 'Globex'));
+        $widget = $acme->addProduct('Widget');
+        $acme->addProduct('Gadget')->archive(new DateTimeImmutable());
+        $this->em->flush();
+
+        self::assertTrue($this->companies->productNameExistsInCompany($acme, ' WIDGET '), 'Trimmed, any case');
+        self::assertTrue($this->companies->productNameExistsInCompany($acme, 'gadget'), 'Archived ones hold their name');
+        self::assertFalse($this->companies->productNameExistsInCompany($globex, 'Widget'), 'Free in another company');
+        self::assertFalse($this->companies->productNameExistsInCompany($acme, 'widget', except: $widget), 'Its own name');
+        self::assertTrue($this->companies->productNameExistsInCompany($acme, 'gadget', except: $widget));
+    }
+
     // ---- CategoryRepository::nameExistsInCategory() ----------------------------
 
     public function testTagNameTakenInCategory(): void

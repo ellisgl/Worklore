@@ -27,11 +27,16 @@ final readonly class CreateProductHandler
      * @throws CompanyNotFound
      * @throws InvalidValueException if the name is blank or too long
      * @throws ORMException
+     * @throws ProductNameTaken
      */
     public function __invoke(CreateProduct $command): void
     {
         $company = $this->companies->findOneByIdForOwner($command->companyId, $this->owners->get($command->ownerId))
             ?? throw new CompanyNotFound();
+
+        if ($this->companies->productNameExistsInCompany($company, $command->name)) {
+            throw new ProductNameTaken($command->name);
+        }
 
         $company->addProduct($command->name, $command->overview, id: $command->productId);
     }

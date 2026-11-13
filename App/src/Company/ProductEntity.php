@@ -24,6 +24,14 @@ final class ProductEntity
     /** The aggregate owner, copied from the company; stored for owner-scoped queries */
     private(set) readonly Owner $owner;
     private(set) Name $name;
+    /**
+     * Case-insensitive form of $name, for uniq_product_company_name; see
+     * Name::key(). Only the database and CompanyRepository::productNameExistsInCompany()
+     * read it, so PHP code never does.
+     *
+     * @noinspection PhpPropertyOnlyWrittenInspection
+     */
+    private string $nameKey;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
@@ -48,7 +56,7 @@ final class ProductEntity
         $this->owner = $company->owner;
         $this->id = $id ?? ProductId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
-        $this->name = Name::of($name, 'Product name');
+        $this->setName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->projects = new ArrayCollection();
         $this->tags = new ArrayCollection();
@@ -119,6 +127,7 @@ final class ProductEntity
     public function setName(string $name): self
     {
         $this->name = Name::of($name, 'Product name');
+        $this->nameKey = $this->name->key();
 
         return $this;
     }

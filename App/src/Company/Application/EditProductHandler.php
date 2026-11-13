@@ -22,6 +22,7 @@ final readonly class EditProductHandler
     /**
      * @throws InvalidValueException if the name is blank or too long
      * @throws ORMException
+     * @throws ProductNameTaken
      * @throws ProductNotFound
      */
     public function __invoke(EditProduct $command): void
@@ -30,6 +31,9 @@ final readonly class EditProductHandler
             ?? throw new ProductNotFound();
 
         if (null !== $command->name) {
+            if ($this->companies->productNameExistsInCompany($product->company, $command->name, except: $product)) {
+                throw new ProductNameTaken($command->name);
+            }
             $product->setName($command->name);
         }
         if (null !== $command->overview) {

@@ -138,6 +138,17 @@ final class UniquenessTest extends KernelTestCase
         self::assertSame(0, $this->em->getRepository(TagEntity::class)->count());
     }
 
+    public function testProductNameIsUniqueWithinCompanyIgnoringCase(): void
+    {
+        $user = $this->user('a@example.com');
+        $acme = $this->save(new CompanyEntity($user, 'Acme'));
+        $this->save($acme->addProduct('Widget'));
+        $this->save(new CompanyEntity($user, 'Globex')->addProduct('Widget')->company);  // fine elsewhere
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->save($acme->addProduct('WIDGET'));
+    }
+
     private function user(string $email): User
     {
         return $this->save(new User($email));

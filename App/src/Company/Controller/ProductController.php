@@ -15,6 +15,7 @@ use App\Company\ProductId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\ProductQueries;
 use App\Company\Query\ProductSummary;
+use App\Shared\Http\OpenApi\Conflict;
 use App\Shared\Http\OpenApi\Created;
 use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
@@ -93,6 +94,7 @@ final class ProductController extends AbstractController
     #[Created('Created')]
     #[Invalid]
     #[NotFound('Company not found.')]
+    #[Conflict('The company already has a product with this name, ignoring case', 'This company already has a product named "Widget".')]
     #[Route('/companies/{companyId}/products', name: 'create', requirements: ['companyId' => Requirement::UUID], methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -133,6 +135,7 @@ final class ProductController extends AbstractController
     #[NoContent('Saved')]
     #[Invalid]
     #[NotFound('Product not found.')]
+    #[Conflict('The company already has a product with this name, ignoring case', 'This company already has a product named "Widget".')]
     #[Route('/products/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,

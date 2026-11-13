@@ -182,6 +182,27 @@ final class ProductControllerTest extends ApiTestCase
         self::assertSame('Widget', $this->show($id)['name']);
     }
 
+    /**
+     * @throws JsonException
+     */
+    public function testNamesAreUniqueWithinTheCompany(): void
+    {
+        $widget = $this->createProduct('Widget');
+        $archived = $this->createProduct('Gadget');
+        $this->jsonRequest('POST', '/api/products/'.$archived.'/archive', headers: $this->auth);
+        $globex = $this->createdId('/api/companies', ['name' => 'Globex'], $this->auth);
+
+        $create = $this->jsonRequest('POST', '/api/companies/'.$this->companyId.'/products', ['name' => ' widget '], $this->auth);
+        $rename = $this->jsonRequest('PATCH', '/api/products/'.$widget, ['name' => 'GADGET'], $this->auth);
+        $ownName = $this->jsonRequest('PATCH', '/api/products/'.$widget, ['name' => 'WIDGET'], $this->auth);
+
+        $this->assertJsonError($create, Response::HTTP_CONFLICT, 'This company already has a product named "widget".');
+        $this->assertJsonError($rename, Response::HTTP_CONFLICT, 'This company already has a product named "GADGET".');
+        self::assertSame(Response::HTTP_NO_CONTENT, $ownName->getStatusCode(), 'Its own name in another case');
+        self::assertSame('WIDGET', $this->show($widget)['name']);
+        $this->createdId('/api/companies/'.$globex.'/products', ['name' => 'Widget'], $this->auth);
+    }
+
     // ---- archive ----------------------------------------------------------
 
     /**
