@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company\Query;
 
+use App\Taxonomy\Query\TagRef;
 use DateTimeImmutable;
 use OpenApi\Attributes as OA;
 
@@ -13,6 +14,9 @@ use OpenApi\Attributes as OA;
  */
 final readonly class ProjectSummary
 {
+    /**
+     * @param list<TagRef> $tags sorted by category, then name
+     */
     public function __construct(
         #[OA\Property(format: 'uuid')]
         public string $id,
@@ -22,6 +26,7 @@ final readonly class ProjectSummary
         public string $companyId,
         public string $name,
         public ?string $overview,
+        public array $tags,
         public DateTimeImmutable $createdAt,
         public ?DateTimeImmutable $archivedAt,
     ) {

@@ -10,6 +10,8 @@ use App\Company\ProjectId;
 use App\Company\Query\ProjectQueries;
 use App\Company\Query\ProjectSummary;
 use App\Identity\User;
+use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\Query\TagRef;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
@@ -109,6 +111,37 @@ final class ProjectQueriesTest extends KernelTestCase
 
         self::assertNull($this->queries->findForOwner($this->owner->id, $project->id));
         self::assertNull($this->queries->findForOwner($this->owner->id, ProjectId::generate()));
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
+    public function testProjectsCarryTheirTags(): void
+    {
+        $widget = $this->product();
+        $skill = new CategoryEntity($this->owner, 'Skill');
+        $area = new CategoryEntity($this->owner, 'Area');
+        $this->em->persist($skill);
+        $this->em->persist($area);
+        $launch = $widget->addProject('Launch')->setTags($skill->addTag('php'), $area->addTag('backend'));
+        $widget->addProject('Beta');
+        $this->em->flush();
+
+        $found = $this->queries->findForOwner($this->owner->id, $launch->id);
+        $listed = $this->queries->listForProduct($this->owner->id, $widget->id)->items;
+
+        self::assertNotNull($found);
+        self::assertSame(['Area/backend', 'Skill/php'], self::tagLabels($found), 'By category, then name');
+        self::assertSame([[], ['Area/backend', 'Skill/php']], array_map(self::tagLabels(...), $listed), 'Beta, then Launch');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function tagLabels(ProjectSummary $summary): array
+    {
+        return array_map(static fn (TagRef $t) => $t->categoryName.'/'.$t->name, $summary->tags);
     }
 
     private function product(): ProductEntity

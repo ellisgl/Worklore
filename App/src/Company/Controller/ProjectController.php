@@ -25,6 +25,7 @@ use App\Shared\Http\OpenApi\PageOf;
 use App\Shared\Http\PageRequest;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
+use App\Taxonomy\TagId;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use OpenApi\Attributes as OA;
@@ -39,6 +40,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+
+use function array_map;
 
 /**
  * Projects: listed and created under their product, read and changed by id.
@@ -87,13 +90,13 @@ final class ProjectController extends AbstractController
     /**
      * Add a project to a product.
      *
-     * POST /api/products/{productId}/projects {"name": "...", "overview": "..."} → 201 {"id": "..."}
+     * POST /api/products/{productId}/projects {"name": "...", "overview": "...", "tag_ids": [...]} → 201 {"id": "..."}
      *
      * @throws ExceptionInterface
      */
     #[Created('Created')]
     #[Invalid]
-    #[NotFound('Product not found.')]
+    #[NotFound('Product not found.', 'Tag not found.')]
     #[Conflict('The product already has a project with this name, ignoring case', 'This product already has a project named "Launch".')]
     #[Route('/products/{productId}/projects', name: 'create', requirements: ['productId' => Requirement::UUID], methods: ['POST'])]
     public function create(
@@ -102,7 +105,7 @@ final class ProjectController extends AbstractController
         #[MapRequestPayload] CreateProjectRequest $payload,
     ): JsonResponse {
         $id = ProjectId::generate();
-        $this->commandBus->dispatch(new CreateProject($id, ProductId::fromString($productId), $owner->ownerId(), $payload->name, $payload->overview));
+        $this->commandBus->dispatch(new CreateProject($id, ProductId::fromString($productId), $owner->ownerId(), $payload->name, $payload->overview, self::tagIds($payload->tagIds)));
 
         return $this->json(['id' => $id->toRfc4122()], Response::HTTP_CREATED);
     }
@@ -127,14 +130,15 @@ final class ProjectController extends AbstractController
     /**
      * Change a project's name or overview.
      *
-     * PATCH /api/projects/{id} {"name": "...", "overview": "..."} → 204.
-     * Only the fields sent are changed; an empty overview clears it.
+     * PATCH /api/projects/{id} {"name": "...", "overview": "...", "tag_ids": [...]} → 204.
+     * Only the fields sent are changed; an empty overview clears it, and
+     * tag_ids replaces the tags.
      *
      * @throws ExceptionInterface
      */
     #[NoContent('Saved')]
     #[Invalid]
-    #[NotFound('Project not found.')]
+    #[NotFound('Project not found.', 'Tag not found.')]
     #[Conflict('The product already has a project with this name, ignoring case', 'This product already has a project named "Launch".')]
     #[Route('/projects/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
@@ -142,7 +146,13 @@ final class ProjectController extends AbstractController
         string $id,
         #[MapRequestPayload] EditProjectRequest $payload,
     ): Response {
-        $this->commandBus->dispatch(new EditProject(ProjectId::fromString($id), $owner->ownerId(), $payload->name, $payload->overview));
+        $this->commandBus->dispatch(new EditProject(
+            ProjectId::fromString($id),
+            $owner->ownerId(),
+            $payload->name,
+            $payload->overview,
+            null === $payload->tagIds ? null : self::tagIds($payload->tagIds),
+        ));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
@@ -181,5 +191,15 @@ final class ProjectController extends AbstractController
         $this->commandBus->dispatch(new UnarchiveProject(ProjectId::fromString($id), $owner->ownerId()));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * @param list<string> $ids validated UUIDs
+     *
+     * @return list<TagId>
+     */
+    private static function tagIds(array $ids): array
+    {
+        return array_map(TagId::fromString(...), $ids);
     }
 }

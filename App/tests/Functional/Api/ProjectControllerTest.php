@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Api;
 
 use App\Company\ProductId;
 use App\Company\ProjectId;
+use App\Taxonomy\TagId;
 use App\Tests\Functional\ApiTestCase;
 use JsonException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -44,6 +45,7 @@ final class ProjectControllerTest extends ApiTestCase
 
         self::assertSame($id, $project['id']);
         self::assertSame($this->productId, $project['product_id']);
+        self::assertSame([], $project['tags']);
         self::assertArrayHasKey('company_id', $project);
         self::assertSame('Widget', $project['name'], 'Trimmed');
         self::assertSame('Our widget', $project['overview']);
@@ -203,6 +205,74 @@ final class ProjectControllerTest extends ApiTestCase
         $this->assertJsonError($rename, Response::HTTP_CONFLICT, 'This product already has a project named "BETA".');
         self::assertSame(Response::HTTP_NO_CONTENT, $ownName->getStatusCode(), 'Its own name in another case');
         self::assertSame('LAUNCH', $this->show($launch)['name']);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testTags(): void
+    {
+        $skill = $this->createdId('/api/categories', ['name' => 'Skill'], $this->auth);
+        $php = $this->createdId('/api/categories/'.$skill.'/tags', ['name' => 'php'], $this->auth);
+        $sql = $this->createdId('/api/categories/'.$skill.'/tags', ['name' => 'sql'], $this->auth);
+
+        $id = $this->createdId('/api/products/'.$this->productId.'/projects', ['name' => 'Launch', 'tag_ids' => [$sql, $php, $sql]], $this->auth);
+        self::assertSame([
+            ['id' => $php, 'name' => 'php', 'category_id' => $skill, 'category_name' => 'Skill'],
+            ['id' => $sql, 'name' => 'sql', 'category_id' => $skill, 'category_name' => 'Skill'],
+        ], $this->show($id)['tags'], 'Sorted; duplicates dropped');
+        self::assertSame(['php', 'sql'], array_column(self::tagsOf($this->list()[0]), 'name'), 'Lists carry them too');
+
+        $this->jsonRequest('PATCH', '/api/projects/'.$id, ['name' => 'Launch 2'], $this->auth);
+        self::assertCount(2, self::tagsOf($this->show($id)), 'No tag_ids: unchanged');
+
+        $this->jsonRequest('PATCH', '/api/projects/'.$id, ['tag_ids' => [$sql]], $this->auth);
+        self::assertSame(['sql'], array_column(self::tagsOf($this->show($id)), 'name'), 'Replaced');
+
+        $this->jsonRequest('PATCH', '/api/projects/'.$id, ['tag_ids' => []], $this->auth);
+        self::assertSame([], $this->show($id)['tags'], '[] removes them');
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testAnotherUsersOrAnUnknownTagIsNotFound(): void
+    {
+        $other = $this->signIn('other@example.com');
+        $theirCategory = $this->createdId('/api/categories', ['name' => 'Theirs'], $other);
+        $theirTag = $this->createdId('/api/categories/'.$theirCategory.'/tags', ['name' => 'theirs'], $other);
+        $id = $this->createProject('Launch');
+
+        foreach ([$theirTag, (string) TagId::generate()] as $tagId) {
+            $create = $this->jsonRequest('POST', '/api/products/'.$this->productId.'/projects', ['name' => 'Beta', 'tag_ids' => [$tagId]], $this->auth);
+            $this->assertJsonError($create, Response::HTTP_NOT_FOUND, 'Tag not found.');
+
+            $edit = $this->jsonRequest('PATCH', '/api/projects/'.$id, ['name' => 'Changed', 'tag_ids' => [$tagId]], $this->auth);
+            $this->assertJsonError($edit, Response::HTTP_NOT_FOUND, 'Tag not found.');
+        }
+
+        self::assertSame(['Launch'], array_column($this->list(), 'name'), 'Nothing saved, nothing renamed');
+        $notUuid = $this->jsonRequest('PATCH', '/api/projects/'.$id, ['tag_ids' => ['php']], $this->auth);
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $notUuid->getStatusCode());
+        self::assertSame('tag_ids[0]', $this->firstViolationPath($notUuid));
+    }
+
+    /**
+     * @param array<array-key, mixed> $project
+     *
+     * @return list<array<array-key, mixed>>
+     */
+    private static function tagsOf(array $project): array
+    {
+        $tags = $project['tags'] ?? null;
+        self::assertIsList($tags);
+        $list = [];
+        foreach ($tags as $tag) {
+            self::assertIsArray($tag);
+            $list[] = $tag;
+        }
+
+        return $list;
     }
 
     // ---- archive ----------------------------------------------------------

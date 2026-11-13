@@ -11,9 +11,12 @@ use App\Shared\Query\PagedSql;
 use App\Shared\Query\Paginated;
 use App\Shared\Query\ReadsDatabaseTimes;
 use App\Shared\UserId;
+use App\Taxonomy\Query\TagRefs;
 use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
+
+use function array_column;
 
 /**
  * Read side for projects: SQL shaped for the API, returning read models.
@@ -44,8 +47,10 @@ final readonly class ProjectQueries
 
     private const string SELECT = self::COLUMNS."\n".self::FROM;
 
-    public function __construct(private Connection $db)
-    {
+    public function __construct(
+        private Connection $db,
+        private TagRefs $tagRefs,
+    ) {
     }
 
     /**
@@ -68,12 +73,7 @@ final readonly class ProjectQueries
         /** @var list<ProjectRow> $rows */
         $rows = $this->db->fetchAllAssociative(self::SELECT.$where.' ORDER BY pj.name, pj.id'.PagedSql::limit($page), $params);
 
-        $projects = [];
-        foreach ($rows as $row) {
-            $projects[] = self::summary($row);
-        }
-
-        return new Paginated($projects, $page, PagedSql::count($this->db, self::FROM.$where, $params));
+        return new Paginated($this->summaries($rows), $page, PagedSql::count($this->db, self::FROM.$where, $params));
     }
 
     /**
@@ -91,7 +91,7 @@ final readonly class ProjectQueries
             ['owner' => $ownerId->toRfc4122(), 'id' => $projectId->toRfc4122()],
         );
 
-        return false === $row ? null : self::summary($row);
+        return false === $row ? null : $this->summaries([$row])[0];
     }
 
     /**
@@ -108,20 +108,31 @@ final readonly class ProjectQueries
     }
 
     /**
-     * @param ProjectRow $row
+     * @param list<ProjectRow> $rows
+     *
+     * @return list<ProjectSummary>
      *
      * @throws DateMalformedStringException
+     * @throws Exception
      */
-    private static function summary(array $row): ProjectSummary
+    private function summaries(array $rows): array
     {
-        return new ProjectSummary(
-            id: $row['id'],
-            productId: $row['product_id'],
-            companyId: $row['company_id'],
-            name: $row['name'],
-            overview: $row['overview'],
-            createdAt: self::utc($row['created_at']),
-            archivedAt: self::utcOrNull($row['archived_at']),
-        );
+        $tags = $this->tagRefs->forProjects(array_column($rows, 'id'));
+
+        $summaries = [];
+        foreach ($rows as $row) {
+            $summaries[] = new ProjectSummary(
+                id: $row['id'],
+                productId: $row['product_id'],
+                companyId: $row['company_id'],
+                name: $row['name'],
+                overview: $row['overview'],
+                tags: $tags[$row['id']] ?? [],
+                createdAt: self::utc($row['created_at']),
+                archivedAt: self::utcOrNull($row['archived_at']),
+            );
+        }
+
+        return $summaries;
     }
 }

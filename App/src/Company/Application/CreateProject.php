@@ -7,6 +7,7 @@ namespace App\Company\Application;
 use App\Company\ProductId;
 use App\Company\ProjectId;
 use App\Shared\UserId;
+use App\Taxonomy\TagId;
 
 /**
  * Command: start a project for one of the owner's products. The caller
@@ -14,12 +15,16 @@ use App\Shared\UserId;
  */
 final readonly class CreateProject
 {
+    /**
+     * @param list<TagId> $tagIds
+     */
     public function __construct(
         public ProjectId $projectId,
         public ProductId $productId,
         public UserId $ownerId,
         public string $name,
         public ?string $overview = null,
+        public array $tagIds = [],
     ) {
     }
 }
