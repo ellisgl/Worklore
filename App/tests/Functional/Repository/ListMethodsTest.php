@@ -40,34 +40,6 @@ final class ListMethodsTest extends KernelTestCase
         $this->user = $this->persist(new User('me@example.com'));
     }
 
-    // ---- products ---------------------------------------------------------
-
-    public function testProductsSortedByNameAndScopedToCompany(): void
-    {
-        $acme = $this->persist(new CompanyEntity($this->user, 'Acme'));
-        $globex = $this->persist(new CompanyEntity($this->user, 'Globex'));
-        $this->persist($acme->addProduct('Widget'));
-        $this->persist($acme->addProduct('Gadget'));
-        $this->persist($acme->addProduct('Retired')->archive(new DateTimeImmutable()));
-        $this->persist($globex->addProduct('Other'));
-        $this->em->flush();
-
-        $repo = $this->repo(CompanyRepository::class);
-        self::assertSame(['Gadget', 'Widget'], $this->names($repo->getAllProductsByCompany($this->user, $acme)));
-        self::assertSame(['Gadget', 'Retired', 'Widget'], $this->names($repo->getAllProductsByCompany($this->user, $acme, includeArchived: true)));
-    }
-
-    public function testArchivedCompanyHidesItsProducts(): void
-    {
-        $acme = $this->persist(new CompanyEntity($this->user, 'Acme')->archive(new DateTimeImmutable()));
-        $this->persist($acme->addProduct('Widget'));
-        $this->em->flush();
-
-        $repo = $this->repo(CompanyRepository::class);
-        self::assertSame([], $repo->getAllProductsByCompany($this->user, $acme));
-        self::assertSame(['Widget'], $this->names($repo->getAllProductsByCompany($this->user, $acme, includeArchived: true)));
-    }
-
     // ---- projects ---------------------------------------------------------
 
     public function testProjectsSortedByNameAndScopedToProduct(): void

@@ -84,30 +84,6 @@ class CompanyRepository extends ServiceEntityRepository
         return $this->getEntityManager()->getRepository(ProductEntity::class)->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
-    /**
-     * The user's products at a company, sorted by name.
-     *
-     * @return list<ProductEntity>
-     */
-    public function getAllProductsByCompany(Owner $owner, CompanyEntity $company, bool $includeArchived = false): array
-    {
-        $qb = $this->products()
-            ->innerJoin('p.company', 'c')
-            ->where('p.owner = :owner')
-            ->andWhere('p.company = :company')
-            ->setParameter('owner', $owner)
-            ->setParameter('company', $company)
-            ->orderBy('p.name', 'ASC')
-            ->addOrderBy('p.id', 'ASC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('p.archivedAt IS NULL')
-                ->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
-    }
-
     // ---- projects ---------------------------------------------------------
 
     public function findProjectByIdForOwner(ProjectId $id, Owner $owner): ?ProjectEntity
@@ -193,12 +169,6 @@ class CompanyRepository extends ServiceEntityRepository
             ->addOrderBy('p.id', 'DESC')
             ->getQuery()
             ->getResult();
-    }
-
-    /** A query over the aggregate's products, aliased "p". */
-    private function products(): QueryBuilder
-    {
-        return $this->getEntityManager()->createQueryBuilder()->select('p')->from(ProductEntity::class, 'p');
     }
 
     /** A query over the aggregate's projects, aliased "pj". */

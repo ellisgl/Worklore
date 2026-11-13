@@ -7,8 +7,6 @@ namespace App\Company\Query;
 use App\Company\CompanyId;
 use App\Shared\UserId;
 use DateMalformedStringException;
-use DateTimeImmutable;
-use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 
@@ -21,6 +19,8 @@ use Doctrine\DBAL\Exception;
  */
 final readonly class CompanyQueries
 {
+    use ReadsDatabaseTimes;
+
     public function __construct(private Connection $db)
     {
     }
@@ -95,6 +95,19 @@ final readonly class CompanyQueries
     }
 
     /**
+     * Whether the company exists and belongs to the owner (archived or not).
+     *
+     * @throws Exception
+     */
+    public function existsForOwner(UserId $ownerId, CompanyId $companyId): bool
+    {
+        return false !== $this->db->fetchOne(
+            'SELECT 1 FROM company WHERE user_id = :owner AND id = :id',
+            ['owner' => $ownerId->toRfc4122(), 'id' => $companyId->toRfc4122()],
+        );
+    }
+
+    /**
      * @param CompanyRow $row
      *
      * @throws DateMalformedStringException
@@ -106,19 +119,9 @@ final readonly class CompanyQueries
             name: $row['name'],
             overview: $row['overview'],
             createdAt: self::utc($row['created_at']),
-            archivedAt: null === $row['archived_at'] ? null : self::utc($row['archived_at']),
+            archivedAt: self::utcOrNull($row['archived_at']),
             productCount: (int) $row['product_count'],
             currentPosition: $row['current_position'],
         );
-    }
-
-    /**
-     * Timestamps are stored in UTC without a zone.
-     *
-     * @throws DateMalformedStringException
-     */
-    private static function utc(string $timestamp): DateTimeImmutable
-    {
-        return new DateTimeImmutable($timestamp, new DateTimeZone('UTC'));
     }
 }

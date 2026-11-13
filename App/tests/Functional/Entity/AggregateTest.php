@@ -99,8 +99,7 @@ final class AggregateTest extends KernelTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $user = self::findOrFail($this->em, User::class, $this->user->id);
-        self::assertCount(1, self::getContainer()->get(CompanyRepository::class)->getAllProductsByCompany($user, $company));
+        self::assertCount(1, self::findOrFail($this->em, CompanyEntity::class, $company->id)->getProducts());
     }
 
     public function testFactoriesKeepTheParentsListsInSync(): void
