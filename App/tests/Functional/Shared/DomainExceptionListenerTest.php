@@ -9,6 +9,8 @@ use App\Shared\Http\DomainExceptionListener;
 use App\Shared\InvalidValueException;
 use App\Shared\NotFoundException;
 use App\Shared\OwnershipMismatchException;
+use Doctrine\DBAL\Driver\PDO\Exception as DriverException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -54,6 +56,35 @@ final class DomainExceptionListenerTest extends TestCase
         self::assertSame(['error' => $error], json_decode((string) $response->getContent(), true));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function nameConstraintProvider(): iterable
+    {
+        yield 'company' => ['uniq_company_user_name', 'You already have a company with this name.'];
+        yield 'product' => ['uniq_product_company_name', 'This company already has a product with this name.'];
+        yield 'project' => ['uniq_project_product_name', 'This product already has a project with this name.'];
+        yield 'category' => ['uniq_category_user_name', 'You already have a category with this name.'];
+        yield 'tag' => ['uniq_tag_category_name', 'This category already has a tag with this name.'];
+    }
+
+    #[DataProvider('nameConstraintProvider')]
+    public function testMapsANameConstraintRaceToAConflict(string $constraint, string $error): void
+    {
+        foreach ([self::uniqueViolation($constraint), new HandlerFailedException(new Envelope(new stdClass()), [self::uniqueViolation($constraint)])] as $exception) {
+            $response = $this->dispatch('/api/companies', $exception)->getResponse();
+
+            self::assertSame(409, $response?->getStatusCode());
+            self::assertSame(['error' => $error], json_decode((string) $response->getContent(), true));
+        }
+    }
+
+    public function testLeavesOtherUniqueConstraintsAlone(): void
+    {
+        self::assertNull($this->dispatch('/api/companies', self::uniqueViolation('uniq_app_user_email'))->getResponse());
+        self::assertNull($this->dispatch('/api/companies', new UniqueConstraintViolationException(new DriverException('no constraint named'), null))->getResponse());
+    }
+
     public function testLeavesOtherExceptionsAlone(): void
     {
         self::assertNull($this->dispatch('/api/companies', new RuntimeException('boom'))->getResponse());
@@ -63,6 +94,17 @@ final class DomainExceptionListenerTest extends TestCase
     public function testLeavesNonApiRequestsAlone(): void
     {
         self::assertNull($this->dispatch('/somewhere-else', new InvalidValueException('x'))->getResponse());
+    }
+
+    /**
+     * A violation shaped like PostgreSQL's: its message names the constraint.
+     */
+    private static function uniqueViolation(string $constraint): UniqueConstraintViolationException
+    {
+        return new UniqueConstraintViolationException(new DriverException(
+            'SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint "'.$constraint.'"',
+            '23505',
+        ), null);
     }
 
     private function dispatch(string $path, Throwable $exception): ExceptionEvent
