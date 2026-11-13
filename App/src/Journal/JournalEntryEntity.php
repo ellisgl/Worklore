@@ -39,10 +39,11 @@ final class JournalEntryEntity
         string $title,
         string $entry,
         ?DateTimeImmutable $createdAt = null,
+        ?JournalEntryId $id = null,
     ) {
         OwnershipMismatchException::assertSameOwner($project->owner, $owner, 'project');
 
-        $this->id = JournalEntryId::generate();
+        $this->id = $id ?? JournalEntryId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->title = Name::of($title, 'Journal entry title');
         $this->entry = self::normalizeEntry($entry);

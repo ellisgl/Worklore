@@ -8,6 +8,7 @@ use App\Company\CompanyEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Journal\JournalEntryEntity;
+use App\Journal\JournalEntryId;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
@@ -55,6 +56,14 @@ final class JournalEntryEntityTest extends KernelTestCase
         self::assertInstanceOf(User::class, $loaded->owner);
         self::assertSame('a@example.com', $loaded->owner->email);
         self::assertSame(['backend'], array_map(static fn (TagEntity $t) => $t->name->value, $loaded->getTags()->toArray()));
+    }
+
+    public function testUsesAGivenId(): void
+    {
+        $user = new User('a@example.com');
+        $id = JournalEntryId::generate();
+
+        self::assertSame($id, new JournalEntryEntity($this->project($user), $user, 'Kickoff', 'Body', id: $id)->id);
     }
 
     public function testBlankTitleIsRejected(): void
