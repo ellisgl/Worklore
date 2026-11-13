@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use DateTimeImmutable;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -14,42 +15,28 @@ use Symfony\Component\Uid\Uuid;
  *
  * Doctrine mapping: config/doctrine/Entity/ApiToken.orm.xml.
  */
-class ApiToken
+final class ApiToken
 {
-    private Uuid $id;
+    private(set) Uuid $id;
+    private(set) string $accessTokenHash;
+    private(set) DateTimeImmutable $accessExpiresAt;
+    private(set) string $refreshTokenHash;
+    private(set) DateTimeImmutable $refreshExpiresAt;
 
-    private string $accessTokenHash;
-
-    private \DateTimeImmutable $accessExpiresAt;
-
-    private string $refreshTokenHash;
-
-    private \DateTimeImmutable $refreshExpiresAt;
-
-    private \DateTimeImmutable $createdAt;
-
+    /**
+     * $createdAt comes from the caller's clock (TokenManager), so tests that
+     * mock the clock see consistent times.
+     */
     public function __construct(
-        private User $user,
+        private(set) readonly User $user,
+        private(set) DateTimeImmutable $createdAt,
         string $accessTokenHash,
-        \DateTimeImmutable $accessExpiresAt,
+        DateTimeImmutable $accessExpiresAt,
         string $refreshTokenHash,
-        \DateTimeImmutable $refreshExpiresAt,
+        DateTimeImmutable $refreshExpiresAt,
     ) {
         $this->id = Uuid::v7();
-        $this->createdAt = new \DateTimeImmutable();
         $this->rotate($accessTokenHash, $accessExpiresAt, $refreshTokenHash, $refreshExpiresAt);
-    }
-
-    public function rotate(
-        string $accessTokenHash,
-        \DateTimeImmutable $accessExpiresAt,
-        string $refreshTokenHash,
-        \DateTimeImmutable $refreshExpiresAt,
-    ): void {
-        $this->accessTokenHash = $accessTokenHash;
-        $this->accessExpiresAt = $accessExpiresAt;
-        $this->refreshTokenHash = $refreshTokenHash;
-        $this->refreshExpiresAt = $refreshExpiresAt;
     }
 
     public function getId(): Uuid
@@ -57,33 +44,27 @@ class ApiToken
         return $this->id;
     }
 
-    public function getUser(): User
-    {
-        return $this->user;
+    public function rotate(
+        string $accessTokenHash,
+        DateTimeImmutable $accessExpiresAt,
+        string $refreshTokenHash,
+        DateTimeImmutable $refreshExpiresAt,
+    ): self {
+        $this->accessTokenHash = $accessTokenHash;
+        $this->accessExpiresAt = $accessExpiresAt;
+        $this->refreshTokenHash = $refreshTokenHash;
+        $this->refreshExpiresAt = $refreshExpiresAt;
+
+        return $this;
     }
 
-    public function isAccessTokenValid(\DateTimeImmutable $now): bool
+    public function isAccessTokenValid(DateTimeImmutable $now): bool
     {
         return $this->accessExpiresAt > $now;
     }
 
-    public function isRefreshTokenValid(\DateTimeImmutable $now): bool
+    public function isRefreshTokenValid(DateTimeImmutable $now): bool
     {
         return $this->refreshExpiresAt > $now;
-    }
-
-    public function getAccessExpiresAt(): \DateTimeImmutable
-    {
-        return $this->accessExpiresAt;
-    }
-
-    public function getRefreshExpiresAt(): \DateTimeImmutable
-    {
-        return $this->refreshExpiresAt;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
     }
 }

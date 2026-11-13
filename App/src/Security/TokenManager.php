@@ -37,6 +37,7 @@ final readonly class TokenManager
 
         $this->em->persist(new ApiToken(
             $user,
+            $now,
             $hashes['access'],
             $now->modify("+{$this->accessTtl} seconds"),
             $hashes['refresh'],
@@ -66,7 +67,7 @@ final readonly class TokenManager
         $now = $this->clock->now();
 
         $token = $this->tokens->findOneByRefreshTokenHash($oldHash);
-        if (null === $token || !$token->isRefreshTokenValid($now) || $token->getUser()->isArchived()) {
+        if (null === $token || !$token->isRefreshTokenValid($now) || $token->user->isArchived()) {
             return null;
         }
 

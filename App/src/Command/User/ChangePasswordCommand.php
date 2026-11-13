@@ -47,7 +47,7 @@ final readonly class ChangePasswordCommand
             return Command::INVALID;
         }
 
-        $io->success(\sprintf('Password changed for %s; %d session(s) revoked.', $user->getEmail(), $revoked));
+        $io->success(\sprintf('Password changed for %s; %d session(s) revoked.', $user->email, $revoked));
 
         return Command::SUCCESS;
     }

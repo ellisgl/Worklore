@@ -33,7 +33,7 @@ final readonly class DeleteUserCommand
             return Command::FAILURE;
         }
 
-        if (!$force && !$io->confirm(\sprintf('Permanently delete %s?', $user->getEmail()), false)) {
+        if (!$force && !$io->confirm(\sprintf('Permanently delete %s?', $user->email), false)) {
             $io->note('Aborted; nothing was deleted. Use --force when running non-interactively.');
 
             return Command::FAILURE;

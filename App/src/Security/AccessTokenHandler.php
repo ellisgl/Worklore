@@ -24,7 +24,7 @@ final readonly class AccessTokenHandler implements AccessTokenHandlerInterface
             throw new BadCredentialsException('Invalid or expired access token.');
         }
 
-        $user = $token->getUser();
+        $user = $token->user;
 
         return new UserBadge($user->getUserIdentifier(), static fn () => $user);
     }

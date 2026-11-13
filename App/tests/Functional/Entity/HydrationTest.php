@@ -93,6 +93,6 @@ final class HydrationTest extends KernelTestCase
         $project = $this->em->find(ProjectEntity::class, $this->graph['project']->getId());
 
         self::assertSame('Acme', $project->product->company->name);
-        self::assertSame('a@example.com', $project->product->company->user->getEmail());
+        self::assertSame('a@example.com', $project->product->company->user->email);
     }
 }

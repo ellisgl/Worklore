@@ -46,7 +46,7 @@ final class UserCommandsTest extends KernelTestCase
         self::assertNotNull($user);
         self::assertInstanceOf(UuidV7::class, $user->getId(), 'IDs are UUIDv7');
         self::assertStringContainsString($user->getId()->toRfc4122(), $tester->getDisplay());
-        self::assertSame('new.user@example.com', $user->getEmail(), 'Email is stored lowercased');
+        self::assertSame('new.user@example.com', $user->email, 'Email is stored lowercased');
         self::assertSame(['ROLE_USER'], $user->getRoles());
         self::assertNotSame(self::PASSWORD, $user->getPassword(), 'Password must be hashed');
         self::assertTrue($this->passwordMatches($user, self::PASSWORD));
@@ -245,7 +245,7 @@ final class UserCommandsTest extends KernelTestCase
         self::assertStringContainsString('revoked 1 session(s)', $tester->getDisplay());
         $user = $this->reload($user);
         self::assertTrue($user->isArchived());
-        self::assertEquals($clock->now(), $user->getArchivedAt());
+        self::assertEquals($clock->now(), $user->archivedAt);
         self::assertNull($tokenManager->findValidByAccessToken($session->accessToken));
     }
 
@@ -261,7 +261,7 @@ final class UserCommandsTest extends KernelTestCase
 
         $tester->assertCommandIsSuccessful();
         self::assertStringContainsString('already archived', $tester->getDisplay());
-        self::assertEquals(new \DateTimeImmutable('2026-11-13 12:00:00'), $this->reload($user)->getArchivedAt());
+        self::assertEquals(new \DateTimeImmutable('2026-11-13 12:00:00'), $this->reload($user)->archivedAt);
     }
 
     public function testUnarchiveRestoresUser(): void

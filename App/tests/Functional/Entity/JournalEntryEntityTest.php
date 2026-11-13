@@ -42,7 +42,7 @@ final class JournalEntryEntityTest extends KernelTestCase
         $loaded = $project->getJournalEntries()->first();
         self::assertSame('Kickoff', $loaded->title, 'Title is trimmed');
         self::assertSame('Agreed on the scope.', $loaded->entry, 'Entry is trimmed');
-        self::assertSame('a@example.com', $loaded->user->getEmail());
+        self::assertSame('a@example.com', $loaded->user->email);
         self::assertSame(['backend'], array_map(static fn (TagEntity $t) => $t->name, $loaded->getTags()->toArray()));
     }
 

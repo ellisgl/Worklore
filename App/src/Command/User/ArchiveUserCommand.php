@@ -32,13 +32,13 @@ final readonly class ArchiveUserCommand
         }
 
         if ($user->isArchived()) {
-            $io->note(\sprintf('%s was already archived on %s.', $user->getEmail(), $user->getArchivedAt()->format(\DATE_ATOM)));
+            $io->note(\sprintf('%s was already archived on %s.', $user->email, $user->archivedAt->format(\DATE_ATOM)));
 
             return Command::SUCCESS;
         }
 
         $revoked = $this->userManager->archive($user);
-        $io->success(\sprintf('Archived %s and revoked %d session(s).', $user->getEmail(), $revoked));
+        $io->success(\sprintf('Archived %s and revoked %d session(s).', $user->email, $revoked));
 
         return Command::SUCCESS;
     }

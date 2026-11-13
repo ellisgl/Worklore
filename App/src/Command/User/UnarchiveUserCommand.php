@@ -32,13 +32,13 @@ final readonly class UnarchiveUserCommand
         }
 
         if (!$user->isArchived()) {
-            $io->note(\sprintf('%s is not archived.', $user->getEmail()));
+            $io->note(\sprintf('%s is not archived.', $user->email));
 
             return Command::SUCCESS;
         }
 
         $this->userManager->unarchive($user);
-        $io->success(\sprintf('Unarchived %s; they can log in again.', $user->getEmail()));
+        $io->success(\sprintf('Unarchived %s; they can log in again.', $user->email));
 
         return Command::SUCCESS;
     }

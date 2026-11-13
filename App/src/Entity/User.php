@@ -13,21 +13,23 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Doctrine mapping: config/doctrine/Entity/User.orm.xml.
  */
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    private ?Uuid $id = null;
-    private string $email;
-    /** @var list<string> */
+    private(set) Uuid $id;
+    /** Stored trimmed and lowercased; see normalizeEmail() */
+    private(set) string $email;
+    /** @var list<string> Extra roles only; getRoles() adds the implicit ROLE_USER */
     private array $roles = [];
+    /** Password hash; read through getPassword() (required by the interface) */
     private ?string $password = null;
-    private DateTimeImmutable $createdAt;
-    private ?DateTimeImmutable $archivedAt = null;
+    private(set) ?DateTimeImmutable $archivedAt = null;
 
-    public function __construct(string $email)
-    {
+    public function __construct(
+        string $email,
+        private(set) DateTimeImmutable $createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC')),
+    ) {
         $this->id = Uuid::v7();
         $this->setEmail($email);
-        $this->createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
     public static function normalizeEmail(string $email): string
@@ -40,14 +42,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    public function getEmail(): string
-    {
-        return $this->email;
-    }
-
-    public function setEmail(string $email): void
+    public function setEmail(string $email): self
     {
         $this->email = self::normalizeEmail($email);
+
+        return $this;
     }
 
     public function getUserIdentifier(): string
@@ -68,9 +67,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @param list<string> $roles
      */
-    public function setRoles(array $roles): void
+    public function setRoles(array $roles): self
     {
         $this->roles = array_values(array_unique(array_diff($roles, ['ROLE_USER'])));
+
+        return $this;
     }
 
     public function getPassword(): ?string
@@ -78,19 +79,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->password;
     }
 
-    public function setPassword(string $hashedPassword): void
+    public function setPassword(string $hashedPassword): self
     {
         $this->password = $hashedPassword;
-    }
 
-    public function getCreatedAt(): DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function getArchivedAt(): ?DateTimeImmutable
-    {
-        return $this->archivedAt;
+        return $this;
     }
 
     public function isArchived(): bool
@@ -98,13 +91,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return null !== $this->archivedAt;
     }
 
-    public function archive(DateTimeImmutable $at): void
+    public function archive(DateTimeImmutable $at): self
     {
         $this->archivedAt ??= $at;  // already archived: keep the original time
+
+        return $this;
     }
 
-    public function unarchive(): void
+    public function unarchive(): self
     {
         $this->archivedAt = null;
+
+        return $this;
     }
 }
