@@ -8,6 +8,11 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
 
+        # Tables Doctrine's schema tools leave alone: they have no ORM mapping
+        # and are managed by migrations only. event_store is the event log;
+        # the projections an event-sourced module writes join it here.
+        schema_filter: '~^(?!(event_store)($|_))~'
+
         # Typed entity ids (App\Shared\EntityId subclasses), stored as native UUIDs
         types:
             api_token_id: App\Identity\Doctrine\ApiTokenIdType
