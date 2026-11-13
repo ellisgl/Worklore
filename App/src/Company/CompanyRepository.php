@@ -196,9 +196,12 @@ class CompanyRepository extends ServiceEntityRepository
     }
 
     /**
-     * A query over one of the aggregate's child entities.
+     * A query over one of the aggregate's child entities. Generic on purpose,
+     * so PhpStorm can't infer the entity for DQL completion.
      *
      * @param class-string $class
+     *
+     * @noinspection PhpDqlBuilderUnknownModelInspection
      */
     private function select(string $class, string $alias): QueryBuilder
     {
