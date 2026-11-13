@@ -31,29 +31,17 @@ class CategoryRepository extends ServiceEntityRepository
 
     // ---- categories -------------------------------------------------------
 
+    /**
+     * Saves a new category, and the tags inside it, on the next flush.
+     */
+    public function add(CategoryEntity $category): void
+    {
+        $this->getEntityManager()->persist($category);
+    }
+
     public function findOneByIdForOwner(CategoryId $id, Owner $owner): ?CategoryEntity
     {
         return $this->findOneBy(['id' => $id, 'owner' => $owner]);
-    }
-
-    /**
-     * The user's categories, sorted by name.
-     *
-     * @return list<CategoryEntity>
-     */
-    public function getAllCategoriesByOwner(Owner $owner, bool $includeArchived = false): array
-    {
-        $qb = $this->createQueryBuilder('c')
-            ->where('c.owner = :owner')
-            ->setParameter('owner', $owner)
-            ->orderBy('c.name', 'ASC')
-            ->addOrderBy('c.id', 'ASC');
-
-        if (!$includeArchived) {
-            $qb->andWhere('c.archivedAt IS NULL');
-        }
-
-        return $qb->getQuery()->getResult();
     }
 
     // ---- tags -------------------------------------------------------------
