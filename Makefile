@@ -8,7 +8,7 @@ PHP     := $(DC) exec $(TTY) php
 CONSOLE := $(PHP) bin/console
 
 .DEFAULT_GOAL := help
-.PHONY: help init up down restart build ps logs sh console composer db-migrate psql test-db test stan cs cs-fix
+.PHONY: help init up down restart build ps logs sh console composer db-migrate psql test-db test stan cs cs-fix check
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -72,3 +72,5 @@ cs: ## Check code style (PHP CS Fixer, dry run)
 
 cs-fix: ## Fix code style in place
 	$(PHP) vendor/bin/php-cs-fixer fix $(c)
+
+check: cs stan test ## Everything CI runs: code style, static analysis, tests

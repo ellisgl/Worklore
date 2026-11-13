@@ -1,0 +1,36 @@
+# Runs the same make targets as local development, against the same Docker
+# stack (compose.yaml), so CI and laptops can't drift apart.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the stack, install dependencies, migrate databases
+        run: make init
+
+      - name: Code style
+        run: make cs
+
+      - name: Static analysis
+        run: make stan
+
+      - name: Tests
+        run: make test
+
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --no-color
