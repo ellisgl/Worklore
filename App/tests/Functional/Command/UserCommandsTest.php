@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Command;
 
 use App\Identity\User;
-use App\Identity\UserId;
+use App\Shared\UserId;
 use App\Identity\ApiTokenRepository;
 use App\Identity\UserRepository;
 use App\Identity\Security\TokenManager;

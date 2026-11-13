@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared;
 
-use App\Identity\User;
 use InvalidArgumentException;
 
 /**
@@ -21,11 +20,11 @@ final class OwnershipMismatchException extends InvalidArgumentException
      *
      * @throws self if $owner and $user are different users
      */
-    public static function assertSameUser(User $owner, User $user, string $what): void
+    public static function assertSameUser(Owner $owner, Owner $user, string $what): void
     {
         // Compare ids, not objects: a lazy reference and a loaded entity can
-        // be the same user.
-        if (!$owner->id->equals($user->id)) {
+        // be the same owner.
+        if (!$owner->ownerId()->equals($user->ownerId())) {
             throw new self(\sprintf('The %s belongs to a different user', $what));
         }
     }

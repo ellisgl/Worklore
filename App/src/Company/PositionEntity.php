@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Identity\User;
 use App\Shared\Name;
+use App\Shared\Owner;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -24,7 +24,7 @@ final class PositionEntity
 
     private(set) PositionId $id;
     /** The aggregate owner, copied from the company; stored for owner-scoped queries */
-    private(set) readonly User $user;
+    private(set) readonly Owner $user;
     private(set) Name $title;
     private(set) ?string $overview;
     /** Start and (once ended) end day */

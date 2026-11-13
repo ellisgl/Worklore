@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Identity;
 
+use App\Shared\Owner;
+use App\Shared\UserId;
 use DateTimeImmutable;
 use DateTimeZone;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -13,7 +15,7 @@ use function Symfony\Component\Clock\now;
 /**
  * Doctrine mapping: src/Identity/Config/User.orm.xml.
  */
-final class User implements UserInterface, PasswordAuthenticatedUserInterface
+final class User implements UserInterface, PasswordAuthenticatedUserInterface, Owner
 {
     private(set) UserId $id;
     /** Stored trimmed and lowercased; see normalizeEmail() */
@@ -37,6 +39,11 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public static function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
+    }
+
+    public function ownerId(): UserId
+    {
+        return $this->id;
     }
 
     public function setEmail(string $email): self

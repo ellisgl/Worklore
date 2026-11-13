@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Identity\User;
 use App\Shared\Name;
+use App\Shared\Owner;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
@@ -34,7 +34,7 @@ final class CompanyEntity
     private(set) DateTimeImmutable $createdAt;
 
     public function __construct(
-        private(set) readonly User $user,
+        private(set) readonly Owner $user,
         string $name,
         ?string $overview = null,
         ?DateTimeImmutable $createdAt = null,

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Taxonomy;
 
-use App\Identity\User;
 use App\Shared\Name;
+use App\Shared\Owner;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -31,7 +31,7 @@ class CategoryRepository extends ServiceEntityRepository
 
     // ---- categories -------------------------------------------------------
 
-    public function findOneByIdForUser(CategoryId $id, User $user): ?CategoryEntity
+    public function findOneByIdForUser(CategoryId $id, Owner $user): ?CategoryEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -41,7 +41,7 @@ class CategoryRepository extends ServiceEntityRepository
      *
      * @return list<CategoryEntity>
      */
-    public function getAllCategoriesByUser(User $user, bool $includeArchived = false): array
+    public function getAllCategoriesByUser(Owner $user, bool $includeArchived = false): array
     {
         $qb = $this->createQueryBuilder('c')
             ->where('c.user = :user')
@@ -58,7 +58,7 @@ class CategoryRepository extends ServiceEntityRepository
 
     // ---- tags -------------------------------------------------------------
 
-    public function findTagByIdForUser(TagId $id, User $user): ?TagEntity
+    public function findTagByIdForUser(TagId $id, Owner $user): ?TagEntity
     {
         return $this->getEntityManager()->getRepository(TagEntity::class)->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -97,7 +97,7 @@ class CategoryRepository extends ServiceEntityRepository
      *
      * @return list<TagEntity>
      */
-    public function getAllTagsByUser(User $user, bool $includeArchived = false): array
+    public function getAllTagsByUser(Owner $user, bool $includeArchived = false): array
     {
         $qb = $this->select(TagEntity::class, 't')
             ->innerJoin('t.category', 'c')
@@ -122,7 +122,7 @@ class CategoryRepository extends ServiceEntityRepository
      *
      * @return list<TagEntity>
      */
-    public function getAllTagsByCategory(User $user, CategoryEntity $category, bool $includeArchived = false): array
+    public function getAllTagsByCategory(Owner $user, CategoryEntity $category, bool $includeArchived = false): array
     {
         $qb = $this->select(TagEntity::class, 't')
             ->innerJoin('t.category', 'c')

@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Doctrine;
+namespace App\Shared\Doctrine;
 
-use App\Identity\UserId;
-use App\Shared\Doctrine\EntityIdType;
+use App\Shared\UserId;
 
 final class UserIdType extends EntityIdType
 {

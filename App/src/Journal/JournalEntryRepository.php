@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Journal;
 
+use App\Shared\Owner;
 use App\Company\ProjectEntity;
-use App\Identity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -24,7 +24,7 @@ class JournalEntryRepository extends ServiceEntityRepository
      * otherwise, so an endpoint answers 404 instead of revealing someone
      * else's record. Archived ones are returned too (e.g. to unarchive them).
      */
-    public function findOneByIdForUser(JournalEntryId $id, User $user): ?JournalEntryEntity
+    public function findOneByIdForUser(JournalEntryId $id, Owner $user): ?JournalEntryEntity
     {
         return $this->findOneBy(['id' => $id, 'user' => $user]);
     }
@@ -38,7 +38,7 @@ class JournalEntryRepository extends ServiceEntityRepository
      *
      * @return list<JournalEntryEntity>
      */
-    public function getAllEntriesByProject(User $user, ProjectEntity $project, bool $includeArchived = false): array
+    public function getAllEntriesByProject(Owner $user, ProjectEntity $project, bool $includeArchived = false): array
     {
         $qb = $this->createQueryBuilder('j')
             ->innerJoin('j.project', 'pj')

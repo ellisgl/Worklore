@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Company;
 
 use App\Shared\OwnershipMismatchException;
-use App\Identity\User;
 use App\Shared\Name;
+use App\Shared\Owner;
 use App\Journal\JournalEntryEntity;
 use App\Taxonomy\TagEntity;
 use DateTimeImmutable;
@@ -24,7 +24,7 @@ final class ProjectEntity
 {
     private(set) ProjectId $id;
     /** The aggregate owner, copied from the product; stored for owner-scoped queries */
-    private(set) readonly User $user;
+    private(set) readonly Owner $user;
     private(set) Name $name;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;

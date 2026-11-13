@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Taxonomy;
 
 use App\Shared\OwnershipMismatchException;
-use App\Identity\User;
 use App\Shared\Name;
+use App\Shared\Owner;
 use DateTimeImmutable;
 use DateTimeZone;
 use function Symfony\Component\Clock\now;
@@ -18,7 +18,7 @@ final class TagEntity
 {
     private(set) TagId $id;
     /** The aggregate owner, copied from the category; stored for owner-scoped queries */
-    private(set) readonly User $user;
+    private(set) readonly Owner $user;
     private(set) Name $name;
     /** Case-insensitive form of $name, for uniq_tag_category_name; see Name::key() */
     private string $nameKey;
