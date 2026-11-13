@@ -36,8 +36,8 @@ abstract readonly class EntityId implements Stringable
 
     public function equals(?self $other): bool
     {
-        return null !== $other
-            && $other::class === static::class
+        return $other instanceof static
+            && $other::class === static::class   // not a subclass either
             && $this->uuid->equals($other->uuid);
     }
 

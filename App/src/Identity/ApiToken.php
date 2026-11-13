@@ -24,7 +24,11 @@ final class ApiToken
 
     /**
      * $createdAt comes from the caller's clock (TokenManager), so tests that
-     * mock the clock see consistent times.
+     * mock the clock see consistent times. It isn't readonly, like createdAt on
+     * every entity: $em->refresh() rebuilds it as a new object, which Doctrine
+     * can't write to a readonly property (see HydrationTest).
+     *
+     * @noinspection PhpPropertyCanBeReadonlyInspection
      */
     public function __construct(
         private(set) readonly User $user,

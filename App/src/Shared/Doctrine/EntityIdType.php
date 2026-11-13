@@ -31,7 +31,11 @@ abstract class EntityIdType extends Type
     {
         $class = $this->idClass();
 
-        if (null === $value || $value instanceof $class) {
+        if (null === $value) {
+            return null;
+        }
+
+        if ($value instanceof EntityId && $value instanceof $class) {
             return $value;
         }
 

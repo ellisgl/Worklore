@@ -20,7 +20,13 @@ final class TagEntity
     /** The aggregate owner, copied from the category; stored for owner-scoped queries */
     private(set) readonly Owner $owner;
     private(set) Name $name;
-    /** Case-insensitive form of $name, for uniq_tag_category_name; see Name::key() */
+    /**
+     * Case-insensitive form of $name, for uniq_tag_category_name; see
+     * Name::key(). Only the database and CategoryRepository::nameExistsInCategory()
+     * read it, so PHP code never does.
+     *
+     * @noinspection PhpPropertyOnlyWrittenInspection
+     */
     private string $nameKey;
     private(set) CategoryEntity $category;
     private(set) ?DateTimeImmutable $archivedAt = null;

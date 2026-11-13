@@ -40,9 +40,9 @@ final readonly class TokenManager
             $user,
             $now,
             $hashes['access'],
-            $now->modify("+{$this->accessTtl} seconds"),
+            $now->modify("+$this->accessTtl seconds"),
             $hashes['refresh'],
-            $now->modify("+{$this->refreshTtl} seconds"),
+            $now->modify("+$this->refreshTtl seconds"),
         ));
         $this->em->flush();
 
@@ -85,9 +85,9 @@ final readonly class TokenManager
             ->where('t.id = :id')
             ->andWhere('t.refreshTokenHash = :oldHash')
             ->setParameter('access', $hashes['access'])
-            ->setParameter('accessExpires', $now->modify("+{$this->accessTtl} seconds"), 'datetime_immutable')
+            ->setParameter('accessExpires', $now->modify("+$this->accessTtl seconds"), 'datetime_immutable')
             ->setParameter('refresh', $hashes['refresh'])
-            ->setParameter('refreshExpires', $now->modify("+{$this->refreshTtl} seconds"), 'datetime_immutable')
+            ->setParameter('refreshExpires', $now->modify("+$this->refreshTtl seconds"), 'datetime_immutable')
             ->setParameter('id', $token->id, ApiTokenIdType::NAME)
             ->setParameter('oldHash', $oldHash)
             ->getQuery()

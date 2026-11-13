@@ -20,7 +20,13 @@ final class CompanyEntity
 {
     private(set) CompanyId $id;
     private(set) Name $name;
-    /** Case-insensitive form of $name, for uniq_company_user_name; see Name::key() */
+    /**
+     * Case-insensitive form of $name, for uniq_company_user_name; see
+     * Name::key(). Only the database and CompanyRepository::nameExistsForOwner()
+     * read it, so PHP code never does.
+     *
+     * @noinspection PhpPropertyOnlyWrittenInspection
+     */
     private string $nameKey;
     private(set) ?string $overview;
     private(set) ?DateTimeImmutable $archivedAt = null;

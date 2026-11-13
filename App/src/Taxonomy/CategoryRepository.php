@@ -74,7 +74,7 @@ class CategoryRepository extends ServiceEntityRepository
      */
     public function nameExistsInCategory(CategoryEntity $category, string $name, ?TagEntity $except = null): bool
     {
-        $qb = $this->select(TagEntity::class, 't')
+        $qb = $this->tags()
             ->select('1')
             ->where('t.category = :category')
             ->andWhere('t.nameKey = :nameKey')
@@ -99,7 +99,7 @@ class CategoryRepository extends ServiceEntityRepository
      */
     public function getAllTagsByOwner(Owner $owner, bool $includeArchived = false): array
     {
-        $qb = $this->select(TagEntity::class, 't')
+        $qb = $this->tags()
             ->innerJoin('t.category', 'c')
             ->addSelect('c')
             ->where('t.owner = :owner')
@@ -124,7 +124,7 @@ class CategoryRepository extends ServiceEntityRepository
      */
     public function getAllTagsByCategory(Owner $owner, CategoryEntity $category, bool $includeArchived = false): array
     {
-        $qb = $this->select(TagEntity::class, 't')
+        $qb = $this->tags()
             ->innerJoin('t.category', 'c')
             ->where('t.owner = :owner')
             ->andWhere('t.category = :category')
@@ -142,12 +142,10 @@ class CategoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * A query over the aggregate's tags.
-     *
-     * @param class-string $class
+     * A query over the aggregate's tags, aliased "t".
      */
-    private function select(string $class, string $alias): QueryBuilder
+    private function tags(): QueryBuilder
     {
-        return $this->getEntityManager()->createQueryBuilder()->select($alias)->from($class, $alias);
+        return $this->getEntityManager()->createQueryBuilder()->select('t')->from(TagEntity::class, 't');
     }
 }
