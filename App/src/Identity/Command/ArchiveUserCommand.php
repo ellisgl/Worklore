@@ -35,7 +35,7 @@ final readonly class ArchiveUserCommand
             return Command::FAILURE;
         }
 
-        if ($user->isArchived()) {
+        if (null !== $user->archivedAt) {
             $io->note(sprintf('%s was already archived on %s.', $user->email, $user->archivedAt->format(DATE_ATOM)));
 
             return Command::SUCCESS;

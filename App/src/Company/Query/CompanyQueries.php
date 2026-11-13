@@ -61,6 +61,7 @@ final readonly class CompanyQueries
         }
         $sql .= "\n             ORDER BY c.name, c.id";
 
+        /** @var list<array{id: string, name: string, overview: string|null, created_at: string, archived_at: string|null, product_count: int, current_position: string|null}> $rows */
         $rows = $this->db->fetchAllAssociative($sql, ['owner' => $ownerId->toRfc4122()]);
 
         return array_map(static fn (array $row) => new CompanySummary(

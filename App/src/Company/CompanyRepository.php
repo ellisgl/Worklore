@@ -91,7 +91,7 @@ class CompanyRepository extends ServiceEntityRepository
      */
     public function getAllProductsByCompany(Owner $owner, CompanyEntity $company, bool $includeArchived = false): array
     {
-        $qb = $this->select(ProductEntity::class, 'p')
+        $qb = $this->products()
             ->innerJoin('p.company', 'c')
             ->where('p.owner = :owner')
             ->andWhere('p.company = :company')
@@ -122,7 +122,7 @@ class CompanyRepository extends ServiceEntityRepository
      */
     public function getAllProjectsByProduct(Owner $owner, ProductEntity $product, bool $includeArchived = false): array
     {
-        $qb = $this->select(ProjectEntity::class, 'pj')
+        $qb = $this->projects()
             ->innerJoin('pj.product', 'p')
             ->innerJoin('p.company', 'c')
             ->where('pj.owner = :owner')
@@ -155,7 +155,7 @@ class CompanyRepository extends ServiceEntityRepository
      */
     public function getAllPositionsByCompany(Owner $owner, CompanyEntity $company, bool $includeArchived = false): array
     {
-        $qb = $this->select(PositionEntity::class, 'p')
+        $qb = $this->positions()
             ->innerJoin('p.company', 'c')
             ->where('p.owner = :owner')
             ->andWhere('p.company = :company')
@@ -181,7 +181,7 @@ class CompanyRepository extends ServiceEntityRepository
      */
     public function getCurrentPositionsByOwner(Owner $owner): array
     {
-        return $this->select(PositionEntity::class, 'p')
+        return $this->positions()
             ->innerJoin('p.company', 'c')
             ->addSelect('c')
             ->where('p.owner = :owner')
@@ -195,16 +195,21 @@ class CompanyRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * A query over one of the aggregate's child entities. Generic on purpose,
-     * so PhpStorm can't infer the entity for DQL completion.
-     *
-     * @param class-string $class
-     *
-     * @noinspection PhpDqlBuilderUnknownModelInspection
-     */
-    private function select(string $class, string $alias): QueryBuilder
+    /** A query over the aggregate's products, aliased "p". */
+    private function products(): QueryBuilder
     {
-        return $this->getEntityManager()->createQueryBuilder()->select($alias)->from($class, $alias);
+        return $this->getEntityManager()->createQueryBuilder()->select('p')->from(ProductEntity::class, 'p');
+    }
+
+    /** A query over the aggregate's projects, aliased "pj". */
+    private function projects(): QueryBuilder
+    {
+        return $this->getEntityManager()->createQueryBuilder()->select('pj')->from(ProjectEntity::class, 'pj');
+    }
+
+    /** A query over the aggregate's positions, aliased "p". */
+    private function positions(): QueryBuilder
+    {
+        return $this->getEntityManager()->createQueryBuilder()->select('p')->from(PositionEntity::class, 'p');
     }
 }

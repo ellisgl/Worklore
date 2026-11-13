@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Identity;
 
+use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use App\Shared\UserId;
 use DateTimeImmutable;
@@ -12,13 +13,15 @@ use Symfony\Component\Clock\Clock;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+use function assert;
+
 /**
  * Doctrine mapping: src/Identity/Config/User.orm.xml.
  */
 final class User implements UserInterface, PasswordAuthenticatedUserInterface, Owner
 {
     private(set) UserId $id;
-    /** Stored trimmed and lowercased; see normalizeEmail() */
+    /** Stored trimmed and lowercased, never blank; see setEmail() */
     private(set) string $email;
     /** @var list<string> Extra roles only; getRoles() adds the implicit ROLE_USER */
     private array $roles = [];
@@ -46,15 +49,25 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, O
         return $this->id;
     }
 
+    /**
+     * @throws InvalidValueException if the email is blank
+     */
     public function setEmail(string $email): self
     {
-        $this->email = self::normalizeEmail($email);
+        $email = self::normalizeEmail($email);
+        if ('' === $email) {
+            throw new InvalidValueException('Email cannot be blank');
+        }
+
+        $this->email = $email;
 
         return $this;
     }
 
     public function getUserIdentifier(): string
     {
+        assert('' !== $this->email, 'setEmail() rejects blank emails');
+
         return $this->email;
     }
 

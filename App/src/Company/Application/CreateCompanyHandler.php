@@ -10,6 +10,7 @@ use App\Shared\InvalidValueException;
 use App\Shared\Owner;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
+use LogicException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -33,7 +34,8 @@ final readonly class CreateCompanyHandler
     public function __invoke(CreateCompany $command): void
     {
         // A reference, not a query: Doctrine resolves Owner to the user class.
-        $owner = $this->em->getReference(Owner::class, $command->ownerId);
+        $owner = $this->em->getReference(Owner::class, $command->ownerId)
+            ?? throw new LogicException('Owner is not a mapped entity; check resolve_target_entities');
 
         if ($this->companies->nameExistsForOwner($owner, $command->name)) {
             throw new CompanyNameTaken($command->name);
