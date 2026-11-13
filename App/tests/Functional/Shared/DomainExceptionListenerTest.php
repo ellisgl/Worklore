@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Shared;
 use App\Shared\ConflictException;
 use App\Shared\Http\DomainExceptionListener;
 use App\Shared\InvalidValueException;
+use App\Shared\NotFoundException;
 use App\Shared\OwnershipMismatchException;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -29,6 +30,7 @@ final class DomainExceptionListenerTest extends TestCase
     {
         yield 'invalid value' => [new InvalidValueException('Company name cannot be blank'), 422, 'Company name cannot be blank'];
         yield 'conflict' => [new class('That name is taken.') extends ConflictException {}, 409, 'That name is taken.'];
+        yield 'not found' => [new class('Company not found.') extends NotFoundException {}, 404, 'Company not found.'];
         yield 'ownership mismatch hides details' => [new OwnershipMismatchException('The tag belongs to a different user'), 404, 'Not found.'];
     }
 

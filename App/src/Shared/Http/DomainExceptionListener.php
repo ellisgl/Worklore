@@ -6,6 +6,7 @@ namespace App\Shared\Http;
 
 use App\Shared\ConflictException;
 use App\Shared\InvalidValueException;
+use App\Shared\NotFoundException;
 use App\Shared\OwnershipMismatchException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,7 @@ use function count;
  *
  * - InvalidValueException      → 422, with its message
  * - ConflictException          → 409, with its message
+ * - NotFoundException          → 404, with its message
  * - OwnershipMismatchException → 404 "Not found.", so it doesn't reveal that
  *                                another user's record exists
  *
@@ -42,6 +44,7 @@ final class DomainExceptionListener
         $response = match (true) {
             ($e = self::unwrap($event->getThrowable())) instanceof InvalidValueException => self::error($e->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY),
             $e instanceof ConflictException => self::error($e->getMessage(), Response::HTTP_CONFLICT),
+            $e instanceof NotFoundException => self::error($e->getMessage(), Response::HTTP_NOT_FOUND),
             $e instanceof OwnershipMismatchException => self::error('Not found.', Response::HTTP_NOT_FOUND),
             default => null,
         };
