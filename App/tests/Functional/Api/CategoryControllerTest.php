@@ -63,12 +63,21 @@ final class CategoryControllerTest extends ApiTestCase
     /**
      * @throws JsonException
      */
-    public function testSameNamesAreAllowed(): void
+    public function testNamesAreUniqueIgnoringCase(): void
     {
-        $this->createCategory('Area');
-        $this->createCategory('area');
+        $skill = $this->createCategory('Skill');
+        $old = $this->createCategory('Old');
+        $this->jsonRequest('POST', '/api/categories/'.$old.'/archive', headers: $this->auth);
 
-        self::assertCount(2, $this->list());
+        $create = $this->jsonRequest('POST', '/api/categories', ['name' => ' skill '], $this->auth);
+        $rename = $this->jsonRequest('PATCH', '/api/categories/'.$skill, ['name' => 'OLD'], $this->auth);
+        $ownName = $this->jsonRequest('PATCH', '/api/categories/'.$skill, ['name' => 'SKILL'], $this->auth);
+
+        $this->assertJsonError($create, Response::HTTP_CONFLICT, 'You already have a category named "skill".');
+        $this->assertJsonError($rename, Response::HTTP_CONFLICT, 'You already have a category named "OLD".');
+        self::assertSame(Response::HTTP_NO_CONTENT, $ownName->getStatusCode(), 'Its own name in another case');
+        self::assertSame('SKILL', $this->show($skill)['name']);
+        $this->createdId('/api/categories', ['name' => 'Skill'], $this->signIn('other@example.com'));
     }
 
     /**

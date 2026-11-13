@@ -44,6 +44,33 @@ class CategoryRepository extends ServiceEntityRepository
         return $this->findOneBy(['id' => $id, 'owner' => $owner]);
     }
 
+    /**
+     * Whether the owner already has a category with this name, ignoring case
+     * (archived ones included, matching uniq_category_user_name). Pass the category
+     * being renamed as $except so keeping its current name isn't a clash.
+     *
+     * Check this before saving to answer 409; the unique constraint stays as
+     * the backstop for two requests racing each other.
+     */
+    public function nameExistsForOwner(Owner $owner, string $name, ?CategoryEntity $except = null): bool
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('1')
+            ->from(CategoryEntity::class, 'c')
+            ->where('c.owner = :parent')
+            ->andWhere('c.nameKey = :nameKey')
+            ->setParameter('parent', $owner)
+            ->setParameter('nameKey', Name::keyOf($name))
+            ->setMaxResults(1);
+
+        if (null !== $except) {
+            $qb->andWhere('c <> :except')
+                ->setParameter('except', $except);
+        }
+
+        return null !== $qb->getQuery()->getOneOrNullResult();
+    }
+
     // ---- tags -------------------------------------------------------------
 
     public function findTagByIdForOwner(TagId $id, Owner $owner): ?TagEntity

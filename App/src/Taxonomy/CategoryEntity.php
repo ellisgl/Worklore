@@ -21,6 +21,14 @@ final class CategoryEntity
 {
     private(set) CategoryId $id;
     private(set) Name $name;
+    /**
+     * Case-insensitive form of $name, for uniq_category_user_name; see
+     * Name::key(). Only the database and CategoryRepository::nameExistsForOwner()
+     * read it, so PHP code never does.
+     *
+     * @noinspection PhpPropertyOnlyWrittenInspection
+     */
+    private string $nameKey;
     private(set) ?string $description;
     private(set) ?DateTimeImmutable $archivedAt = null;
 
@@ -37,7 +45,7 @@ final class CategoryEntity
     ) {
         $this->id = $id ?? CategoryId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
-        $this->name = Name::of($name, 'Category name');
+        $this->setName($name);
         $this->description = self::normalizeDescription($description);
         $this->tags = new ArrayCollection();
     }
@@ -102,6 +110,7 @@ final class CategoryEntity
     public function setName(string $name): self
     {
         $this->name = Name::of($name, 'Category name');
+        $this->nameKey = $this->name->key();
 
         return $this;
     }

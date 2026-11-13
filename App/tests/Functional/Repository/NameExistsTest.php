@@ -129,6 +129,23 @@ final class NameExistsTest extends KernelTestCase
         self::assertTrue($this->companies->projectNameExistsInProduct($widget, 'beta', except: $launch));
     }
 
+    // ---- CategoryRepository::nameExistsForOwner() ---------------------------
+
+    public function testCategoryNameCheck(): void
+    {
+        $me = $this->persist(new User('a@example.com'));
+        $other = $this->persist(new User('b@example.com'));
+        $skill = $this->persist(new CategoryEntity($me, 'Skill'));
+        $this->persist(new CategoryEntity($me, 'Old')->archive(new DateTimeImmutable()));
+        $this->em->flush();
+
+        self::assertTrue($this->tags->nameExistsForOwner($me, ' SKILL '), 'Trimmed, any case');
+        self::assertTrue($this->tags->nameExistsForOwner($me, 'old'), 'Archived ones hold their name');
+        self::assertFalse($this->tags->nameExistsForOwner($other, 'Skill'), 'Free for another user');
+        self::assertFalse($this->tags->nameExistsForOwner($me, 'skill', except: $skill), 'Its own name');
+        self::assertTrue($this->tags->nameExistsForOwner($me, 'old', except: $skill));
+    }
+
     // ---- CategoryRepository::nameExistsInCategory() ----------------------------
 
     public function testTagNameTakenInCategory(): void

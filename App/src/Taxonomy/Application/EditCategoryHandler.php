@@ -20,16 +20,21 @@ final readonly class EditCategoryHandler
     }
 
     /**
+     * @throws CategoryNameTaken
      * @throws CategoryNotFound
      * @throws InvalidValueException if the name is blank or too long
      * @throws ORMException
      */
     public function __invoke(EditCategory $command): void
     {
-        $category = $this->categories->findOneByIdForOwner($command->categoryId, $this->owners->get($command->ownerId))
+        $owner = $this->owners->get($command->ownerId);
+        $category = $this->categories->findOneByIdForOwner($command->categoryId, $owner)
             ?? throw new CategoryNotFound();
 
         if (null !== $command->name) {
+            if ($this->categories->nameExistsForOwner($owner, $command->name, except: $category)) {
+                throw new CategoryNameTaken($command->name);
+            }
             $category->setName($command->name);
         }
         if (null !== $command->description) {

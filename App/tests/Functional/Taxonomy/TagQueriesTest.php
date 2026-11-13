@@ -61,24 +61,6 @@ final class TagQueriesTest extends KernelTestCase
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function testSameNamedCategoriesKeepTheirTagsTogether(): void
-    {
-        // Category names aren't unique; the id tie-breaker (UUIDv7, time
-        // ordered) keeps each category's tags together, oldest category first.
-        $first = $this->category('Area');
-        $second = $this->category('Area');
-        $second->addTag('a-second');
-        $first->addTag('z-first');
-        $first->addTag('b-first');
-        $this->em->flush();
-
-        self::assertSame(['b-first', 'z-first', 'a-second'], $this->names($this->queries->listForOwner($this->owner->id)->items));
-    }
-
-    /**
-     * @throws DateMalformedStringException
-     * @throws Exception
-     */
     public function testArchivedTagsAndTagsInArchivedCategoriesAreLeftOutUnlessAsked(): void
     {
         $area = $this->category('area');

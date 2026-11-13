@@ -9,7 +9,7 @@ use App\Taxonomy\CategoryId;
 
 /**
  * Command: create a category for an owner. The caller picks the id, so
- * dispatching returns nothing. Category names needn't be unique.
+ * dispatching returns nothing.
  */
 final readonly class CreateCategory
 {

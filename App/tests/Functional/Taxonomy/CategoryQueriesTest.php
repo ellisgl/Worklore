@@ -72,21 +72,6 @@ final class CategoryQueriesTest extends KernelTestCase
      * @throws DateMalformedStringException
      * @throws Exception
      */
-    public function testSameNamesSortInCreationOrder(): void
-    {
-        $first = $this->category('Area', 'first');
-        $second = $this->category('Area', 'second');
-        $this->em->flush();
-
-        $listed = $this->queries->listForOwner($this->owner->id)->items;
-
-        self::assertSame([(string) $first->id, (string) $second->id], array_map(static fn (CategorySummary $c) => $c->id, $listed));
-    }
-
-    /**
-     * @throws DateMalformedStringException
-     * @throws Exception
-     */
     public function testReadModelFields(): void
     {
         $area = new CategoryEntity($this->owner, 'Area', 'Where I work', new DateTimeImmutable('2024-01-02 03:04:05'));

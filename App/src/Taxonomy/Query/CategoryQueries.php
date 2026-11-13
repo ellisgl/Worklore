@@ -48,7 +48,7 @@ final readonly class CategoryQueries
     }
 
     /**
-     * The owner's categories, sorted by name (same names in creation order).
+     * The owner's categories, sorted by name.
      *
      * By default archived categories are left out; pass $includeArchived =
      * true for all.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Controller;
 
+use App\Shared\Http\OpenApi\Conflict;
 use App\Shared\Http\OpenApi\Created;
 use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
@@ -80,6 +81,7 @@ final class CategoryController extends AbstractController
      */
     #[Created('Created')]
     #[Invalid]
+    #[Conflict('The caller already has a category with this name, ignoring case', 'You already have a category named "Skill".')]
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(
         #[CurrentUser] Owner $owner,
@@ -119,6 +121,7 @@ final class CategoryController extends AbstractController
     #[NoContent('Saved')]
     #[Invalid]
     #[NotFound('Category not found.')]
+    #[Conflict('The caller already has a category with this name, ignoring case', 'You already have a category named "Skill".')]
     #[Route('/{id}', name: 'edit', requirements: ['id' => Requirement::UUID], methods: ['PATCH'])]
     public function edit(
         #[CurrentUser] Owner $owner,

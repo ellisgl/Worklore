@@ -160,6 +160,16 @@ final class UniquenessTest extends KernelTestCase
         $this->save($widget->addProject('LAUNCH'));
     }
 
+    public function testCategoryNameIsUniquePerUserIgnoringCase(): void
+    {
+        $user = $this->user('a@example.com');
+        $this->save(new CategoryEntity($user, 'Skill'));
+        $this->save(new CategoryEntity($this->user('b@example.com'), 'Skill'));  // fine for someone else
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->save(new CategoryEntity($user, 'SKILL'));
+    }
+
     private function user(string $email): User
     {
         return $this->save(new User($email));

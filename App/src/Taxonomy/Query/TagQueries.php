@@ -48,8 +48,6 @@ final readonly class TagQueries
 
     /**
      * All the owner's tags, sorted by category name and then tag name.
-     * Same-named categories are ordered by creation, which keeps each one's
-     * tags together.
      *
      * By default archived tags, and every tag in an archived category, are
      * left out; pass $includeArchived = true for all.
