@@ -15,6 +15,11 @@
         <field name="roles" type="json"/>
         <field name="password" nullable="true"/>
         <field name="createdAt" column="created_at" type="datetime_immutable"/>
+        <field name="storageQuota" column="storage_quota" type="bigint" nullable="true">
+            <options>
+                <option name="comment">Bytes of media the user may store; null: MEDIA_USER_QUOTA</option>
+            </options>
+        </field>
         <field name="archivedAt" column="archived_at" type="datetime_immutable" nullable="true">
             <options>
                 <option name="comment">A date time denotes the item was archived</option>

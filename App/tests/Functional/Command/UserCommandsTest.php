@@ -9,6 +9,7 @@ use App\Identity\Security\TokenManager;
 use App\Identity\User;
 use App\Identity\UserManager;
 use App\Identity\UserRepository;
+use App\Shared\StorageQuotas;
 use App\Tests\Functional\FindsEntities;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -315,6 +316,48 @@ final class UserCommandsTest extends KernelTestCase
     }
 
     // ---- helpers ----------------------------------------------------------
+
+    // ---- app:user:quota ---------------------------------------------------
+
+    public function testQuotaShowsTheDefault(): void
+    {
+        $user = $this->createUser('quota@example.com');
+        $tester = $this->command('app:user:quota');
+
+        $tester->execute(['email' => 'quota@example.com']);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertStringContainsString('may store 3 MB (the default', $tester->getDisplay());
+        self::assertSame(3 * 1024 ** 2, self::getContainer()->get(StorageQuotas::class)->limitFor($user->id));
+    }
+
+    public function testQuotaSetsAndClearsAnOverride(): void
+    {
+        $user = $this->createUser('quota@example.com');
+        $quotas = self::getContainer()->get(StorageQuotas::class);
+
+        $tester = $this->command('app:user:quota');
+        $tester->execute(['email' => 'quota@example.com', 'quota' => '2G']);
+        $tester->assertCommandIsSuccessful();
+        self::assertStringContainsString('may store 2 GB (their own quota)', $tester->getDisplay());
+        self::assertSame(2 * 1024 ** 3, $this->reload($user)->storageQuota);
+        self::assertSame(2 * 1024 ** 3, $quotas->limitFor($user->id));
+
+        $tester->execute(['email' => 'quota@example.com', 'quota' => 'default']);
+        $tester->assertCommandIsSuccessful();
+        self::assertNull($this->reload($user)->storageQuota);
+        self::assertSame(3 * 1024 ** 2, $quotas->limitFor($user->id));
+    }
+
+    public function testQuotaRejectsSomethingThatIsNotASize(): void
+    {
+        $this->createUser('quota@example.com');
+        $tester = $this->command('app:user:quota');
+
+        self::assertSame(Command::INVALID, $tester->execute(['email' => 'quota@example.com', 'quota' => 'lots']));
+        self::assertStringContainsString('"lots" is not a size', $tester->getDisplay());
+        self::assertSame(Command::FAILURE, $tester->execute(['email' => 'nobody@example.com', 'quota' => '1G']));
+    }
 
     private function command(string $name): CommandTester
     {

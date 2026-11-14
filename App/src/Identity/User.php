@@ -29,6 +29,8 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, O
     private ?string $password = null;
     private(set) ?DateTimeImmutable $archivedAt = null;
     private(set) DateTimeImmutable $createdAt;
+    /** Bytes of media this user may store; null: the default (MEDIA_USER_QUOTA) */
+    private(set) ?int $storageQuota = null;
 
     public function __construct(
         string $email,
@@ -100,6 +102,21 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, O
     public function setPassword(string $hashedPassword): self
     {
         $this->password = $hashedPassword;
+
+        return $this;
+    }
+
+    /**
+     * @param int|null $bytes null for the default
+     *
+     * @throws InvalidValueException if $bytes is negative
+     */
+    public function setStorageQuota(?int $bytes): self
+    {
+        if (null !== $bytes && $bytes < 0) {
+            throw new InvalidValueException('A storage quota cannot be negative.');
+        }
+        $this->storageQuota = $bytes;
 
         return $this;
     }
