@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Repository;
 
-use App\Company\CompanyEntity;
-use App\Company\CompanyRepository;
-use App\Company\PositionEntity;
-use App\Company\ProductEntity;
-use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
@@ -22,8 +17,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Every by-id lookup (findOneByIdForOwner(), findProductByIdForOwner(), ...): a user sees their own records and
- * nothing else.
+ * The ORM repositories' by-id lookups (findOneByIdForOwner(), findTagByIdForOwner()):
+ * a user sees their own records and nothing else.
  */
 final class FindOneByIdForOwnerTest extends KernelTestCase
 {
@@ -42,10 +37,6 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
      */
     public static function repositoryProvider(): iterable
     {
-        yield 'company' => [CompanyRepository::class, 'findOneByIdForOwner', 'company'];
-        yield 'product' => [CompanyRepository::class, 'findProductByIdForOwner', 'product'];
-        yield 'project' => [CompanyRepository::class, 'findProjectByIdForOwner', 'project'];
-        yield 'position' => [CompanyRepository::class, 'findPositionByIdForOwner', 'position'];
         yield 'category' => [CategoryRepository::class, 'findOneByIdForOwner', 'category'];
         yield 'tag' => [CategoryRepository::class, 'findTagByIdForOwner', 'tag'];
     }
@@ -100,21 +91,14 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
     /**
      * One of every entity, all owned by a new user.
      *
-     * @return array{user: User, company: CompanyEntity, product: ProductEntity, project: ProjectEntity, position: PositionEntity, category: CategoryEntity, tag: TagEntity}
+     * @return array{user: User, category: CategoryEntity, tag: TagEntity}
      */
     private function graphFor(string $email): array
     {
         $user = new User($email);
-        $company = new CompanyEntity($user, 'Acme');
-        $product = $company->addProduct('Widget');
         $category = new CategoryEntity($user, 'Area');
-        $project = $product->addProject('Launch');
         $graph = [
             'user' => $user,
-            'company' => $company,
-            'product' => $product,
-            'project' => $project,
-            'position' => $company->addPosition('Developer', new DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => $category->addTag('backend'),
         ];

@@ -7,7 +7,7 @@ namespace App\Company;
 use App\Shared\EntityId;
 
 /**
- * Identifies a position (PositionEntity).
+ * Identifies a position (the Position aggregate and its stream).
  */
 final readonly class PositionId extends EntityId
 {

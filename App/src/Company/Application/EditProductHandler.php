@@ -4,40 +4,49 @@ declare(strict_types=1);
 
 namespace App\Company\Application;
 
-use App\Company\CompanyRepository;
-use App\Shared\Doctrine\OwnerReferences;
+use App\Company\ProductRepository;
+use App\Company\Query\CompanyNames;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
-use Doctrine\ORM\Exception\ORMException;
+use Doctrine\DBAL\Exception;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
+/**
+ * Every change or none: the rules are checked before anything is saved.
+ */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class EditProductHandler
 {
     public function __construct(
-        private CompanyRepository $companies,
-        private OwnerReferences $owners,
+        private ProductRepository $products,
+        private CompanyNames $names,
     ) {
     }
 
     /**
-     * @throws InvalidValueException if the name is blank or too long
-     * @throws ORMException
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the name is blank or too long
      * @throws ProductNameTaken
      * @throws ProductNotFound
      */
     public function __invoke(EditProduct $command): void
     {
-        $product = $this->companies->findProductByIdForOwner($command->productId, $this->owners->get($command->ownerId))
+        $product = $this->products->findForOwner($command->productId, $command->ownerId)
             ?? throw new ProductNotFound();
 
         if (null !== $command->name) {
-            if ($this->companies->productNameExistsInCompany($product->company, $command->name, except: $product)) {
+            if ($this->names->productNameTaken($product->companyId, $command->name, except: $product->id())) {
                 throw new ProductNameTaken($command->name);
             }
-            $product->setName($command->name);
+            $product->rename($command->name);
         }
         if (null !== $command->overview) {
-            $product->setOverview($command->overview);
+            $product->describe($command->overview);
         }
+
+        $this->products->save($product);
     }
 }

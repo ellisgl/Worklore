@@ -12,9 +12,8 @@ use App\Journal\Event\JournalEntryUnarchived;
 use App\Journal\Event\JournalEntryWritten;
 use App\Shared\EventSourcing\Projector;
 use App\Shared\EventSourcing\StoredEvent;
+use App\Shared\EventSourcing\WritesRows;
 use App\Taxonomy\TagId;
-use DateTimeImmutable;
-use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 
@@ -24,6 +23,8 @@ use Doctrine\DBAL\Exception;
  */
 final readonly class JournalEntryProjector implements Projector
 {
+    use WritesRows;
+
     public function __construct(private Connection $db)
     {
     }
@@ -85,10 +86,5 @@ final readonly class JournalEntryProjector implements Projector
         foreach ($tagIds as $tagId) {
             $this->db->insert('journal_entry_tag', ['journal_entry_id' => $id, 'tag_id' => $tagId->toRfc4122()]);
         }
-    }
-
-    private static function time(DateTimeImmutable $at): string
-    {
-        return $at->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 }

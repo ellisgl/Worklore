@@ -7,7 +7,7 @@ namespace App\Company;
 use App\Shared\EntityId;
 
 /**
- * Identifies a project (ProjectEntity).
+ * Identifies a project (the Project aggregate and its stream).
  */
 final readonly class ProjectId extends EntityId
 {

@@ -4,35 +4,33 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Company;
 
-use App\Company\CompanyEntity;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyQueries;
 use App\Company\Query\CompanySummary;
 use App\Identity\User;
 use App\Shared\InvalidValueException;
 use App\Shared\Query\Page;
+use App\Tests\Functional\CreatesCompanyRecords;
 use DateMalformedStringException;
-use DateTimeImmutable;
-use DateTimeZone;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+use function array_map;
 
 use const DATE_RFC3339;
 
 final class CompanyQueriesTest extends KernelTestCase
 {
-    private EntityManagerInterface $em;
+    use CreatesCompanyRecords;
+
     private CompanyQueries $queries;
-    private User $owner;
+    private User $me;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->queries = self::getContainer()->get(CompanyQueries::class);
-        $this->owner = new User('me@example.com');
-        $this->em->persist($this->owner);
+        $this->me = $this->owner();
     }
 
     /**
@@ -41,16 +39,13 @@ final class CompanyQueriesTest extends KernelTestCase
      */
     public function testListIsSortedByNameAndScopedToTheOwner(): void
     {
-        $this->company('Globex');
-        $this->company('Acme');
-        $this->company('Initech')->archive(new DateTimeImmutable('2024-05-06 07:08:09'));
-        $other = new User('other@example.com');
-        $this->em->persist($other);
-        $this->em->persist(new CompanyEntity($other, 'Theirs'));
-        $this->em->flush();
+        $this->company($this->me, 'Globex');
+        $this->company($this->me, 'Acme');
+        $this->company($this->me, 'Initech', archived: true);
+        $this->company($this->owner('other@example.com'), 'Theirs');
 
-        self::assertSame(['Acme', 'Globex'], $this->names($this->queries->listForOwner($this->owner->id)->items));
-        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($this->queries->listForOwner($this->owner->id, includeArchived: true)->items));
+        self::assertSame(['Acme', 'Globex'], $this->names($this->queries->listForOwner($this->me->id)->items));
+        self::assertSame(['Acme', 'Globex', 'Initech'], $this->names($this->queries->listForOwner($this->me->id, includeArchived: true)->items));
     }
 
     /**
@@ -59,16 +54,15 @@ final class CompanyQueriesTest extends KernelTestCase
      */
     public function testReadModelFields(): void
     {
-        $acme = $this->company('Acme', 'Widgets', new DateTimeImmutable('2024-01-02 03:04:05', new DateTimeZone('UTC')));
-        $acme->addProduct('Widget');
-        $acme->addPosition('Old', new DateTimeImmutable('2020-01-01'))->end(new DateTimeImmutable('2021-01-01'));
-        $acme->addPosition('Lead', new DateTimeImmutable('2022-01-01'));
-        $acme->addPosition('Hidden', new DateTimeImmutable('2023-01-01'))->archive(new DateTimeImmutable());
-        $this->em->flush();
+        $acme = $this->company($this->me, 'Acme', 'Widgets', '2024-01-02 03:04:05 UTC');
+        $this->product($acme);
+        $this->position($acme, 'Old', '2020-01-01', '2021-01-01');
+        $this->position($acme, 'Lead', '2022-01-01');
+        $this->position($acme, 'Hidden', '2023-01-01', archived: true);
 
-        [$summary] = $this->queries->listForOwner($this->owner->id)->items;
+        [$summary] = $this->queries->listForOwner($this->me->id)->items;
 
-        self::assertSame((string) $acme->id, $summary->id);
+        self::assertSame((string) $acme->id(), $summary->id);
         self::assertSame('Widgets', $summary->overview);
         self::assertSame('2024-01-02T03:04:05+00:00', $summary->createdAt->format(DATE_RFC3339));
         self::assertNull($summary->archivedAt);
@@ -77,14 +71,11 @@ final class CompanyQueriesTest extends KernelTestCase
     }
 
     /**
-     * @throws DateMalformedStringException
      * @throws Exception
      */
     public function testOwnerWithoutCompaniesGetsEmptyList(): void
     {
-        $this->em->flush();
-
-        self::assertSame([], $this->queries->listForOwner($this->owner->id)->items);
+        self::assertSame([], $this->queries->listForOwner($this->me->id)->items);
     }
 
     /**
@@ -93,12 +84,11 @@ final class CompanyQueriesTest extends KernelTestCase
      */
     public function testFindReturnsOwnCompanyIncludingArchived(): void
     {
-        $acme = $this->company('Acme');
-        $gone = $this->company('Gone')->archive(new DateTimeImmutable('2024-01-01'));
-        $this->em->flush();
+        $acme = $this->company($this->me, 'Acme');
+        $gone = $this->company($this->me, 'Gone', archived: true);
 
-        self::assertSame('Acme', $this->queries->findForOwner($this->owner->id, $acme->id)?->name);
-        self::assertNotNull($this->queries->findForOwner($this->owner->id, $gone->id)?->archivedAt);
+        self::assertSame('Acme', $this->queries->findForOwner($this->me->id, $acme->id())?->name);
+        self::assertNotNull($this->queries->findForOwner($this->me->id, $gone->id())?->archivedAt);
     }
 
     /**
@@ -107,22 +97,10 @@ final class CompanyQueriesTest extends KernelTestCase
      */
     public function testFindIgnoresOtherOwnersAndUnknownIds(): void
     {
-        $other = new User('other@example.com');
-        $this->em->persist($other);
-        $theirs = new CompanyEntity($other, 'Theirs');
-        $this->em->persist($theirs);
-        $this->em->flush();
+        $theirs = $this->company($this->owner('other@example.com'), 'Theirs');
 
-        self::assertNull($this->queries->findForOwner($this->owner->id, $theirs->id));
-        self::assertNull($this->queries->findForOwner($this->owner->id, CompanyId::generate()));
-    }
-
-    private function company(string $name, ?string $overview = null, ?DateTimeImmutable $createdAt = null): CompanyEntity
-    {
-        $company = new CompanyEntity($this->owner, $name, $overview, $createdAt);
-        $this->em->persist($company);
-
-        return $company;
+        self::assertNull($this->queries->findForOwner($this->me->id, $theirs->id()));
+        self::assertNull($this->queries->findForOwner($this->me->id, CompanyId::generate()));
     }
 
     /**
@@ -133,14 +111,13 @@ final class CompanyQueriesTest extends KernelTestCase
     public function testListIsPaged(): void
     {
         foreach (['E', 'C', 'A', 'D', 'B'] as $name) {
-            $this->em->persist(new CompanyEntity($this->owner, $name));
+            $this->company($this->me, $name);
         }
-        $this->em->persist(new CompanyEntity($this->owner, 'Archived')->archive(new DateTimeImmutable()));
-        $this->em->flush();
+        $this->company($this->me, 'Archived', archived: true);
 
-        $second = $this->queries->listForOwner($this->owner->id, page: new Page(2, 2));
-        $last = $this->queries->listForOwner($this->owner->id, page: new Page(3, 2));
-        $beyond = $this->queries->listForOwner($this->owner->id, page: new Page(4, 2));
+        $second = $this->queries->listForOwner($this->me->id, page: new Page(2, 2));
+        $last = $this->queries->listForOwner($this->me->id, page: new Page(3, 2));
+        $beyond = $this->queries->listForOwner($this->me->id, page: new Page(4, 2));
 
         self::assertSame(['C', 'D'], $this->names($second->items));
         self::assertSame(2, $second->page);
@@ -149,7 +126,7 @@ final class CompanyQueriesTest extends KernelTestCase
         self::assertSame(['E'], $this->names($last->items));
         self::assertSame([], $beyond->items);
         self::assertSame(5, $beyond->total);
-        self::assertSame(6, $this->queries->listForOwner($this->owner->id, includeArchived: true)->total);
+        self::assertSame(6, $this->queries->listForOwner($this->me->id, includeArchived: true)->total);
     }
 
     /**

@@ -4,50 +4,60 @@ declare(strict_types=1);
 
 namespace App\Company\Application;
 
-use App\Company\CompanyRepository;
+use App\Company\ProjectRepository;
+use App\Company\Query\CompanyNames;
 use App\Shared\Doctrine\OwnerReferences;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
-use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
+use Doctrine\DBAL\Exception;
 use Doctrine\ORM\Exception\ORMException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
+/**
+ * Every change or none: the rules are checked before anything is saved.
+ */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class EditProjectHandler
 {
     public function __construct(
-        private CompanyRepository $companies,
-        private OwnerReferences $owners,
+        private ProjectRepository $projects,
+        private CompanyNames $names,
         private TagLookup $tags,
+        private OwnerReferences $owners,
     ) {
     }
 
     /**
-     * @throws InvalidValueException      if the name is blank or too long
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the name is blank or too long
      * @throws ORMException
-     * @throws OwnershipMismatchException never: the tags are looked up for the project's owner
      * @throws ProjectNameTaken
      * @throws ProjectNotFound
      * @throws TagNotFound
      */
     public function __invoke(EditProject $command): void
     {
-        $owner = $this->owners->get($command->ownerId);
-        $project = $this->companies->findProjectByIdForOwner($command->projectId, $owner)
+        $project = $this->projects->findForOwner($command->projectId, $command->ownerId)
             ?? throw new ProjectNotFound();
 
         if (null !== $command->name) {
-            if ($this->companies->projectNameExistsInProduct($project->product, $command->name, except: $project)) {
+            if ($this->names->projectNameTaken($project->productId, $command->name, except: $project->id())) {
                 throw new ProjectNameTaken($command->name);
             }
-            $project->setName($command->name);
+            $project->rename($command->name);
         }
         if (null !== $command->overview) {
-            $project->setOverview($command->overview);
+            $project->describe($command->overview);
         }
         if (null !== $command->tagIds) {
-            $project->setTags(...$this->tags->ownedBy($owner, $command->tagIds));
+            $project->retag($this->tags->idsOwnedBy($this->owners->get($command->ownerId), $command->tagIds));
         }
+
+        $this->projects->save($project);
     }
 }

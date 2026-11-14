@@ -7,7 +7,7 @@ namespace App\Company;
 use App\Shared\EntityId;
 
 /**
- * Identifies a product (ProductEntity).
+ * Identifies a product (the Product aggregate and its stream).
  */
 final readonly class ProductId extends EntityId
 {

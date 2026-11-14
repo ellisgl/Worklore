@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company\Controller;
 
-use App\Company\PositionEntity;
+use App\Company\Position;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -19,7 +19,7 @@ final readonly class EndPositionRequest
         #[Assert\Date]
         #[OA\Property(format: 'date', example: '2024-01-15')]
         public string $endDate = '',
-        #[Assert\Length(max: PositionEntity::MAX_REASON_LEFT_LENGTH, normalizer: 'trim')]
+        #[Assert\Length(max: Position::MAX_REASON_LEFT_LENGTH, normalizer: 'trim')]
         public ?string $reasonLeft = null,
     ) {
     }

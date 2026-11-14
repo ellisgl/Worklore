@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Company\CompanyEntity;
 use App\Identity\User;
+use App\Taxonomy\CategoryEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -77,13 +77,13 @@ final class ModuleBoundaryTest extends KernelTestCase
         self::bootKernel();
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
-        $company = new CompanyEntity($user, 'Acme');
+        $category = new CategoryEntity($user, 'Area');
         $em->persist($user);
-        $em->persist($company);
+        $em->persist($category);
         $em->flush();
         $em->clear();
 
-        $owner = self::findOrFail($em, CompanyEntity::class, $company->id)->owner;
+        $owner = self::findOrFail($em, CategoryEntity::class, $category->id)->owner;
 
         self::assertSame(User::class, $owner::class, 'Doctrine resolves Owner to User');
         self::assertTrue($user->id->equals($owner->ownerId()));

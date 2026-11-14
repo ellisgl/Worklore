@@ -4,33 +4,31 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Company;
 
-use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
 use App\Company\PositionId;
 use App\Company\Query\PositionQueries;
 use App\Company\Query\PositionSummary;
 use App\Identity\User;
+use App\Tests\Functional\CreatesCompanyRecords;
 use DateMalformedStringException;
-use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 use function array_map;
 
+use const DATE_RFC3339;
+
 final class PositionQueriesTest extends KernelTestCase
 {
-    private EntityManagerInterface $em;
+    use CreatesCompanyRecords;
+
     private PositionQueries $queries;
-    private User $owner;
+    private User $me;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->queries = self::getContainer()->get(PositionQueries::class);
-        $this->owner = new User('me@example.com');
-        $this->em->persist($this->owner);
+        $this->me = $this->owner();
     }
 
     /**
@@ -39,16 +37,15 @@ final class PositionQueriesTest extends KernelTestCase
      */
     public function testListIsNewestFirstAndScopedToTheCompany(): void
     {
-        $acme = $this->company('Acme');
-        $globex = $this->company('Globex');
-        // Added out of order on purpose
+        $acme = $this->company($this->me, 'Acme');
+        $globex = $this->company($this->me, 'Globex');
+        // Recorded out of order on purpose
         $this->position($acme, 'Senior Developer', '2022-06-01');
         $this->position($acme, 'Intern', '2018-06-01');
         $this->position($acme, 'Developer', '2019-03-01');
         $this->position($globex, 'Manager');
-        $this->em->flush();
 
-        self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id)->items));
+        self::assertSame(['Senior Developer', 'Developer', 'Intern'], $this->titles($this->queries->listForCompany($this->me->id, $acme->id())->items));
     }
 
     /**
@@ -57,13 +54,12 @@ final class PositionQueriesTest extends KernelTestCase
      */
     public function testArchivedPositionsAreLeftOutUnlessAsked(): void
     {
-        $acme = $this->company('Acme');
+        $acme = $this->company($this->me, 'Acme');
         $this->position($acme, 'Developer', '2019-03-01');
-        $this->position($acme, 'Archived', '2020-01-01')->archive(new DateTimeImmutable());
-        $this->em->flush();
+        $this->position($acme, 'Archived', '2020-01-01', archived: true);
 
-        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id)->items));
-        self::assertSame(['Archived', 'Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)->items));
+        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->me->id, $acme->id())->items));
+        self::assertSame(['Archived', 'Developer'], $this->titles($this->queries->listForCompany($this->me->id, $acme->id(), includeArchived: true)->items));
     }
 
     /**
@@ -72,12 +68,11 @@ final class PositionQueriesTest extends KernelTestCase
      */
     public function testArchivedCompanyHidesItsPositions(): void
     {
-        $acme = $this->company('Acme')->archive(new DateTimeImmutable());
+        $acme = $this->company($this->me, 'Acme', archived: true);
         $this->position($acme, 'Developer');
-        $this->em->flush();
 
-        self::assertSame([], $this->queries->listForCompany($this->owner->id, $acme->id)->items);
-        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->owner->id, $acme->id, includeArchived: true)->items));
+        self::assertSame([], $this->queries->listForCompany($this->me->id, $acme->id())->items);
+        self::assertSame(['Developer'], $this->titles($this->queries->listForCompany($this->me->id, $acme->id(), includeArchived: true)->items));
     }
 
     /**
@@ -86,15 +81,13 @@ final class PositionQueriesTest extends KernelTestCase
      */
     public function testAnotherOwnerGetsNothing(): void
     {
-        $acme = $this->company('Acme');
+        $acme = $this->company($this->me, 'Acme');
         $position = $this->position($acme, 'Developer');
-        $other = new User('other@example.com');
-        $this->em->persist($other);
-        $this->em->flush();
+        $other = $this->owner('other@example.com');
 
-        self::assertSame([], $this->queries->listForCompany($other->id, $acme->id)->items);
-        self::assertNull($this->queries->findForOwner($other->id, $position->id));
-        self::assertNull($this->queries->findForOwner($this->owner->id, PositionId::generate()));
+        self::assertSame([], $this->queries->listForCompany($other->id, $acme->id())->items);
+        self::assertNull($this->queries->findForOwner($other->id, $position->id()));
+        self::assertNull($this->queries->findForOwner($this->me->id, PositionId::generate()));
     }
 
     /**
@@ -103,16 +96,14 @@ final class PositionQueriesTest extends KernelTestCase
      */
     public function testReadModelFields(): void
     {
-        $acme = $this->company('Acme');
-        $position = $acme->addPosition('Developer', new DateTimeImmutable('2020-01-15'), 'Backend work', new DateTimeImmutable('2024-01-02 03:04:05'))
-            ->end(new DateTimeImmutable('2023-06-30'), 'Moved on');
-        $this->em->flush();
+        $acme = $this->company($this->me, 'Acme');
+        $position = $this->position($acme, 'Developer', '2020-01-15', '2023-06-30', 'Moved on', 'Backend work', '2024-01-02 03:04:05 UTC');
 
-        $summary = $this->queries->findForOwner($this->owner->id, $position->id);
+        $summary = $this->queries->findForOwner($this->me->id, $position->id());
 
         self::assertNotNull($summary);
-        self::assertSame((string) $position->id, $summary->id);
-        self::assertSame((string) $acme->id, $summary->companyId);
+        self::assertSame((string) $position->id(), $summary->id);
+        self::assertSame((string) $acme->id(), $summary->companyId);
         self::assertSame('Developer', $summary->title);
         self::assertSame('Backend work', $summary->overview);
         self::assertSame('2020-01-15', $summary->startDate);
@@ -129,36 +120,19 @@ final class PositionQueriesTest extends KernelTestCase
      */
     public function testCurrentPositionsAcrossCompanies(): void
     {
-        $acme = $this->company('Acme');
-        $globex = $this->company('Globex');
-        $gone = $this->company('Gone')->archive(new DateTimeImmutable());
+        $acme = $this->company($this->me, 'Acme');
+        $globex = $this->company($this->me, 'Globex');
+        $gone = $this->company($this->me, 'Gone', archived: true);
         $this->position($acme, 'Consultant', '2023-01-01');
         $this->position($globex, 'Lead', '2024-01-01');
-        $this->position($acme, 'Junior', '2020-01-01')->end(new DateTimeImmutable('2022-12-31'));
-        $this->position($acme, 'Hidden', '2021-01-01')->archive(new DateTimeImmutable());
+        $this->position($acme, 'Junior', '2020-01-01', '2022-12-31');
+        $this->position($acme, 'Hidden', '2021-01-01', archived: true);
         $this->position($gone, 'At archived company', '2022-01-01');
-        $this->em->flush();
 
-        $current = $this->queries->listCurrentForOwner($this->owner->id)->items;
+        $current = $this->queries->listCurrentForOwner($this->me->id)->items;
 
         self::assertSame(['Lead', 'Consultant'], $this->titles($current));
         self::assertTrue($current[0]->current);
-    }
-
-    private function company(string $name): CompanyEntity
-    {
-        $company = new CompanyEntity($this->owner, $name);
-        $this->em->persist($company);
-
-        return $company;
-    }
-
-    /**
-     * @throws DateMalformedStringException
-     */
-    private function position(CompanyEntity $company, string $title, string $start = '2024-01-15'): PositionEntity
-    {
-        return $company->addPosition($title, new DateTimeImmutable($start));
     }
 
     /**

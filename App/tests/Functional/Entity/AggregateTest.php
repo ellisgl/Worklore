@@ -4,19 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
-use App\Company\CompanyRepository;
-use App\Company\PositionId;
-use App\Company\ProductEntity;
-use App\Company\ProductId;
-use App\Company\ProjectId;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\CategoryId;
 use App\Taxonomy\TagEntity;
-use App\Taxonomy\TagId;
 use App\Tests\Functional\FindsEntities;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -45,34 +36,6 @@ final class AggregateTest extends KernelTestCase
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    public function testPersistingTheCompanySavesEverythingInside(): void
-    {
-        $company = new CompanyEntity($this->user, 'Acme');
-        $widget = $company->addProduct('Widget');
-        $widget->addProject('Launch');
-        $widget->addProject('Beta');
-        $company->addPosition('Developer', new DateTimeImmutable('2024-01-01'));
-
-        $this->em->persist($company);   // only the root
-        $this->em->flush();
-        $this->em->clear();
-
-        $companies = self::getContainer()->get(CompanyRepository::class);
-        $user = self::findOrFail($this->em, User::class, $this->user->id);
-        $loaded = $companies->findOneByIdForOwner($company->id, $user);
-        self::assertNotNull($loaded);
-        self::assertCount(1, $loaded->getProducts());
-        $product = $loaded->getProducts()->first();
-        self::assertInstanceOf(ProductEntity::class, $product);
-        self::assertCount(2, $product->getProjects());
-        self::assertCount(1, $loaded->getPositions());
-        self::assertNotNull($companies->findProductByIdForOwner($widget->id, $user));
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function testPersistingTheCategorySavesItsTags(): void
     {
         $category = new CategoryEntity($this->user, 'Area');
@@ -84,58 +47,6 @@ final class AggregateTest extends KernelTestCase
         $this->em->clear();
 
         self::assertCount(2, self::findOrFail($this->em, CategoryEntity::class, $category->id)->getTags());
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function testChildrenAddedLaterAreSavedOnFlush(): void
-    {
-        $company = new CompanyEntity($this->user, 'Acme');
-        $this->em->persist($company);
-        $this->em->flush();
-
-        $company->addProduct('Widget');     // no persist() call
-        $this->em->flush();
-        $this->em->clear();
-
-        self::assertCount(1, self::findOrFail($this->em, CompanyEntity::class, $company->id)->getProducts());
-    }
-
-    public function testFactoriesKeepTheParentsListsInSync(): void
-    {
-        $company = new CompanyEntity($this->user, 'Acme');
-        $product = $company->addProduct('Widget');
-        $project = $product->addProject('Launch');
-        $position = $company->addPosition('Dev', new DateTimeImmutable('2024-01-01'));
-        $category = new CategoryEntity($this->user, 'Area');
-        $tag = $category->addTag('php');
-
-        self::assertSame($company, $product->company);
-        self::assertTrue($company->getProducts()->contains($product));
-        self::assertTrue($product->getProjects()->contains($project));
-        self::assertTrue($company->getPositions()->contains($position));
-        self::assertTrue($category->getTags()->contains($tag));
-    }
-
-    public function testFactoriesUseAGivenId(): void
-    {
-        $company = new CompanyEntity($this->user, 'Acme');
-        [$productId, $projectId, $positionId] = [ProductId::generate(), ProjectId::generate(), PositionId::generate()];
-
-        $product = $company->addProduct('Widget', id: $productId);
-        $project = $product->addProject('Launch', id: $projectId);
-        $position = $company->addPosition('Dev', new DateTimeImmutable('2024-01-01'), id: $positionId);
-
-        self::assertSame($productId, $product->id);
-        self::assertSame($projectId, $project->id);
-        self::assertSame($positionId, $position->id);
-
-        [$categoryId, $tagId] = [CategoryId::generate(), TagId::generate()];
-        $category = new CategoryEntity($this->user, 'Area', id: $categoryId);
-        self::assertSame($categoryId, $category->id);
-        self::assertSame($tagId, $category->addTag('php', id: $tagId)->id);
     }
 
     /**

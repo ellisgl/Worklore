@@ -4,49 +4,65 @@ declare(strict_types=1);
 
 namespace App\Company\Application;
 
-use App\Company\CompanyRepository;
+use App\Company\ProductRepository;
+use App\Company\Project;
+use App\Company\ProjectRepository;
+use App\Company\Query\CompanyNames;
 use App\Shared\Doctrine\OwnerReferences;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
-use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
+use DateTimeZone;
+use Doctrine\DBAL\Exception;
 use Doctrine\ORM\Exception\ORMException;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 /**
- * Adds the project through its product (inside the Company aggregate); the
- * bus commits it.
+ * The product and tags must be the owner's; project names are unique within the product.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class CreateProjectHandler
 {
     public function __construct(
-        private CompanyRepository $companies,
-        private OwnerReferences $owners,
+        private ProjectRepository $projects,
+        private ProductRepository $products,
+        private CompanyNames $names,
         private TagLookup $tags,
+        private OwnerReferences $owners,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
-     * @throws InvalidValueException      if the name is blank or too long
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the name is blank or too long
      * @throws ORMException
-     * @throws OwnershipMismatchException never: the product and tags are looked up for the same owner
      * @throws ProductNotFound
      * @throws ProjectNameTaken
      * @throws TagNotFound
      */
     public function __invoke(CreateProject $command): void
     {
-        $owner = $this->owners->get($command->ownerId);
-        $product = $this->companies->findProductByIdForOwner($command->productId, $owner)
+        $product = $this->products->findForOwner($command->productId, $command->ownerId)
             ?? throw new ProductNotFound();
 
-        if ($this->companies->projectNameExistsInProduct($product, $command->name)) {
+        if ($this->names->projectNameTaken($product->id(), $command->name)) {
             throw new ProjectNameTaken($command->name);
         }
 
-        $tags = $this->tags->ownedBy($owner, $command->tagIds);
-
-        $product->addProject($command->name, $command->overview, id: $command->projectId)->setTags(...$tags);
+        $this->projects->save(Project::create(
+            $command->projectId,
+            $product->id(),
+            $command->ownerId,
+            $command->name,
+            $command->overview,
+            $this->tags->idsOwnedBy($this->owners->get($command->ownerId), $command->tagIds),
+            $this->clock->now()->setTimezone(new DateTimeZone('UTC')),
+        ));
     }
 }

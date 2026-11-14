@@ -20,9 +20,7 @@ use App\Taxonomy\TagId;
 use DateTimeImmutable;
 use LogicException;
 
-use function array_values;
 use function trim;
-use function usort;
 
 /**
  * A note written for a project, labelled with tags; an event-sourced
@@ -65,7 +63,7 @@ final class JournalEntry extends AggregateRoot
             $ownerId,
             Name::of($title, 'Journal entry title')->value,
             self::text($entry),
-            self::distinct($tagIds),
+            TagId::distinct($tagIds),
             $at,
         ));
 
@@ -122,7 +120,7 @@ final class JournalEntry extends AggregateRoot
      */
     public function retag(array $tagIds): void
     {
-        $tagIds = self::distinct($tagIds);
+        $tagIds = TagId::distinct($tagIds);
         if ($tagIds != $this->tagIds) {
             $this->recordThat(new JournalEntryRetagged($this->id, $tagIds));
         }
@@ -181,22 +179,5 @@ final class JournalEntry extends AggregateRoot
         }
 
         return $entry;
-    }
-
-    /**
-     * @param list<TagId> $tagIds
-     *
-     * @return list<TagId> without duplicates, sorted by id so equal sets compare equal
-     */
-    private static function distinct(array $tagIds): array
-    {
-        $byId = [];
-        foreach ($tagIds as $tagId) {
-            $byId[$tagId->toRfc4122()] = $tagId;
-        }
-        $distinct = array_values($byId);
-        usort($distinct, static fn (TagId $a, TagId $b) => $a->toRfc4122() <=> $b->toRfc4122());
-
-        return $distinct;
     }
 }

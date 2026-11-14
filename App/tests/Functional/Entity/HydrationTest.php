@@ -4,15 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
-use App\Company\ProductEntity;
-use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -23,7 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * Guards the readonly properties on entities. Doctrine refuses to write a
  * readonly property twice with a different object (ReadonlyAccessor uses
  * !==), which happens when a lazy reference is loaded or an entity is
- * refreshed. Object-valued ids (CompanyId, ...) can't be readonly for that reason.
+ * refreshed. Object-valued ids (CategoryId, ...) can't be readonly for that reason.
  */
 final class HydrationTest extends KernelTestCase
 {
@@ -31,7 +26,7 @@ final class HydrationTest extends KernelTestCase
 
     private EntityManagerInterface $em;
 
-    /** @var array<string, CompanyEntity|ProductEntity|ProjectEntity|PositionEntity|CategoryEntity|TagEntity> */
+    /** @var array<string, CategoryEntity|TagEntity> */
     private array $graph;
 
     protected function setUp(): void
@@ -40,15 +35,8 @@ final class HydrationTest extends KernelTestCase
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
 
         $user = new User('a@example.com');
-        $company = new CompanyEntity($user, 'Acme');
-        $product = $company->addProduct('Widget');
         $category = new CategoryEntity($user, 'Area');
-        $project = $product->addProject('Launch');
         $this->graph = [
-            'company' => $company,
-            'product' => $product,
-            'project' => $project,
-            'position' => $company->addPosition('Developer', new DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => $category->addTag('backend'),
         ];
@@ -66,7 +54,7 @@ final class HydrationTest extends KernelTestCase
      */
     public static function entityProvider(): iterable
     {
-        foreach (['company', 'product', 'project', 'position', 'category', 'tag'] as $key) {
+        foreach (['category', 'tag'] as $key) {
             yield $key => [$key];
         }
     }
@@ -98,19 +86,5 @@ final class HydrationTest extends KernelTestCase
         $this->em->refresh($entity);
 
         self::assertSame($original->createdAt->format('Y-m-d H:i:s'), $entity->createdAt->format('Y-m-d H:i:s'));
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function testRelationsLoadLazilyAcrossTheGraph(): void
-    {
-        $project = self::findOrFail($this->em, ProjectEntity::class, $this->graph['project']->id);
-
-        self::assertSame('Acme', $project->product->company->name->value);
-        $owner = $project->product->company->owner;
-        self::assertInstanceOf(User::class, $owner);
-        self::assertSame('a@example.com', $owner->email);
     }
 }

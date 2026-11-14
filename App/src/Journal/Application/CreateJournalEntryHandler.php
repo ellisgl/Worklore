@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Journal\Application;
 
 use App\Company\Application\ProjectNotFound;
-use App\Company\CompanyRepository;
+use App\Company\ProjectRepository;
 use App\Journal\JournalEntry;
 use App\Journal\JournalEntryRepository;
 use App\Shared\Doctrine\OwnerReferences;
@@ -28,7 +28,7 @@ final readonly class CreateJournalEntryHandler
 {
     public function __construct(
         private JournalEntryRepository $entries,
-        private CompanyRepository $companies,
+        private ProjectRepository $projects,
         private TagLookup $tags,
         private OwnerReferences $owners,
         private ClockInterface $clock,
@@ -46,17 +46,16 @@ final readonly class CreateJournalEntryHandler
      */
     public function __invoke(CreateJournalEntry $command): void
     {
-        $owner = $this->owners->get($command->ownerId);
-        $project = $this->companies->findProjectByIdForOwner($command->projectId, $owner)
+        $project = $this->projects->findForOwner($command->projectId, $command->ownerId)
             ?? throw new ProjectNotFound();
 
         $this->entries->save(JournalEntry::write(
             $command->entryId,
-            $project->id,
+            $project->id(),
             $command->ownerId,
             $command->title,
             $command->entry,
-            $this->tags->idsOwnedBy($owner, $command->tagIds),
+            $this->tags->idsOwnedBy($this->owners->get($command->ownerId), $command->tagIds),
             $this->clock->now()->setTimezone(new DateTimeZone('UTC')),
         ));
     }

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
-use DateTimeImmutable;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -32,32 +30,6 @@ final class UniquenessTest extends KernelTestCase
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
     }
 
-    public function testCompanyNameIsUniquePerUser(): void
-    {
-        $user = $this->user('a@example.com');
-        $this->save(new CompanyEntity($user, 'Acme'));
-
-        $this->expectException(UniqueConstraintViolationException::class);
-        $this->save(new CompanyEntity($user, 'Acme'));
-    }
-
-    public function testArchivedCompanyStillReservesItsName(): void
-    {
-        $user = $this->user('a@example.com');
-        $this->save(new CompanyEntity($user, 'Acme')->archive(new DateTimeImmutable()));
-
-        $this->expectException(UniqueConstraintViolationException::class);
-        $this->save(new CompanyEntity($user, 'Acme'));
-    }
-
-    public function testDifferentUsersCanUseTheSameCompanyName(): void
-    {
-        $this->save(new CompanyEntity($this->user('a@example.com'), 'Acme'));
-        $this->save(new CompanyEntity($this->user('b@example.com'), 'Acme'));
-
-        self::assertSame(2, $this->em->getRepository(CompanyEntity::class)->count(['name' => 'Acme']));
-    }
-
     public function testTagNameIsUniqueWithinCategory(): void
     {
         $user = $this->user('a@example.com');
@@ -68,15 +40,6 @@ final class UniquenessTest extends KernelTestCase
         $this->save($category->addTag('backend'));
     }
 
-    public function testCompanyNameUniquenessIgnoresCase(): void
-    {
-        $user = $this->user('a@example.com');
-        $this->save(new CompanyEntity($user, 'Acme'));
-
-        $this->expectException(UniqueConstraintViolationException::class);
-        $this->save(new CompanyEntity($user, 'ACME'));
-    }
-
     public function testTagNameUniquenessIgnoresCase(): void
     {
         $user = $this->user('a@example.com');
@@ -85,19 +48,6 @@ final class UniquenessTest extends KernelTestCase
 
         $this->expectException(UniqueConstraintViolationException::class);
         $this->save($category->addTag('php'));
-    }
-
-    public function testRenameKeepsNameKeyInSync(): void
-    {
-        $user = $this->user('a@example.com');
-        $acme = $this->save(new CompanyEntity($user, 'Acme'));
-        $acme->setName('Globex');
-        $this->em->flush();
-
-        // "acme" is free again, "globex" is taken
-        $this->save(new CompanyEntity($user, 'ACME'));
-        $this->expectException(UniqueConstraintViolationException::class);
-        $this->save(new CompanyEntity($user, 'GLOBEX'));
     }
 
     /**
@@ -136,28 +86,6 @@ final class UniquenessTest extends KernelTestCase
         $this->em->clear();
 
         self::assertSame(0, $this->em->getRepository(TagEntity::class)->count());
-    }
-
-    public function testProductNameIsUniqueWithinCompanyIgnoringCase(): void
-    {
-        $user = $this->user('a@example.com');
-        $acme = $this->save(new CompanyEntity($user, 'Acme'));
-        $this->save($acme->addProduct('Widget'));
-        $this->save(new CompanyEntity($user, 'Globex')->addProduct('Widget')->company);  // fine elsewhere
-
-        $this->expectException(UniqueConstraintViolationException::class);
-        $this->save($acme->addProduct('WIDGET'));
-    }
-
-    public function testProjectNameIsUniqueWithinProductIgnoringCase(): void
-    {
-        $acme = $this->save(new CompanyEntity($this->user('a@example.com'), 'Acme'));
-        $widget = $this->save($acme->addProduct('Widget'));
-        $this->save($widget->addProject('Launch'));
-        $this->save($acme->addProduct('Gadget')->addProject('Launch'));  // fine elsewhere
-
-        $this->expectException(UniqueConstraintViolationException::class);
-        $this->save($widget->addProject('LAUNCH'));
     }
 
     public function testCategoryNameIsUniquePerUserIgnoringCase(): void

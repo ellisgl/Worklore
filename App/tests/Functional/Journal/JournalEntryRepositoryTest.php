@@ -4,36 +4,32 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Journal;
 
-use App\Company\CompanyEntity;
-use App\Company\ProjectEntity;
+use App\Company\Project;
 use App\Identity\User;
 use App\Journal\JournalEntry;
 use App\Journal\JournalEntryId;
 use App\Journal\JournalEntryRepository;
 use App\Shared\EventSourcing\ConcurrentModification;
+use App\Tests\Functional\CreatesCompanyRecords;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 final class JournalEntryRepositoryTest extends KernelTestCase
 {
+    use CreatesCompanyRecords;
+
     private JournalEntryRepository $entries;
     private User $owner;
-    private ProjectEntity $project;
+    private Project $launch;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $this->owner = new User('me@example.com');
-        $company = new CompanyEntity($this->owner, 'Acme');
-        $this->project = $company->addProduct('Widget')->addProject('Launch');
-        $em->persist($this->owner);
-        $em->persist($company);
-        $em->flush();
+        $this->owner = $this->owner();
+        $this->launch = $this->project($this->product($this->company($this->owner)));
         $this->entries = self::getContainer()->get(JournalEntryRepository::class);
     }
 
@@ -55,7 +51,7 @@ final class JournalEntryRepositoryTest extends KernelTestCase
         self::assertSame(2, $loaded->version());
         self::assertSame(
             ['journal_entry.written', 'journal_entry.retitled'],
-            self::getContainer()->get(Connection::class)->fetchFirstColumn('SELECT event_type FROM event_store ORDER BY sequence'),
+            self::getContainer()->get(Connection::class)->fetchFirstColumn("SELECT event_type FROM event_store WHERE stream_type = 'journal_entry' ORDER BY sequence"),
         );
     }
 
@@ -83,10 +79,7 @@ final class JournalEntryRepositoryTest extends KernelTestCase
     public function testAnotherOwnerOrAnUnknownIdFindsNothing(): void
     {
         $entry = $this->write();
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $other = new User('other@example.com');
-        $em->persist($other);
-        $em->flush();
+        $other = $this->owner('other@example.com');
 
         self::assertNull($this->entries->findForOwner($entry->id(), $other->id));
         self::assertNull($this->entries->findForOwner(JournalEntryId::generate(), $this->owner->id));
@@ -120,7 +113,7 @@ final class JournalEntryRepositoryTest extends KernelTestCase
      */
     private function write(): JournalEntry
     {
-        $entry = JournalEntry::write(JournalEntryId::generate(), $this->project->id, $this->owner->id, 'Kickoff', 'Agreed on the scope.', [], new DateTimeImmutable());
+        $entry = JournalEntry::write(JournalEntryId::generate(), $this->launch->id(), $this->owner->id, 'Kickoff', 'Agreed on the scope.', [], new DateTimeImmutable());
         $this->entries->save($entry);
 
         return $entry;

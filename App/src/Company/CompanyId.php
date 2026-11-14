@@ -7,7 +7,7 @@ namespace App\Company;
 use App\Shared\EntityId;
 
 /**
- * Identifies a company (CompanyEntity).
+ * Identifies a company (the Company aggregate and its stream).
  */
 final readonly class CompanyId extends EntityId
 {

@@ -4,17 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
-use App\Company\PositionEntity;
-use App\Company\ProductEntity;
-use App\Company\ProjectEntity;
 use App\Identity\User;
 use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
 use Closure;
-use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -41,57 +36,20 @@ final class OwnershipTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{Closure(User): (ProductEntity|ProjectEntity|PositionEntity|TagEntity)}>
+     * @return iterable<string, array{Closure(User): (TagEntity)}>
      */
     public static function childProvider(): iterable
     {
-        yield 'product' => [static fn (User $owner) => self::product($owner)];
-        yield 'project' => [static fn (User $owner) => self::product($owner)->addProject('Launch')];
-        yield 'position' => [static fn (User $owner) => new CompanyEntity($owner, 'Acme')->addPosition('Dev', new DateTimeImmutable('2024-01-01'))];
         yield 'tag' => [static fn (User $owner) => new CategoryEntity($owner, 'Area')->addTag('php')];
     }
 
     /**
-     * @param Closure(User): (ProductEntity|ProjectEntity|PositionEntity|TagEntity) $create
+     * @param Closure(User): (TagEntity) $create
      */
     #[DataProvider('childProvider')]
     public function testChildrenTakeTheirRootsOwner(Closure $create): void
     {
         self::assertSame($this->me, $create($this->me)->owner);
-    }
-
-    /**
-     * @return iterable<string, array{Closure(User): (ProductEntity|ProjectEntity)}>
-     */
-    public static function taggableProvider(): iterable
-    {
-        yield 'product' => [static fn (User $me) => self::product($me)];
-        yield 'project' => [static fn (User $me) => self::product($me)->addProject('Launch')];
-    }
-
-    /**
-     * @param Closure(User): (ProductEntity|ProjectEntity) $create
-     */
-    #[DataProvider('taggableProvider')]
-    public function testCannotAddAnotherUsersTag(Closure $create): void
-    {
-        $theirTag = new CategoryEntity($this->other, 'Area')->addTag('php');
-
-        $this->expectException(OwnershipMismatchException::class);
-        $create($this->me)->addTag($theirTag);
-    }
-
-    /**
-     * @param Closure(User): (ProductEntity|ProjectEntity) $create
-     */
-    #[DataProvider('taggableProvider')]
-    public function testCanAddOwnTag(Closure $create): void
-    {
-        $myTag = new CategoryEntity($this->me, 'Area')->addTag('php');
-
-        $record = $create($this->me)->addTag($myTag);
-
-        self::assertTrue($record->hasTag($myTag));
     }
 
     public function testCannotMoveTagIntoAnotherUsersCategory(): void
@@ -114,10 +72,5 @@ final class OwnershipTest extends KernelTestCase
 
         self::assertSame($area, $tag->category);
         self::assertTrue($area->getTags()->contains($tag));
-    }
-
-    private static function product(User $owner): ProductEntity
-    {
-        return new CompanyEntity($owner, 'Acme')->addProduct('Widget');
     }
 }

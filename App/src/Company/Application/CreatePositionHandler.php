@@ -5,37 +5,51 @@ declare(strict_types=1);
 namespace App\Company\Application;
 
 use App\Company\CompanyRepository;
-use App\Shared\Doctrine\OwnerReferences;
+use App\Company\Position;
+use App\Company\PositionRepository;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
-use Doctrine\ORM\Exception\ORMException;
+use DateTimeZone;
+use Doctrine\DBAL\Exception;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 /**
- * Adds the position through its company (the aggregate root); the bus
- * commits it, or nothing if the dates are invalid.
+ * With an end date the position is recorded as already ended; nothing is saved if the dates are invalid.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class CreatePositionHandler
 {
     public function __construct(
+        private PositionRepository $positions,
         private CompanyRepository $companies,
-        private OwnerReferences $owners,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
      * @throws CompanyNotFound
-     * @throws InvalidValueException if the title is blank or too long, or the position would end before it starts
-     * @throws ORMException
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the title is blank or too long, or the position would end before it starts
      */
     public function __invoke(CreatePosition $command): void
     {
-        $company = $this->companies->findOneByIdForOwner($command->companyId, $this->owners->get($command->ownerId))
+        $company = $this->companies->findForOwner($command->companyId, $command->ownerId)
             ?? throw new CompanyNotFound();
 
-        $position = $company->addPosition($command->title, $command->startDate, $command->overview, id: $command->positionId);
-        if (null !== $command->endDate) {
-            $position->end($command->endDate, $command->reasonLeft);
-        }
+        $this->positions->save(Position::record(
+            $command->positionId,
+            $company->id(),
+            $command->ownerId,
+            $command->title,
+            $command->startDate,
+            $command->overview,
+            $command->endDate,
+            $command->reasonLeft,
+            $this->clock->now()->setTimezone(new DateTimeZone('UTC')),
+        ));
     }
 }

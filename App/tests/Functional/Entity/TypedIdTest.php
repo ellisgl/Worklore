@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
 use App\Company\CompanyId;
-use App\Company\Doctrine\CompanyIdType;
 use App\Identity\User;
+use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\Doctrine\CategoryIdType;
 use App\Taxonomy\TagId;
 use App\Tests\Functional\FindsEntities;
 use Doctrine\DBAL\Types\ConversionException;
@@ -62,7 +62,7 @@ final class TypedIdTest extends KernelTestCase
     public function testDoctrineTypeRejectsAnotherIdType(): void
     {
         self::bootKernel();
-        $type = Type::getType(CompanyIdType::NAME);
+        $type = Type::getType(CategoryIdType::NAME);
         $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
 
         $this->expectException(InvalidType::class);
@@ -79,7 +79,7 @@ final class TypedIdTest extends KernelTestCase
         $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
 
         $this->expectException(ValueNotConvertible::class);
-        Type::getType(CompanyIdType::NAME)->convertToPHPValue('nope', $platform);
+        Type::getType(CategoryIdType::NAME)->convertToPHPValue('nope', $platform);
     }
 
     /**
@@ -91,15 +91,15 @@ final class TypedIdTest extends KernelTestCase
         self::bootKernel();
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
-        $company = new CompanyEntity($user, 'Acme');
+        $company = new CategoryEntity($user, 'Area');
         $em->persist($user);
         $em->persist($company);
         $em->flush();
         $em->clear();
 
         // find() accepts the typed id, and also its string form.
-        $byId = self::findOrFail($em, CompanyEntity::class, $company->id);
+        $byId = self::findOrFail($em, CategoryEntity::class, $company->id);
         self::assertTrue($company->id->equals($byId->id));
-        self::assertSame($byId, $em->find(CompanyEntity::class, (string) $company->id), 'Same managed instance');
+        self::assertSame($byId, $em->find(CategoryEntity::class, (string) $company->id), 'Same managed instance');
     }
 }

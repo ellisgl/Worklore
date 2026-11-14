@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Company\CompanyEntity;
-use App\Company\CompanyRepository;
-use App\Shared\Owner;
+use App\Company\CompanyId;
+use App\Company\Query\CompanyNames;
+use App\Shared\UserId;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\ApiTestCase;
+use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use JsonException;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,8 +33,8 @@ final class NameRaceTest extends ApiTestCase
         // Swap the repository before any request uses it, and keep this
         // kernel (and so the swap) for the rest of the test.
         $this->client->disableReboot();
-        self::getContainer()->set(CompanyRepository::class, new class(self::getContainer()->get(ManagerRegistry::class)) extends CompanyRepository {
-            public function nameExistsForOwner(Owner $owner, string $name, ?CompanyEntity $except = null): bool
+        self::getContainer()->set(CompanyNames::class, new readonly class(self::getContainer()->get(Connection::class)) extends CompanyNames {
+            public function companyNameTaken(UserId $ownerId, string $name, ?CompanyId $except = null): bool
             {
                 return false;
             }

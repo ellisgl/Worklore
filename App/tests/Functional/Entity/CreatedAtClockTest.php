@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Taxonomy\CategoryEntity;
 use Closure;
@@ -29,10 +28,6 @@ final class CreatedAtClockTest extends KernelTestCase
     public static function entityProvider(): iterable
     {
         yield 'user' => [static fn (User $u, ?DateTimeImmutable $at) => new User('b@example.com', $at)->createdAt];
-        yield 'company' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme', null, $at)->createdAt];
-        yield 'product' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addProduct('Widget', null, $at)->createdAt];
-        yield 'project' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addProduct('Widget')->addProject('Launch', null, $at)->createdAt];
-        yield 'position' => [static fn (User $u, ?DateTimeImmutable $at) => new CompanyEntity($u, 'Acme')->addPosition('Dev', new DateTimeImmutable('2024-01-01'), null, $at)->createdAt];
         yield 'category' => [static fn (User $u, ?DateTimeImmutable $at) => new CategoryEntity($u, 'Area', null, $at)->createdAt];
         yield 'tag' => [static fn (User $u, ?DateTimeImmutable $at) => new CategoryEntity($u, 'Area')->addTag('php', $at)->createdAt];
     }

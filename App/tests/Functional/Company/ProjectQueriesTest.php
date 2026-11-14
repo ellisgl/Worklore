@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Company;
 
-use App\Company\CompanyEntity;
-use App\Company\ProductEntity;
+use App\Company\Product;
 use App\Company\ProjectId;
 use App\Company\Query\ProjectQueries;
 use App\Company\Query\ProjectSummary;
@@ -15,6 +14,7 @@ use App\Shared\Query\Page;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\Query\TagRef;
 use App\Taxonomy\TagId;
+use App\Tests\Functional\CreatesCompanyRecords;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
@@ -23,19 +23,20 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 use function array_map;
 
+use const DATE_RFC3339;
+
 final class ProjectQueriesTest extends KernelTestCase
 {
-    private EntityManagerInterface $em;
+    use CreatesCompanyRecords;
+
     private ProjectQueries $queries;
-    private User $owner;
+    private User $me;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->queries = self::getContainer()->get(ProjectQueries::class);
-        $this->owner = new User('me@example.com');
-        $this->em->persist($this->owner);
+        $this->me = $this->owner();
     }
 
     /**
@@ -44,16 +45,15 @@ final class ProjectQueriesTest extends KernelTestCase
      */
     public function testListIsSortedByNameAndScopedToTheProduct(): void
     {
-        $widget = $this->product();
-        $gadget = $widget->company->addProduct('Gadget');
-        $widget->addProject('Launch');
-        $widget->addProject('Beta');
-        $widget->addProject('Old')->archive(new DateTimeImmutable());
-        $gadget->addProject('Other');
-        $this->em->flush();
+        $widget = $this->widget();
+        $gadget = $this->product($this->company($this->me, 'Globex'), 'Gadget');
+        $this->project($widget, 'Launch');
+        $this->project($widget, 'Beta');
+        $this->project($widget, 'Old', archived: true);
+        $this->project($gadget, 'Other');
 
-        self::assertSame(['Beta', 'Launch'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id)->items));
-        self::assertSame(['Beta', 'Launch', 'Old'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true)->items));
+        self::assertSame(['Beta', 'Launch'], $this->names($this->queries->listForProduct($this->me->id, $widget->id())->items));
+        self::assertSame(['Beta', 'Launch', 'Old'], $this->names($this->queries->listForProduct($this->me->id, $widget->id(), includeArchived: true)->items));
     }
 
     /**
@@ -62,20 +62,21 @@ final class ProjectQueriesTest extends KernelTestCase
      */
     public function testArchivedProductOrCompanyHidesItsProjects(): void
     {
-        $widget = $this->product();
-        $widget->addProject('Launch');
-        $this->em->flush();
+        $acme = $this->company($this->me);
+        $widget = $this->product($acme);
+        $this->project($widget, 'Launch');
 
         $widget->archive(new DateTimeImmutable());
-        $this->em->flush();
-        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id)->items, 'Archived product');
+        $this->saved($widget);
+        self::assertSame([], $this->queries->listForProduct($this->me->id, $widget->id())->items, 'Archived product');
 
         $widget->unarchive();
-        $widget->company->archive(new DateTimeImmutable());
-        $this->em->flush();
-        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id)->items, 'Archived company');
+        $acme->archive(new DateTimeImmutable());
+        $this->saved($widget);
+        $this->saved($acme);
+        self::assertSame([], $this->queries->listForProduct($this->me->id, $widget->id())->items, 'Archived company');
 
-        self::assertSame(['Launch'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true)->items));
+        self::assertSame(['Launch'], $this->names($this->queries->listForProduct($this->me->id, $widget->id(), includeArchived: true)->items));
     }
 
     /**
@@ -84,16 +85,15 @@ final class ProjectQueriesTest extends KernelTestCase
      */
     public function testReadModelFields(): void
     {
-        $widget = $this->product();
-        $launch = $widget->addProject('Launch', 'Go live', new DateTimeImmutable('2024-01-02 03:04:05'));
-        $this->em->flush();
+        $widget = $this->widget();
+        $launch = $this->project($widget, 'Launch', overview: 'Go live', at: '2024-01-02 03:04:05 UTC');
 
-        $summary = $this->queries->findForOwner($this->owner->id, $launch->id);
+        $summary = $this->queries->findForOwner($this->me->id, $launch->id());
 
         self::assertNotNull($summary);
-        self::assertSame((string) $launch->id, $summary->id);
-        self::assertSame((string) $widget->id, $summary->productId);
-        self::assertSame((string) $widget->company->id, $summary->companyId);
+        self::assertSame((string) $launch->id(), $summary->id);
+        self::assertSame((string) $widget->id(), $summary->productId);
+        self::assertSame((string) $widget->companyId, $summary->companyId);
         self::assertSame('Go live', $summary->overview);
         self::assertSame('2024-01-02T03:04:05+00:00', $summary->createdAt->format(DATE_RFC3339));
         self::assertNull($summary->archivedAt);
@@ -105,15 +105,10 @@ final class ProjectQueriesTest extends KernelTestCase
      */
     public function testFindIgnoresOtherOwnersAndUnknownIds(): void
     {
-        $other = new User('other@example.com');
-        $this->em->persist($other);
-        $theirs = new CompanyEntity($other, 'Theirs');
-        $this->em->persist($theirs);
-        $project = $theirs->addProduct('Theirs')->addProject('Theirs');
-        $this->em->flush();
+        $theirs = $this->project($this->product($this->company($this->owner('other@example.com'), 'Theirs'), 'Theirs'), 'Theirs');
 
-        self::assertNull($this->queries->findForOwner($this->owner->id, $project->id));
-        self::assertNull($this->queries->findForOwner($this->owner->id, ProjectId::generate()));
+        self::assertNull($this->queries->findForOwner($this->me->id, $theirs->id()));
+        self::assertNull($this->queries->findForOwner($this->me->id, ProjectId::generate()));
     }
 
     /**
@@ -122,17 +117,13 @@ final class ProjectQueriesTest extends KernelTestCase
      */
     public function testProjectsCarryTheirTags(): void
     {
-        $widget = $this->product();
-        $skill = new CategoryEntity($this->owner, 'Skill');
-        $area = new CategoryEntity($this->owner, 'Area');
-        $this->em->persist($skill);
-        $this->em->persist($area);
-        $launch = $widget->addProject('Launch')->setTags($skill->addTag('php'), $area->addTag('backend'));
-        $widget->addProject('Beta');
-        $this->em->flush();
+        $widget = $this->widget();
+        [$php, $backend] = $this->tags(['Skill', 'php'], ['Area', 'backend']);
+        $launch = $this->project($widget, 'Launch', [$php, $backend]);
+        $this->project($widget, 'Beta');
 
-        $found = $this->queries->findForOwner($this->owner->id, $launch->id);
-        $listed = $this->queries->listForProduct($this->owner->id, $widget->id)->items;
+        $found = $this->queries->findForOwner($this->me->id, $launch->id());
+        $listed = $this->queries->listForProduct($this->me->id, $widget->id())->items;
 
         self::assertNotNull($found);
         self::assertSame(['Area/backend', 'Skill/php'], self::tagLabels($found), 'By category, then name');
@@ -146,23 +137,50 @@ final class ProjectQueriesTest extends KernelTestCase
      */
     public function testFilterByTag(): void
     {
-        $widget = $this->product();
-        $area = new CategoryEntity($this->owner, 'Area');
-        $this->em->persist($area);
-        [$backend, $frontend] = [$area->addTag('backend'), $area->addTag('frontend')];
-        $widget->addProject('Both')->setTags($backend, $frontend);
-        $widget->addProject('Backend')->setTags($backend);
-        $widget->addProject('Untagged');
-        $widget->addProject('Old backend')->setTags($backend)->archive(new DateTimeImmutable());
-        $this->em->flush();
+        $widget = $this->widget();
+        [$backend, $frontend] = $this->tags(['Area', 'backend'], ['Area', 'frontend']);
+        $this->project($widget, 'Both', [$backend, $frontend]);
+        $this->project($widget, 'Backend', [$backend]);
+        $this->project($widget, 'Untagged');
+        $this->project($widget, 'Old backend', [$backend], archived: true);
 
-        $byBackend = $this->queries->listForProduct($this->owner->id, $widget->id, tagId: $backend->id);
+        $byBackend = $this->queries->listForProduct($this->me->id, $widget->id(), tagId: $backend);
 
         self::assertSame(['Backend', 'Both'], $this->names($byBackend->items));
         self::assertSame(2, $byBackend->total);
-        self::assertSame(['Backend', 'Both', 'Old backend'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, includeArchived: true, tagId: $backend->id)->items));
-        self::assertSame(['Both'], $this->names($this->queries->listForProduct($this->owner->id, $widget->id, page: new Page(2, 1), tagId: $backend->id)->items));
-        self::assertSame([], $this->queries->listForProduct($this->owner->id, $widget->id, tagId: TagId::generate())->items);
+        self::assertSame(['Backend', 'Both', 'Old backend'], $this->names($this->queries->listForProduct($this->me->id, $widget->id(), includeArchived: true, tagId: $backend)->items));
+        self::assertSame(['Both'], $this->names($this->queries->listForProduct($this->me->id, $widget->id(), page: new Page(2, 1), tagId: $backend)->items));
+        self::assertSame([], $this->queries->listForProduct($this->me->id, $widget->id(), tagId: TagId::generate())->items);
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     */
+    private function widget(): Product
+    {
+        return $this->product($this->company($this->me));
+    }
+
+    /**
+     * Saves tags (still ORM records) and returns their ids, in order.
+     *
+     * @param array{string, string} ...$categoryAndTag
+     *
+     * @return list<TagId>
+     */
+    private function tags(array ...$categoryAndTag): array
+    {
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $categories = [];
+        $ids = [];
+        foreach ($categoryAndTag as [$category, $tag]) {
+            $categories[$category] ??= new CategoryEntity($this->me, $category);
+            $em->persist($categories[$category]);
+            $ids[] = $categories[$category]->addTag($tag)->id;
+        }
+        $em->flush();
+
+        return $ids;
     }
 
     /**
@@ -171,14 +189,6 @@ final class ProjectQueriesTest extends KernelTestCase
     private static function tagLabels(ProjectSummary $summary): array
     {
         return array_map(static fn (TagRef $t) => $t->categoryName.'/'.$t->name, $summary->tags);
-    }
-
-    private function product(): ProductEntity
-    {
-        $company = new CompanyEntity($this->owner, 'Acme');
-        $this->em->persist($company);
-
-        return $company->addProduct('Widget');
     }
 
     /**

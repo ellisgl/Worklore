@@ -11,16 +11,13 @@ use DateTimeImmutable;
  * The dates a position runs: a start day and, once it has ended, an end day.
  * Days only (the columns are DATE), and never ending before it starts.
  *
- * Immutable: the "change" methods return a new Period. Properties aren't
- * readonly only because Doctrine rewrites them when an entity is refreshed.
- *
- * Doctrine embeddable: src/Company/Config/Period.orm.xml (start_date, end_date).
+ * Immutable: the "change" methods return a new Period.
  */
-final class Period
+final readonly class Period
 {
-    private(set) DateTimeImmutable $start;
+    public DateTimeImmutable $start;
     /** Null while ongoing */
-    private(set) ?DateTimeImmutable $end;
+    public ?DateTimeImmutable $end;
 
     /**
      * @throws InvalidValueException if $end is before $start

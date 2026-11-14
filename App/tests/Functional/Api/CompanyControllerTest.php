@@ -4,18 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Company\CompanyEntity;
 use App\Company\CompanyId;
 use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Tests\Functional\ApiTestCase;
 use App\Tests\Functional\FindsEntities;
-use Closure;
 use DateMalformedStringException;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use JsonException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,8 +39,6 @@ final class CompanyControllerTest extends ApiTestCase
 
     /**
      * @throws JsonException
-     * @throws OptimisticLockException
-     * @throws ORMException
      */
     public function testCreateReturnsIdAndSavesTheCompany(): void
     {
@@ -54,7 +47,7 @@ final class CompanyControllerTest extends ApiTestCase
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
         $id = CompanyId::fromString($this->field($response, 'id'));
 
-        $company = $this->companies()->findOneByIdForOwner($id, $this->reloadedUser());
+        $company = self::getContainer()->get(CompanyRepository::class)->findForOwner($id, $this->user->id);
         self::assertNotNull($company, 'Saved, and owned by the caller');
         self::assertSame('Acme Ltd', $company->name->value, 'Name is trimmed');
         self::assertSame('Widgets', $company->overview);
@@ -154,13 +147,11 @@ final class CompanyControllerTest extends ApiTestCase
     /**
      * @throws DateMalformedStringException
      * @throws JsonException
-     * @throws OptimisticLockException
-     * @throws ORMException
      */
     public function testArchivedCompaniesAreHiddenUnlessAskedFor(): void
     {
-        $this->seed(static function (CompanyEntity $c): void {}, 'Acme');
-        $this->seed(static fn (CompanyEntity $c) => $c->archive(new DateTimeImmutable('2024-01-01')), 'Gone');
+        $this->create('Acme');
+        $this->jsonRequest('POST', '/api/companies/'.$this->create('Gone').'/archive', headers: $this->auth);
 
         self::assertSame(['Acme'], array_column($this->list(), 'name'));
 
@@ -171,21 +162,18 @@ final class CompanyControllerTest extends ApiTestCase
     }
 
     /**
-     * @throws DateMalformedStringException
      * @throws JsonException
-     * @throws OptimisticLockException
-     * @throws ORMException
      */
     public function testListCountsActiveProductsAndShowsCurrentPosition(): void
     {
-        $this->seed(static function (CompanyEntity $c): void {
-            $c->addProduct('Widget');
-            $c->addProduct('Gadget');
-            $c->addProduct('Retired')->archive(new DateTimeImmutable());
-            $c->addPosition('Junior', new DateTimeImmutable('2019-01-01'))->end(new DateTimeImmutable('2021-12-31'));
-            $c->addPosition('Senior', new DateTimeImmutable('2022-01-01'));
-        }, 'Acme');
-        $this->seed(static function (CompanyEntity $c): void {}, 'Globex');
+        $acme = $this->create('Acme');
+        $this->createdId('/api/companies/'.$acme.'/products', ['name' => 'Widget'], $this->auth);
+        $this->createdId('/api/companies/'.$acme.'/products', ['name' => 'Gadget'], $this->auth);
+        $retired = $this->createdId('/api/companies/'.$acme.'/products', ['name' => 'Retired'], $this->auth);
+        $this->jsonRequest('POST', '/api/products/'.$retired.'/archive', headers: $this->auth);
+        $this->createdId('/api/companies/'.$acme.'/positions', ['title' => 'Junior', 'start_date' => '2019-01-01', 'end_date' => '2021-12-31'], $this->auth);
+        $this->createdId('/api/companies/'.$acme.'/positions', ['title' => 'Senior', 'start_date' => '2022-01-01'], $this->auth);
+        $this->create('Globex');
 
         [$acme, $globex] = $this->list();
 
@@ -267,14 +255,13 @@ final class CompanyControllerTest extends ApiTestCase
     /**
      * @throws DateMalformedStringException
      * @throws JsonException
-     * @throws OptimisticLockException
-     * @throws ORMException
      */
     public function testShowIncludesArchivedCompanies(): void
     {
-        $gone = $this->seed(static fn (CompanyEntity $c) => $c->archive(new DateTimeImmutable('2024-01-01')), 'Gone');
+        $gone = $this->create('Gone');
+        $this->jsonRequest('POST', '/api/companies/'.$gone.'/archive', headers: $this->auth);
 
-        $response = $this->jsonRequest('GET', '/api/companies/'.$gone->id, headers: $this->auth);
+        $response = $this->jsonRequest('GET', '/api/companies/'.$gone, headers: $this->auth);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertNotNull($this->decode($response)['archived_at']);
@@ -585,44 +572,5 @@ final class CompanyControllerTest extends ApiTestCase
     private function list(string $query = ''): array
     {
         return $this->getItems('/api/companies'.$query, $this->auth);
-    }
-
-    /**
-     * Saves a company for the test user directly, for state the API can't
-     * create yet (products, positions, archiving).
-     *
-     * @param Closure(CompanyEntity): mixed $build
-     *
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    private function seed(Closure $build, string $name): CompanyEntity
-    {
-        $em = $this->em();
-        $company = new CompanyEntity($this->reloadedUser(), $name);
-        $build($company);
-        $em->persist($company);
-        $em->flush();
-
-        return $company;
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    private function reloadedUser(): User
-    {
-        return self::findOrFail($this->em(), User::class, $this->user->id);
-    }
-
-    private function companies(): CompanyRepository
-    {
-        return self::getContainer()->get(CompanyRepository::class);
-    }
-
-    private function em(): EntityManagerInterface
-    {
-        return self::getContainer()->get(EntityManagerInterface::class);
     }
 }

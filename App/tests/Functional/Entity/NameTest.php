@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Company\CompanyEntity;
 use App\Identity\User;
 use App\Shared\Doctrine\NameType;
 use App\Shared\Name;
+use App\Taxonomy\CategoryEntity;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Exception\InvalidType;
 use Doctrine\DBAL\Types\Exception\TypesException;
@@ -101,13 +101,13 @@ final class NameTest extends KernelTestCase
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
         $em->persist($user);
-        $em->persist(new CompanyEntity($user, 'Acme'));
+        $em->persist(new CategoryEntity($user, 'Area'));
         $em->flush();
         $em->clear();
 
-        $found = $em->getRepository(CompanyEntity::class)->findOneBy(['name' => ' Acme ']);
+        $found = $em->getRepository(CategoryEntity::class)->findOneBy(['name' => ' Area ']);
 
         self::assertNotNull($found, 'A plain string matched the Name column');
-        self::assertSame('Acme', $found->name->value);
+        self::assertSame('Area', $found->name->value);
     }
 }
