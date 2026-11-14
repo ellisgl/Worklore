@@ -25,6 +25,9 @@ nelmio_api_doc:
                 50), returned as `{"items": [...], "page", "per_page", "total"}`. They
                 leave out archived records, and the children of archived parents,
                 unless `?include_archived=1`.
+
+                Every change is recorded as an event, and nothing is lost: each record's
+                history is at `GET /api/{resource}/{id}/history`.
             version: 1.0.0
         # The order Swagger UI shows the groups in
         tags:
@@ -37,6 +40,7 @@ nelmio_api_doc:
             - { name: Journal entries, description: 'Notes written for a project, labelled with tags' }
             - { name: Categories, description: 'Groups of tags, e.g. "Skill"' }
             - { name: Tags }
+            - { name: History, description: 'Every change to a record, as the events that recorded it' }
         components:
             schemas:
                 Error:
