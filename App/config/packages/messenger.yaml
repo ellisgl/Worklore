@@ -12,11 +12,16 @@ framework:
                     - doctrine_transaction
             # Domain events, published after the event store saves them (see
             # App\Shared\EventSourcing\AggregateStore). Inside a command they're
-            # held until it commits. Listeners are optional.
+            # held until it commits. Listeners are optional: handlers tagged
+            # #[AsMessageHandler(bus: 'event.bus')] for an event class, or for
+            # DomainEvent to see them all. A failing listener is logged, not
+            # rethrown (the change is already committed).
             event.bus:
                 default_middleware:
                     enabled: true
                     allow_no_handlers: true
+                middleware:
+                    - App\Shared\EventSourcing\Listener\IsolateEventListeners
 
         # Uncomment this (and the failed transport below) to send failed messages to this transport for later handling.
         # failure_transport: failed
