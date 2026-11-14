@@ -57,34 +57,55 @@ final readonly class EventStore
      */
     public function append(string $streamType, EntityId $streamId, UserId $ownerId, int $expectedVersion, array $events): array
     {
-        $recordedAt = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
+        $recordedAt = $this->clock->now();
         $stored = [];
         foreach ($events as $i => $event) {
-            $version = $expectedVersion + $i + 1;
-            $type = $this->serializer->typeOf($event);
-            $payload = $this->serializer->payload($event);
-            try {
-                $sequence = $this->db->fetchOne(
-                    'INSERT INTO event_store (stream_type, stream_id, stream_version, user_id, event_type, payload, recorded_at)
-                     VALUES (:stream_type, :stream_id, :version, :owner, :type, :payload, :recorded_at) RETURNING sequence',
-                    [
-                        'stream_type' => $streamType,
-                        'stream_id' => $streamId->toRfc4122(),
-                        'version' => $version,
-                        'owner' => $ownerId->toRfc4122(),
-                        'type' => $type,
-                        'payload' => self::json($payload),
-                        'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
-                    ],
-                );
-            } catch (UniqueConstraintViolationException) {
-                throw new ConcurrentModification();
-            }
-
-            $stored[] = new StoredEvent(self::int($sequence), $streamType, $streamId->uuid, $version, $ownerId, $type, $payload, $recordedAt, $event);
+            $stored[] = $this->insert($streamType, $streamId->uuid, $ownerId, $expectedVersion + $i + 1, $event, $recordedAt);
         }
 
         return $stored;
+    }
+
+    /**
+     * Adds one event as it was recorded elsewhere, e.g. in a data export:
+     * at its original time, as $version of its stream.
+     *
+     * @throws ConcurrentModification if the stream already has that version
+     * @throws Exception
+     */
+    public function import(string $streamType, Uuid $streamId, UserId $ownerId, int $version, DomainEvent $event, DateTimeImmutable $recordedAt): StoredEvent
+    {
+        return $this->insert($streamType, $streamId, $ownerId, $version, $event, $recordedAt);
+    }
+
+    /**
+     * @throws ConcurrentModification
+     * @throws Exception
+     */
+    private function insert(string $streamType, Uuid $streamId, UserId $ownerId, int $version, DomainEvent $event, DateTimeImmutable $recordedAt): StoredEvent
+    {
+        $recordedAt = $recordedAt->setTimezone(new DateTimeZone('UTC'));
+        $type = $this->serializer->typeOf($event);
+        $payload = $this->serializer->payload($event);
+        try {
+            $sequence = $this->db->fetchOne(
+                'INSERT INTO event_store (stream_type, stream_id, stream_version, user_id, event_type, payload, recorded_at)
+                 VALUES (:stream_type, :stream_id, :version, :owner, :type, :payload, :recorded_at) RETURNING sequence',
+                [
+                    'stream_type' => $streamType,
+                    'stream_id' => $streamId->toRfc4122(),
+                    'version' => $version,
+                    'owner' => $ownerId->toRfc4122(),
+                    'type' => $type,
+                    'payload' => self::json($payload),
+                    'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+                ],
+            );
+        } catch (UniqueConstraintViolationException) {
+            throw new ConcurrentModification();
+        }
+
+        return new StoredEvent(self::int($sequence), $streamType, $streamId, $version, $ownerId, $type, $payload, $recordedAt, $event);
     }
 
     /**

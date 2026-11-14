@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\EventSourcing;
 
 use App\Shared\EntityId;
+use Closure;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -109,6 +110,37 @@ final readonly class EventSerializer
         }
 
         return new $class(...$arguments);
+    }
+
+    /**
+     * A copy of $event with every id in it (lists included) replaced by
+     * $map's answer, e.g. to give imported records new ids.
+     *
+     * @template T of DomainEvent
+     *
+     * @param T                           $event
+     * @param Closure(EntityId): EntityId $map
+     *
+     * @return T
+     */
+    public function withIds(DomainEvent $event, Closure $map): DomainEvent
+    {
+        $arguments = [];
+        foreach (self::parameters($event::class) as $parameter) {
+            $value = $event->{$parameter->getName()};
+            if ($value instanceof EntityId) {
+                $value = $map($value);
+            } elseif (is_array($value)) {
+                $list = [];
+                foreach ($value as $item) {
+                    $list[] = $item instanceof EntityId ? $map($item) : $item;
+                }
+                $value = $list;
+            }
+            $arguments[] = $value;
+        }
+
+        return new ($event::class)(...$arguments);
     }
 
     /**
