@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Identity\Controller;
 
+use App\Identity\Application\RegisterUser;
 use App\Identity\Security\TokenManager;
 use App\Identity\Security\TokenPair;
-use App\Identity\UserAlreadyExistsException;
-use App\Identity\UserManager;
+use App\Identity\UserRepository;
 use App\Shared\Http\OpenApi\Conflict;
 use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
 use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Secret;
+use App\Shared\UserId;
 use LogicException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Nelmio\ApiDocBundle\Attribute\Security;
@@ -23,11 +25,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\AccessToken\HeaderAccessTokenExtractor;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 use function max;
 use function time;
@@ -38,7 +41,9 @@ final class AuthController extends AbstractController
 {
     public function __construct(
         private readonly TokenManager $tokenManager,
-        private readonly UserManager $users,
+        // Named autowiring: $commandBus is the command.bus service.
+        private readonly MessageBusInterface $commandBus,
+        private readonly UserRepository $users,
         // Named autowiring: the "signup" limiter in rate_limiter.yaml
         private readonly RateLimiterFactoryInterface $signupLimiter,
         #[Autowire(env: 'bool:APP_SIGNUP_ENABLED')]
@@ -53,8 +58,8 @@ final class AuthController extends AbstractController
      * token pair, already logged in. Only when APP_SIGNUP_ENABLED is on;
      * otherwise 403. Limited to a few sign-ups per address per hour.
      *
+     * @throws ExceptionInterface
      * @throws RandomException
-     * @throws ValidationFailedException never: the request was validated with the same rules
      */
     #[OA\Response(response: 201, description: 'Created and logged in', content: new OA\JsonContent(ref: new Model(type: TokenPair::class)))]
     #[OA\Response(response: 403, description: 'Sign-up is turned off (APP_SIGNUP_ENABLED)', content: new OA\JsonContent(ref: '#/components/schemas/Error', example: ['error' => 'Sign-up is disabled.']))]
@@ -78,11 +83,9 @@ final class AuthController extends AbstractController
             );
         }
 
-        try {
-            $user = $this->users->create($payload->email, $payload->password);
-        } catch (UserAlreadyExistsException) {
-            return $this->json(['error' => 'An account with this email already exists.'], Response::HTTP_CONFLICT);
-        }
+        $id = UserId::generate();
+        $this->commandBus->dispatch(new RegisterUser($id, $payload->email, new Secret($payload->password)));
+        $user = $this->users->find($id) ?? throw new LogicException('The new user was not saved.');
 
         return $this->json($this->tokenManager->issue($user), Response::HTTP_CREATED);
     }

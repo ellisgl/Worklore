@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Identity;
 
 use App\Identity\Security\TokenManager;
+use App\Shared\UserId;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use SensitiveParameter;
@@ -17,8 +18,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use function count;
 
 /**
- * Account lifecycle: shared by the console commands and the account endpoints
- * (App\Identity\Controller\AccountController).
+ * Account lifecycle, behind the Identity commands (App\Identity\Application),
+ * which the console commands and the endpoints dispatch.
  */
 final readonly class UserManager
 {
@@ -40,16 +41,16 @@ final readonly class UserManager
      * @throws UserAlreadyExistsException
      * @throws ValidationFailedException
      */
-    public function create(string $email, #[SensitiveParameter] string $plainPassword, array $roles = []): User
+    public function create(string $email, #[SensitiveParameter] string $plainPassword, array $roles = [], ?UserId $id = null): User
     {
         $this->assertValid(User::normalizeEmail($email), [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)]);
         $this->assertValidPassword($plainPassword);
 
         if (null !== $this->users->findOneByEmail($email)) {
-            throw new UserAlreadyExistsException($email);
+            throw new UserAlreadyExistsException();
         }
 
-        $user = new User($email);
+        $user = new User($email, id: $id);
         $user->setRoles($roles);
         $user->setPassword($this->hasher->hashPassword($user, $plainPassword));
 

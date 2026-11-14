@@ -4,37 +4,38 @@ declare(strict_types=1);
 
 namespace App\Identity\Controller;
 
-use App\Identity\IncorrectPassword;
+use App\Identity\Application\ChangePassword;
+use App\Identity\Application\RevokeSessions;
 use App\Identity\Security\TokenManager;
 use App\Identity\Security\TokenPair;
 use App\Identity\User;
-use App\Identity\UserManager;
 use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
 use App\Shared\Http\OpenApi\NoContent;
+use App\Shared\Secret;
 use OpenApi\Attributes as OA;
 use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 /**
- * The signed-in user's own account. Account changes go through UserManager,
- * which the console commands share.
+ * The signed-in user's own account. Changes dispatch the Identity commands,
+ * the same ones the console commands use.
  */
 #[OA\Tag(name: 'Account')]
 #[Route('/api/me', name: 'api_me_')]
 final class AccountController extends AbstractController
 {
     public function __construct(
-        private readonly UserManager $users,
+        // Named autowiring: $commandBus is the command.bus service.
+        private readonly MessageBusInterface $commandBus,
         private readonly TokenManager $tokens,
-        private readonly UserPasswordHasherInterface $hasher,
     ) {
     }
 
@@ -55,12 +56,14 @@ final class AccountController extends AbstractController
      *
      * POST /api/me/sessions/revoke → 204. Ends every session (access and
      * refresh tokens) on every device, this one included.
+     *
+     * @throws ExceptionInterface
      */
     #[NoContent('Every session ended')]
     #[Route('/sessions/revoke', name: 'revoke_sessions', methods: ['POST'])]
     public function revokeSessions(#[CurrentUser] User $user): Response
     {
-        $this->tokens->revokeAllForUser($user);
+        $this->commandBus->dispatch(new RevokeSessions($user->id));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
@@ -72,9 +75,8 @@ final class AccountController extends AbstractController
      * with a new token pair. Every session ends, this one included; carry on
      * with the tokens in the response.
      *
-     * @throws IncorrectPassword
+     * @throws ExceptionInterface
      * @throws RandomException
-     * @throws ValidationFailedException never: the request was validated with the same rules
      */
     #[Item(TokenPair::class, 'Changed; use these tokens from now on')]
     #[Invalid('the current password is incorrect')]
@@ -83,11 +85,7 @@ final class AccountController extends AbstractController
         #[CurrentUser] User $user,
         #[MapRequestPayload] ChangePasswordRequest $payload,
     ): JsonResponse {
-        if (!$this->hasher->isPasswordValid($user, $payload->currentPassword)) {
-            throw new IncorrectPassword();
-        }
-
-        $this->users->changePassword($user, $payload->newPassword);
+        $this->commandBus->dispatch(new ChangePassword($user->id, new Secret($payload->newPassword), new Secret($payload->currentPassword)));
 
         return $this->json($this->tokens->issue($user));
     }

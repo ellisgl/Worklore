@@ -33,8 +33,9 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, O
     public function __construct(
         string $email,
         ?DateTimeImmutable $createdAt = null,
+        ?UserId $id = null,
     ) {
-        $this->id = UserId::generate();
+        $this->id = $id ?? UserId::generate();
         $this->createdAt = $createdAt ?? Clock::get()->now()->setTimezone(new DateTimeZone('UTC'));
         $this->setEmail($email);
     }

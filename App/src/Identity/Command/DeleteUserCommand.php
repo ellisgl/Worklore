@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Identity\Command;
 
-use App\Identity\UserManager;
+use App\Identity\Application\DeleteUser;
 use App\Identity\UserRepository;
+use App\Shared\CommandBus;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Throwable;
 
 use function sprintf;
 
@@ -19,10 +22,14 @@ final readonly class DeleteUserCommand
 {
     public function __construct(
         private UserRepository $users,
-        private UserManager $userManager,
+        private CommandBus $commands,
     ) {
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws Throwable
+     */
     public function __invoke(
         SymfonyStyle $io,
         #[Argument(description: 'Email address of the user')] string $email,
@@ -41,7 +48,7 @@ final readonly class DeleteUserCommand
             return Command::FAILURE;
         }
 
-        $this->userManager->delete($user);
+        $this->commands->dispatch(new DeleteUser($user->id));
         $io->success(sprintf('Deleted user %s.', $email));
 
         return Command::SUCCESS;

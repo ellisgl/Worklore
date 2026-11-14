@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Identity\Command;
 
-use App\Identity\UserManager;
+use App\Identity\Application\ArchiveUser;
 use App\Identity\UserRepository;
+use App\Shared\CommandBus;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Throwable;
 
+use function is_int;
 use function sprintf;
 
 use const DATE_ATOM;
@@ -20,10 +24,14 @@ final readonly class ArchiveUserCommand
 {
     public function __construct(
         private UserRepository $users,
-        private UserManager $userManager,
+        private CommandBus $commands,
     ) {
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws Throwable
+     */
     public function __invoke(
         SymfonyStyle $io,
         #[Argument(description: 'Email address of the user')] string $email,
@@ -41,8 +49,8 @@ final readonly class ArchiveUserCommand
             return Command::SUCCESS;
         }
 
-        $revoked = $this->userManager->archive($user);
-        $io->success(sprintf('Archived %s and revoked %d session(s).', $user->email, $revoked));
+        $revoked = $this->commands->dispatch(new ArchiveUser($user->id));
+        $io->success(sprintf('Archived %s and revoked %d session(s).', $user->email, is_int($revoked) ? $revoked : 0));
 
         return Command::SUCCESS;
     }

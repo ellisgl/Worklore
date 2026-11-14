@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Identity;
 
-use RuntimeException;
+use App\Shared\ConflictException;
 
-use function sprintf;
-
-final class UserAlreadyExistsException extends RuntimeException
+/**
+ * An account with this email exists already (409 over HTTP).
+ */
+final class UserAlreadyExistsException extends ConflictException
 {
-    public function __construct(string $email)
+    public function __construct()
     {
-        parent::__construct(sprintf('A user with email "%s" already exists.', $email));
+        parent::__construct('An account with this email already exists.');
     }
 }
