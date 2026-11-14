@@ -1,0 +1,29 @@
+# Journal entry media lives in "media.storage" (FilesystemOperator $mediaStorage).
+# It is a lazy storage: MEDIA_STORAGE picks which of the others it uses, so
+# the same code runs on local disk or any S3-compatible object store.
+flysystem:
+    storages:
+        media.local:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/var/storage/media'
+                lazy_root_creation: true
+        media.s3:
+            adapter: 'aws'
+            options:
+                client: 'app.media.s3_client'
+                bucket: '%env(S3_BUCKET)%'
+            visibility: private
+        media.storage:
+            adapter: 'lazy'
+            options:
+                source: '%env(MEDIA_STORAGE)%'
+
+when@test:
+    flysystem:
+        storages:
+            media.test:
+                adapter: 'local'
+                options:
+                    directory: '%kernel.project_dir%/var/storage/test%env(default::TEST_TOKEN)%'
+                    lazy_root_creation: true

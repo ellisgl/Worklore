@@ -4,6 +4,9 @@ server {
     server_name _;
     root /var/www/html/public;
 
+    # Uploads (journal media, import archives); UPLOAD_LIMIT in the root .env
+    client_max_body_size ${UPLOAD_LIMIT};
+
     location / {
         try_files $uri /index.php$is_args$args;
     }
