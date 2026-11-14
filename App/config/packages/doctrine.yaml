@@ -12,7 +12,7 @@ doctrine:
         # and are managed by migrations only. event_store is the event log; the
         # rest are the projections the event-sourced modules write.
         # ("position" is quoted: a reserved word.)
-        schema_filter: '~^(?!"?(event_store|journal_entry|journal_entry_tag|company|product|project|project_tag|position|category|tag)"?($|_))~'
+        schema_filter: '~^(?!"?(event_store|journal_entry|journal_entry_tag|journal_media|company|product|project|project_tag|position|category|tag)"?($|_))~'
 
         # Typed entity ids (App\Shared\EntityId subclasses), stored as native UUIDs
         types:

@@ -6,6 +6,8 @@ namespace App\Journal;
 
 use App\Company\ProjectId;
 use App\Journal\Event\JournalEntryArchived;
+use App\Journal\Event\JournalEntryMediaAttached;
+use App\Journal\Event\JournalEntryMediaRemoved;
 use App\Journal\Event\JournalEntryRetagged;
 use App\Journal\Event\JournalEntryRetitled;
 use App\Journal\Event\JournalEntryRewritten;
@@ -20,6 +22,7 @@ use App\Taxonomy\TagId;
 use DateTimeImmutable;
 use LogicException;
 
+use function array_values;
 use function trim;
 
 /**
@@ -37,6 +40,8 @@ final class JournalEntry extends AggregateRoot
     /** @var list<TagId> sorted by id */
     private(set) array $tagIds = [];
     private(set) ?DateTimeImmutable $archivedAt = null;
+    /** @var array<string, Media> attached files by media id, oldest first */
+    private array $media = [];
 
     private function __construct()
     {
@@ -143,6 +148,37 @@ final class JournalEntry extends AggregateRoot
         }
     }
 
+    /**
+     * @return list<Media> attached files, oldest first
+     */
+    public function media(): array
+    {
+        return array_values($this->media);
+    }
+
+    /**
+     * Attaching a file that is already attached (same media id) does nothing.
+     */
+    public function attach(Media $media, DateTimeImmutable $at): void
+    {
+        if (!isset($this->media[$media->id->toRfc4122()])) {
+            $this->recordThat(new JournalEntryMediaAttached($this->id, $media->id, $media->filename, $media->mediaType, $media->size, $media->sha256, $at));
+        }
+    }
+
+    /**
+     * @return Media the file removed
+     *
+     * @throws MediaNotFound if no such file is attached
+     */
+    public function removeMedia(MediaId $mediaId, DateTimeImmutable $at): Media
+    {
+        $media = $this->media[$mediaId->toRfc4122()] ?? throw new MediaNotFound();
+        $this->recordThat(new JournalEntryMediaRemoved($this->id, $mediaId, $at));
+
+        return $media;
+    }
+
     protected function apply(DomainEvent $event): void
     {
         match (true) {
@@ -152,8 +188,15 @@ final class JournalEntry extends AggregateRoot
             $event instanceof JournalEntryRetagged => $this->tagIds = $event->tagIds,
             $event instanceof JournalEntryArchived => $this->archivedAt = $event->archivedAt,
             $event instanceof JournalEntryUnarchived => $this->archivedAt = null,
+            $event instanceof JournalEntryMediaAttached => $this->media[$event->mediaId->toRfc4122()] = new Media($event->mediaId, $event->filename, $event->mediaType, $event->size, $event->sha256),
+            $event instanceof JournalEntryMediaRemoved => $this->forget($event->mediaId),
             default => throw new LogicException('Not a journal entry event: '.$event::class),
         };
+    }
+
+    private function forget(MediaId $mediaId): void
+    {
+        unset($this->media[$mediaId->toRfc4122()]);
     }
 
     private function written(JournalEntryWritten $event): void

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Journal;
 
 use App\Journal\Event\JournalEntryArchived;
+use App\Journal\Event\JournalEntryMediaAttached;
+use App\Journal\Event\JournalEntryMediaRemoved;
 use App\Journal\Event\JournalEntryRetagged;
 use App\Journal\Event\JournalEntryRetitled;
 use App\Journal\Event\JournalEntryRewritten;
@@ -28,6 +30,8 @@ final class JournalEvents implements EventCatalog
             'journal_entry.retagged' => JournalEntryRetagged::class,
             'journal_entry.archived' => JournalEntryArchived::class,
             'journal_entry.unarchived' => JournalEntryUnarchived::class,
+            'journal_entry.media_attached' => JournalEntryMediaAttached::class,
+            'journal_entry.media_removed' => JournalEntryMediaRemoved::class,
         ];
     }
 }

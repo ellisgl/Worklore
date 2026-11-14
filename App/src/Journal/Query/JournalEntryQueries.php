@@ -53,6 +53,7 @@ final readonly class JournalEntryQueries
     public function __construct(
         private Connection $db,
         private TagRefs $tagRefs,
+        private MediaQueries $media,
     ) {
     }
 
@@ -167,6 +168,7 @@ final readonly class JournalEntryQueries
     private function summaries(array $rows): array
     {
         $tags = $this->tagRefs->forJournalEntries(array_column($rows, 'id'));
+        $media = $this->media->forEntries(array_column($rows, 'id'));
 
         $summaries = [];
         foreach ($rows as $row) {
@@ -177,6 +179,7 @@ final readonly class JournalEntryQueries
                 title: $row['title'],
                 entry: $row['entry'],
                 tags: $tags[$row['id']] ?? [],
+                media: $media[$row['id']] ?? [],
                 createdAt: self::utc($row['created_at']),
                 archivedAt: self::utcOrNull($row['archived_at']),
             );

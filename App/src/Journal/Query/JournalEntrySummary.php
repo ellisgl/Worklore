@@ -15,7 +15,8 @@ use OpenApi\Attributes as OA;
 final readonly class JournalEntrySummary
 {
     /**
-     * @param list<TagRef> $tags sorted by category, then name
+     * @param list<TagRef>       $tags  sorted by category, then name
+     * @param list<MediaSummary> $media attached files, oldest first
      */
     public function __construct(
         #[OA\Property(format: 'uuid')]
@@ -26,6 +27,7 @@ final readonly class JournalEntrySummary
         public string $title,
         public string $entry,
         public array $tags,
+        public array $media,
         public DateTimeImmutable $createdAt,
         public ?DateTimeImmutable $archivedAt,
     ) {

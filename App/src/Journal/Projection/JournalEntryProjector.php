@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Journal\Projection;
 
 use App\Journal\Event\JournalEntryArchived;
+use App\Journal\Event\JournalEntryMediaAttached;
+use App\Journal\Event\JournalEntryMediaRemoved;
 use App\Journal\Event\JournalEntryRetagged;
 use App\Journal\Event\JournalEntryRetitled;
 use App\Journal\Event\JournalEntryRewritten;
@@ -31,7 +33,7 @@ final readonly class JournalEntryProjector implements Projector
 
     public function tables(): array
     {
-        return ['journal_entry_tag', 'journal_entry'];
+        return ['journal_media', 'journal_entry_tag', 'journal_entry'];
     }
 
     public function project(StoredEvent $event): void
@@ -44,6 +46,8 @@ final readonly class JournalEntryProjector implements Projector
             $e instanceof JournalEntryRetagged => $this->tag($e->entryId->toRfc4122(), $e->tagIds),
             $e instanceof JournalEntryArchived => $this->update($e->entryId->toRfc4122(), ['archived_at' => self::time($e->archivedAt)]),
             $e instanceof JournalEntryUnarchived => $this->update($e->entryId->toRfc4122(), ['archived_at' => null]),
+            $e instanceof JournalEntryMediaAttached => $this->attached($e),
+            $e instanceof JournalEntryMediaRemoved => $this->db->delete('journal_media', ['id' => $e->mediaId->toRfc4122()]),
             default => null,
         };
     }
@@ -63,6 +67,28 @@ final readonly class JournalEntryProjector implements Projector
             'archived_at' => null,
         ]);
         $this->tag($e->entryId->toRfc4122(), $e->tagIds);
+    }
+
+    /**
+     * The owner comes from the entry's row: media events don't repeat it.
+     *
+     * @throws Exception
+     */
+    private function attached(JournalEntryMediaAttached $e): void
+    {
+        $this->db->executeStatement(
+            'INSERT INTO journal_media (id, journal_entry_id, user_id, filename, media_type, size, sha256, created_at)
+             SELECT :id, j.id, j.user_id, :filename, :media_type, :size, :sha256, :created_at FROM journal_entry j WHERE j.id = :entry',
+            [
+                'id' => $e->mediaId->toRfc4122(),
+                'entry' => $e->entryId->toRfc4122(),
+                'filename' => $e->filename,
+                'media_type' => $e->mediaType,
+                'size' => $e->size,
+                'sha256' => $e->sha256,
+                'created_at' => self::time($e->attachedAt),
+            ],
+        );
     }
 
     /**
