@@ -6,8 +6,7 @@ namespace App\Tests\Functional\Entity;
 
 use App\Company\CompanyId;
 use App\Identity\User;
-use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\Doctrine\CategoryIdType;
+use App\Shared\Doctrine\UserIdType;
 use App\Taxonomy\TagId;
 use App\Tests\Functional\FindsEntities;
 use Doctrine\DBAL\Types\ConversionException;
@@ -62,7 +61,7 @@ final class TypedIdTest extends KernelTestCase
     public function testDoctrineTypeRejectsAnotherIdType(): void
     {
         self::bootKernel();
-        $type = Type::getType(CategoryIdType::NAME);
+        $type = Type::getType(UserIdType::NAME);
         $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
 
         $this->expectException(InvalidType::class);
@@ -79,7 +78,7 @@ final class TypedIdTest extends KernelTestCase
         $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
 
         $this->expectException(ValueNotConvertible::class);
-        Type::getType(CategoryIdType::NAME)->convertToPHPValue('nope', $platform);
+        Type::getType(UserIdType::NAME)->convertToPHPValue('nope', $platform);
     }
 
     /**
@@ -91,15 +90,13 @@ final class TypedIdTest extends KernelTestCase
         self::bootKernel();
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('a@example.com');
-        $company = new CategoryEntity($user, 'Area');
         $em->persist($user);
-        $em->persist($company);
         $em->flush();
         $em->clear();
 
         // find() accepts the typed id, and also its string form.
-        $byId = self::findOrFail($em, CategoryEntity::class, $company->id);
-        self::assertTrue($company->id->equals($byId->id));
-        self::assertSame($byId, $em->find(CategoryEntity::class, (string) $company->id), 'Same managed instance');
+        $byId = self::findOrFail($em, User::class, $user->id);
+        self::assertTrue($user->id->equals($byId->id));
+        self::assertSame($byId, $em->find(User::class, (string) $user->id), 'Same managed instance');
     }
 }

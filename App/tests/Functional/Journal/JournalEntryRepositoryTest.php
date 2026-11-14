@@ -10,7 +10,7 @@ use App\Journal\JournalEntry;
 use App\Journal\JournalEntryId;
 use App\Journal\JournalEntryRepository;
 use App\Shared\EventSourcing\ConcurrentModification;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
@@ -19,7 +19,7 @@ use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 final class JournalEntryRepositoryTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private JournalEntryRepository $entries;
     private User $owner;

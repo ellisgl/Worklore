@@ -9,31 +9,24 @@ doctrine:
         profiling_collect_backtrace: '%kernel.debug%'
 
         # Tables Doctrine's schema tools leave alone: they have no ORM mapping
-        # and are managed by migrations only. event_store is the event log;
-        # the projections an event-sourced module writes join it here.
+        # and are managed by migrations only. event_store is the event log; the
+        # rest are the projections the event-sourced modules write.
         # ("position" is quoted: a reserved word.)
-        schema_filter: '~^(?!"?(event_store|journal_entry|journal_entry_tag|company|product|project|project_tag|position)"?($|_))~'
+        schema_filter: '~^(?!"?(event_store|journal_entry|journal_entry_tag|company|product|project|project_tag|position|category|tag)"?($|_))~'
 
         # Typed entity ids (App\Shared\EntityId subclasses), stored as native UUIDs
         types:
             api_token_id: App\Identity\Doctrine\ApiTokenIdType
-            category_id: App\Taxonomy\Doctrine\CategoryIdType
-            tag_id: App\Taxonomy\Doctrine\TagIdType
             user_id: App\Shared\Doctrine\UserIdType
-            # App\Shared\Name: trimmed, non-blank, <= 255 characters
-            name: App\Shared\Doctrine\NameType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
         identity_generation_preferences:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
-        # Modules relate to App\Shared\Owner, not the security user; this is
-        # the class Doctrine stores and loads for it.
-        resolve_target_entities:
-            App\Shared\Owner: App\Identity\User
-        # One XML mapping per module: each src/<Module>/Config dir holds
-        # <ClassShortName>.orm.xml files for classes under its prefix.
+        # Only Identity (users, sessions) is ORM-mapped; the other modules are
+        # event-sourced (App\Shared\EventSourcing) and their tables are
+        # projections, outside the mapping (schema_filter above).
         mappings:
             Identity:
                 type: xml
@@ -41,12 +34,6 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Identity/Config'
                 prefix: 'App\Identity'
                 alias: Identity
-            Taxonomy:
-                type: xml
-                is_bundle: false
-                dir: '%kernel.project_dir%/src/Taxonomy/Config'
-                prefix: 'App\Taxonomy'
-                alias: Taxonomy
 
 when@test:
     doctrine:

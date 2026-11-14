@@ -8,7 +8,7 @@ use App\Company\ProductId;
 use App\Company\Query\ProductQueries;
 use App\Company\Query\ProductSummary;
 use App\Identity\User;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -19,7 +19,7 @@ use const DATE_RFC3339;
 
 final class ProductQueriesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private ProductQueries $queries;
     private User $me;

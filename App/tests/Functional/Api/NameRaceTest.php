@@ -7,12 +7,11 @@ namespace App\Tests\Functional\Api;
 use App\Company\CompanyId;
 use App\Company\Query\CompanyNames;
 use App\Shared\UserId;
-use App\Taxonomy\CategoryEntity;
-use App\Taxonomy\CategoryRepository;
-use App\Taxonomy\TagEntity;
+use App\Taxonomy\CategoryId;
+use App\Taxonomy\Query\TaxonomyNames;
+use App\Taxonomy\TagId;
 use App\Tests\Functional\ApiTestCase;
 use Doctrine\DBAL\Connection;
-use Doctrine\Persistence\ManagerRegistry;
 use JsonException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -53,8 +52,8 @@ final class NameRaceTest extends ApiTestCase
     {
         $auth = $this->signIn();
         $this->client->disableReboot();
-        self::getContainer()->set(CategoryRepository::class, new class(self::getContainer()->get(ManagerRegistry::class)) extends CategoryRepository {
-            public function nameExistsInCategory(CategoryEntity $category, string $name, ?TagEntity $except = null): bool
+        self::getContainer()->set(TaxonomyNames::class, new readonly class(self::getContainer()->get(Connection::class)) extends TaxonomyNames {
+            public function tagNameTaken(CategoryId $categoryId, string $name, ?TagId $except = null): bool
             {
                 return false;
             }

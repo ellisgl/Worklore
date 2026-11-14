@@ -4,16 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Entity;
 
-use App\Identity\User;
-use App\Shared\Doctrine\NameType;
 use App\Shared\Name;
-use App\Taxonomy\CategoryEntity;
-use Doctrine\DBAL\Types\ConversionException;
-use Doctrine\DBAL\Types\Exception\InvalidType;
-use Doctrine\DBAL\Types\Exception\TypesException;
-use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
-use Doctrine\DBAL\Types\Type;
-use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -50,64 +41,5 @@ final class NameTest extends KernelTestCase
     {
         self::assertTrue(Name::of(' Acme ')->equals(Name::of('Acme')));
         self::assertFalse(Name::of('Acme')->equals(Name::of('acme')), 'Equality is exact; key() is for case-insensitive checks');
-    }
-
-    /**
-     * @throws ConversionException
-     * @throws TypesException
-     */
-    public function testDoctrineTypeRoundTrip(): void
-    {
-        self::bootKernel();
-        $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
-        $type = Type::getType(NameType::NAME);
-
-        self::assertSame('Acme', $type->convertToDatabaseValue(Name::of('Acme'), $platform));
-        $name = $type->convertToPHPValue('Acme', $platform);
-        self::assertInstanceOf(Name::class, $name);
-        self::assertTrue(Name::of('Acme')->equals($name));
-        self::assertNull($type->convertToPHPValue(null, $platform));
-    }
-
-    /**
-     * @throws ConversionException
-     * @throws TypesException
-     */
-    public function testDoctrineTypeRejectsBlankParameter(): void
-    {
-        self::bootKernel();
-        $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
-
-        $this->expectException(ValueNotConvertible::class);
-        Type::getType(NameType::NAME)->convertToDatabaseValue('  ', $platform);
-    }
-
-    /**
-     * @throws ConversionException
-     * @throws TypesException
-     */
-    public function testDoctrineTypeRejectsOtherValues(): void
-    {
-        self::bootKernel();
-        $platform = self::getContainer()->get('doctrine.dbal.default_connection')->getDatabasePlatform();
-
-        $this->expectException(InvalidType::class);
-        Type::getType(NameType::NAME)->convertToDatabaseValue(42, $platform);
-    }
-
-    public function testStringCriteriaWorkInQueries(): void
-    {
-        self::bootKernel();
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $user = new User('a@example.com');
-        $em->persist($user);
-        $em->persist(new CategoryEntity($user, 'Area'));
-        $em->flush();
-        $em->clear();
-
-        $found = $em->getRepository(CategoryEntity::class)->findOneBy(['name' => ' Area ']);
-
-        self::assertNotNull($found, 'A plain string matched the Name column');
-        self::assertSame('Area', $found->name->value);
     }
 }

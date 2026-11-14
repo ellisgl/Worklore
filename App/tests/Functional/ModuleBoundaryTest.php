@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Identity\User;
-use App\Taxonomy\CategoryEntity;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RecursiveDirectoryIterator;
@@ -66,26 +62,5 @@ final class ModuleBoundaryTest extends KernelTestCase
         }
 
         self::assertSame([], $offenders, "src/$module must use App\\Shared\\Owner, not App\\Identity");
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function testOwnerRelationsLoadTheUser(): void
-    {
-        self::bootKernel();
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $user = new User('a@example.com');
-        $category = new CategoryEntity($user, 'Area');
-        $em->persist($user);
-        $em->persist($category);
-        $em->flush();
-        $em->clear();
-
-        $owner = self::findOrFail($em, CategoryEntity::class, $category->id)->owner;
-
-        self::assertSame(User::class, $owner::class, 'Doctrine resolves Owner to User');
-        self::assertTrue($user->id->equals($owner->ownerId()));
     }
 }

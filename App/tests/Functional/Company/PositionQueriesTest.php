@@ -8,7 +8,7 @@ use App\Company\PositionId;
 use App\Company\Query\PositionQueries;
 use App\Company\Query\PositionSummary;
 use App\Identity\User;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -19,7 +19,7 @@ use const DATE_RFC3339;
 
 final class PositionQueriesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private PositionQueries $queries;
     private User $me;

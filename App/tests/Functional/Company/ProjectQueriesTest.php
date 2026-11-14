@@ -11,14 +11,12 @@ use App\Company\Query\ProjectSummary;
 use App\Identity\User;
 use App\Shared\InvalidValueException;
 use App\Shared\Query\Page;
-use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\Query\TagRef;
 use App\Taxonomy\TagId;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 use function array_map;
@@ -27,7 +25,7 @@ use const DATE_RFC3339;
 
 final class ProjectQueriesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private ProjectQueries $queries;
     private User $me;
@@ -162,23 +160,23 @@ final class ProjectQueriesTest extends KernelTestCase
     }
 
     /**
-     * Saves tags (still ORM records) and returns their ids, in order.
+     * Creates the tags (and their categories, once each); returns the tag
+     * ids in order.
      *
      * @param array{string, string} ...$categoryAndTag
      *
      * @return list<TagId>
+     *
+     * @throws DateMalformedStringException
      */
     private function tags(array ...$categoryAndTag): array
     {
-        $em = self::getContainer()->get(EntityManagerInterface::class);
         $categories = [];
         $ids = [];
         foreach ($categoryAndTag as [$category, $tag]) {
-            $categories[$category] ??= new CategoryEntity($this->me, $category);
-            $em->persist($categories[$category]);
-            $ids[] = $categories[$category]->addTag($tag)->id;
+            $categories[$category] ??= $this->category($this->me, $category);
+            $ids[] = $this->tag($categories[$category], $tag)->id();
         }
-        $em->flush();
 
         return $ids;
     }

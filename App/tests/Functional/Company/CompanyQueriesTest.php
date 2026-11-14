@@ -10,7 +10,7 @@ use App\Company\Query\CompanySummary;
 use App\Identity\User;
 use App\Shared\InvalidValueException;
 use App\Shared\Query\Page;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -21,7 +21,7 @@ use const DATE_RFC3339;
 
 final class CompanyQueriesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private CompanyQueries $queries;
     private User $me;

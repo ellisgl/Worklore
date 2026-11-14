@@ -18,7 +18,7 @@ use App\Company\ProjectId;
 use App\Company\ProjectRepository;
 use App\Identity\User;
 use App\Shared\EventSourcing\ConcurrentModification;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -30,7 +30,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class CompanyRepositoriesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private User $me;
 

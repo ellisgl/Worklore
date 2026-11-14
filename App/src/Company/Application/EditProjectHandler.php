@@ -6,13 +6,11 @@ namespace App\Company\Application;
 
 use App\Company\ProjectRepository;
 use App\Company\Query\CompanyNames;
-use App\Shared\Doctrine\OwnerReferences;
 use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
 use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\Exception\ORMException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
@@ -26,7 +24,6 @@ final readonly class EditProjectHandler
         private ProjectRepository $projects,
         private CompanyNames $names,
         private TagLookup $tags,
-        private OwnerReferences $owners,
     ) {
     }
 
@@ -35,7 +32,6 @@ final readonly class EditProjectHandler
      * @throws Exception
      * @throws ExceptionInterface
      * @throws InvalidValueException  if the name is blank or too long
-     * @throws ORMException
      * @throws ProjectNameTaken
      * @throws ProjectNotFound
      * @throws TagNotFound
@@ -55,7 +51,7 @@ final readonly class EditProjectHandler
             $project->describe($command->overview);
         }
         if (null !== $command->tagIds) {
-            $project->retag($this->tags->idsOwnedBy($this->owners->get($command->ownerId), $command->tagIds));
+            $project->retag($this->tags->idsOwnedBy($command->ownerId, $command->tagIds));
         }
 
         $this->projects->save($project);

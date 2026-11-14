@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Journal\Application;
 
 use App\Journal\JournalEntryRepository;
-use App\Shared\Doctrine\OwnerReferences;
 use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
 use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\Exception\ORMException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
@@ -25,7 +23,6 @@ final readonly class EditJournalEntryHandler
     public function __construct(
         private JournalEntryRepository $entries,
         private TagLookup $tags,
-        private OwnerReferences $owners,
     ) {
     }
 
@@ -35,7 +32,6 @@ final readonly class EditJournalEntryHandler
      * @throws ExceptionInterface
      * @throws InvalidValueException  if the title or entry is blank, or the title is too long
      * @throws JournalEntryNotFound
-     * @throws ORMException
      * @throws TagNotFound
      */
     public function __invoke(EditJournalEntry $command): void
@@ -50,7 +46,7 @@ final readonly class EditJournalEntryHandler
             $entry->rewrite($command->entry);
         }
         if (null !== $command->tagIds) {
-            $entry->retag($this->tags->idsOwnedBy($this->owners->get($command->ownerId), $command->tagIds));
+            $entry->retag($this->tags->idsOwnedBy($command->ownerId, $command->tagIds));
         }
 
         $this->entries->save($entry);

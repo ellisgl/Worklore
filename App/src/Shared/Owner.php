@@ -9,9 +9,9 @@ namespace App\Shared;
  *
  * The Company, Taxonomy and Journal modules depend on this, not on the
  * security user, so they don't see passwords or roles, and Identity can
- * change how accounts work without touching them. Doctrine maps the
- * interface to App\Identity\User (resolve_target_entities in doctrine.yaml),
- * so the relations and foreign keys are unchanged.
+ * change how accounts work without touching them. Controllers receive the
+ * signed-in user as an Owner (#[CurrentUser] Owner $owner) and pass its
+ * ownerId() to commands and queries; aggregates hold only the UserId.
  */
 interface Owner
 {

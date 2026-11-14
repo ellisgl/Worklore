@@ -12,9 +12,3 @@ parameters:
     # Doctrine extension: entity mappings, DQL and repository types
     doctrine:
         objectManagerLoader: tests/object-manager.php
-    ignoreErrors:
-        -
-            # The modules map their owner to App\Shared\Owner, which doctrine.yaml's
-            # resolve_target_entities resolves to App\Identity\User. The Doctrine
-            # extension doesn't apply that setting, so it expects User.
-            message: '#^Property App\\(Company|Journal|Taxonomy)\\\w+::\$owner type mapping mismatch: property can contain App\\Shared\\Owner but database expects App\\Identity\\User\.$#'

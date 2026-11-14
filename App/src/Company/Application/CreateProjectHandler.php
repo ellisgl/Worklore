@@ -8,14 +8,12 @@ use App\Company\ProductRepository;
 use App\Company\Project;
 use App\Company\ProjectRepository;
 use App\Company\Query\CompanyNames;
-use App\Shared\Doctrine\OwnerReferences;
 use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
 use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
 use DateTimeZone;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\Exception\ORMException;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
@@ -31,7 +29,6 @@ final readonly class CreateProjectHandler
         private ProductRepository $products,
         private CompanyNames $names,
         private TagLookup $tags,
-        private OwnerReferences $owners,
         private ClockInterface $clock,
     ) {
     }
@@ -41,7 +38,6 @@ final readonly class CreateProjectHandler
      * @throws Exception
      * @throws ExceptionInterface
      * @throws InvalidValueException  if the name is blank or too long
-     * @throws ORMException
      * @throws ProductNotFound
      * @throws ProjectNameTaken
      * @throws TagNotFound
@@ -61,7 +57,7 @@ final readonly class CreateProjectHandler
             $command->ownerId,
             $command->name,
             $command->overview,
-            $this->tags->idsOwnedBy($this->owners->get($command->ownerId), $command->tagIds),
+            $this->tags->idsOwnedBy($command->ownerId, $command->tagIds),
             $this->clock->now()->setTimezone(new DateTimeZone('UTC')),
         ));
     }

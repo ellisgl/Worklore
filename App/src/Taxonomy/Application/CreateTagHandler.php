@@ -4,39 +4,49 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Application;
 
-use App\Shared\Doctrine\OwnerReferences;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
 use App\Taxonomy\CategoryRepository;
-use Doctrine\ORM\Exception\ORMException;
+use App\Taxonomy\Query\TaxonomyNames;
+use App\Taxonomy\Tag;
+use App\Taxonomy\TagRepository;
+use DateTimeZone;
+use Doctrine\DBAL\Exception;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 /**
- * Adds the tag through its category (the aggregate root); the bus commits it.
+ * The category must be the owner's; tag names are unique within it, ignoring case.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class CreateTagHandler
 {
     public function __construct(
+        private TagRepository $tags,
         private CategoryRepository $categories,
-        private OwnerReferences $owners,
+        private TaxonomyNames $names,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
      * @throws CategoryNotFound
-     * @throws InvalidValueException if the name is blank or too long
-     * @throws ORMException
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the name is blank or too long
      * @throws TagNameTaken
      */
     public function __invoke(CreateTag $command): void
     {
-        $category = $this->categories->findOneByIdForOwner($command->categoryId, $this->owners->get($command->ownerId))
+        $category = $this->categories->findForOwner($command->categoryId, $command->ownerId)
             ?? throw new CategoryNotFound();
 
-        if ($this->categories->nameExistsInCategory($category, $command->name)) {
+        if ($this->names->tagNameTaken($category->id(), $command->name)) {
             throw new TagNameTaken($command->name);
         }
 
-        $category->addTag($command->name, id: $command->tagId);
+        $this->tags->save(Tag::create($command->tagId, $category->id(), $command->ownerId, $command->name, $this->clock->now()->setTimezone(new DateTimeZone('UTC'))));
     }
 }

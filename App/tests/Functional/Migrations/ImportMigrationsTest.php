@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Migrations;
 
-use App\Taxonomy\CategoryEntity;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
-use Doctrine\ORM\EntityManagerInterface;
 use DoctrineMigrations\Version20261115100000;
 use DoctrineMigrations\Version20261115110000;
+use DoctrineMigrations\Version20261115120000;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -30,7 +29,7 @@ use function str_starts_with;
  */
 final class ImportMigrationsTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private Connection $db;
 
@@ -45,13 +44,10 @@ final class ImportMigrationsTest extends KernelTestCase
      */
     public function testJournalEntriesReplayToTheSameRows(): void
     {
-        $em = self::getContainer()->get(EntityManagerInterface::class);
         $owner = $this->owner();
         $project = $this->project($this->product($this->company($owner)));
-        $category = new CategoryEntity($owner, 'Skill');
-        [$php, $sql] = [$category->addTag('php'), $category->addTag('sql')];
-        $em->persist($category);
-        $em->flush();
+        $category = $this->category($owner, 'Skill');
+        [$php, $sql] = [$this->tag($category, 'php'), $this->tag($category, 'sql')];
 
         // Rows as the ORM-backed code stored them
         [$kickoff, $archived] = [Uuid::v7()->toRfc4122(), Uuid::v7()->toRfc4122()];
@@ -62,7 +58,7 @@ final class ImportMigrationsTest extends KernelTestCase
             $this->db->insert('journal_entry', ['id' => $id, 'project_id' => $project->id()->toRfc4122(), 'user_id' => $owner->id->toRfc4122(), 'title' => $title, 'entry' => $entry, 'created_at' => $created, 'archived_at' => $archivedAt]);
         }
         foreach ([$sql, $php] as $tag) {
-            $this->db->insert('journal_entry_tag', ['journal_entry_id' => $kickoff, 'tag_id' => $tag->id->toRfc4122()]);
+            $this->db->insert('journal_entry_tag', ['journal_entry_id' => $kickoff, 'tag_id' => $tag->id()->toRfc4122()]);
         }
         $before = $this->journalRows();
 
@@ -79,11 +75,8 @@ final class ImportMigrationsTest extends KernelTestCase
     public function testCompanyRecordsReplayToTheSameRows(): void
     {
         $owner = $this->owner();
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $category = new CategoryEntity($owner, 'Skill');
-        [$php, $sql] = [$category->addTag('php'), $category->addTag('sql')];
-        $em->persist($category);
-        $em->flush();
+        $category = $this->category($owner, 'Skill');
+        [$php, $sql] = [$this->tag($category, 'php'), $this->tag($category, 'sql')];
         $user = $owner->id->toRfc4122();
 
         // Rows as the ORM-backed code stored them
@@ -95,7 +88,7 @@ final class ImportMigrationsTest extends KernelTestCase
         $this->db->insert('project', ['id' => $launch, 'product_id' => $widget, 'user_id' => $user, 'name' => 'Launch', 'name_key' => 'launch', 'overview' => null, 'created_at' => '2024-02-03 00:00:00', 'archived_at' => null]);
         $this->db->insert('project', ['id' => $old, 'product_id' => $widget, 'user_id' => $user, 'name' => 'Old', 'name_key' => 'old', 'overview' => 'Done', 'created_at' => '2024-02-04 00:00:00', 'archived_at' => '2024-04-01 00:00:00']);
         foreach ([$sql, $php] as $tag) {
-            $this->db->insert('project_tag', ['project_id' => $launch, 'tag_id' => $tag->id->toRfc4122()]);
+            $this->db->insert('project_tag', ['project_id' => $launch, 'tag_id' => $tag->id()->toRfc4122()]);
         }
         foreach ([
             ['Current', '2022-01-01', null, null, null],
@@ -116,6 +109,42 @@ final class ImportMigrationsTest extends KernelTestCase
             $counts[$stream] = $this->db->fetchOne('SELECT count(*) FROM event_store WHERE stream_type = ?', [$stream]);
         }
         self::assertEquals(['company' => 3, 'product' => 3, 'project' => 3, 'position' => 8], $counts, 'Created per record, plus archived (and ended, for positions)');
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testCategoriesAndTagsReplayToTheSameRows(): void
+    {
+        $user = $this->owner()->id->toRfc4122();
+
+        // Rows as the ORM-backed code stored them
+        [$skill, $old] = [self::id(), self::id()];
+        $this->db->insert('category', ['id' => $skill, 'user_id' => $user, 'name' => 'Skill', 'name_key' => 'skill', 'description' => "Things I can do\n& \"more\"", 'created_at' => '2024-01-02 03:04:05', 'archived_at' => null]);
+        $this->db->insert('category', ['id' => $old, 'user_id' => $user, 'name' => 'Old', 'name_key' => 'old', 'description' => null, 'created_at' => '2024-01-03 00:00:00', 'archived_at' => '2024-02-01 00:00:00']);
+        $this->db->insert('tag', ['id' => self::id(), 'category_id' => $skill, 'user_id' => $user, 'name' => 'PHP', 'name_key' => 'php', 'created_at' => '2024-01-04 00:00:00', 'archived_at' => null]);
+        $this->db->insert('tag', ['id' => self::id(), 'category_id' => $skill, 'user_id' => $user, 'name' => 'Cobol', 'name_key' => 'cobol', 'created_at' => '2024-01-05 00:00:00', 'archived_at' => '2024-03-01 00:00:00']);
+        $this->db->insert('tag', ['id' => self::id(), 'category_id' => $old, 'user_id' => $user, 'name' => 'gone', 'name_key' => 'gone', 'created_at' => '2024-01-06 00:00:00', 'archived_at' => null]);
+        $before = $this->taxonomyRows();
+
+        $this->migrate(new Version20261115120000($this->db, new NullLogger()));
+        $this->rebuild();
+
+        self::assertSame($before, $this->taxonomyRows());
+        self::assertEquals(7, $this->db->fetchOne("SELECT count(*) FROM event_store WHERE stream_type IN ('category', 'tag')"), '5 created, 2 archived');
+    }
+
+    /**
+     * @return array<string, list<array<string, mixed>>>
+     *
+     * @throws Exception
+     */
+    private function taxonomyRows(): array
+    {
+        return [
+            'category' => $this->db->fetchAllAssociative('SELECT * FROM category ORDER BY id'),
+            'tag' => $this->db->fetchAllAssociative('SELECT * FROM tag ORDER BY id'),
+        ];
     }
 
     /**

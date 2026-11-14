@@ -7,7 +7,7 @@ namespace App\Taxonomy;
 use App\Shared\EntityId;
 
 /**
- * Identifies a category (CategoryEntity).
+ * Identifies a category (the Category aggregate and its stream).
  */
 final readonly class CategoryId extends EntityId
 {

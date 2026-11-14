@@ -10,7 +10,7 @@ use function array_values;
 use function ksort;
 
 /**
- * Identifies a tag (TagEntity).
+ * Identifies a tag (the Tag aggregate and its stream).
  */
 final readonly class TagId extends EntityId
 {

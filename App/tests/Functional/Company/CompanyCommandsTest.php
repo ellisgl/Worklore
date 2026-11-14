@@ -12,7 +12,7 @@ use App\Company\CompanyId;
 use App\Company\CompanyRepository;
 use App\Identity\User;
 use App\Shared\InvalidValueException;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -29,7 +29,7 @@ use function array_values;
  */
 final class CompanyCommandsTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private MessageBusInterface $bus;
     private CompanyRepository $companies;

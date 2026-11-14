@@ -4,54 +4,51 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Application;
 
-use App\Shared\Owner;
-use App\Taxonomy\CategoryRepository;
-use App\Taxonomy\TagEntity;
+use App\Shared\UserId;
 use App\Taxonomy\TagId;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception;
+
+use function array_map;
+use function count;
+use function is_int;
+use function is_string;
 
 /**
- * Turns the tag ids a command carries into the owner's tags (for journal
- * entries and projects).
+ * Checks that the tag ids a command carries are the owner's tags (for
+ * journal entries and projects), against the tag projection.
  */
 final readonly class TagLookup
 {
-    public function __construct(private CategoryRepository $categories)
+    public function __construct(private Connection $db)
     {
     }
 
     /**
      * @param list<TagId> $ids
      *
-     * @return list<TagEntity> in the order given, duplicates dropped
+     * @return list<TagId> distinct, sorted by id
      *
+     * @throws Exception
      * @throws TagNotFound if any id isn't one of the owner's tags
      */
-    public function ownedBy(Owner $owner, array $ids): array
+    public function idsOwnedBy(UserId $ownerId, array $ids): array
     {
-        $tags = [];
-        foreach ($ids as $id) {
-            $tags[$id->toRfc4122()] ??= $this->categories->findTagByIdForOwner($id, $owner) ?? throw new TagNotFound();
+        $ids = TagId::distinct($ids);
+        if ([] === $ids) {
+            return [];
         }
 
-        return array_values($tags);
-    }
-
-    /**
-     * The same check, for aggregates that hold tag ids rather than tags.
-     *
-     * @param list<TagId> $ids
-     *
-     * @return list<TagId> in the order given, duplicates dropped
-     *
-     * @throws TagNotFound if any id isn't one of the owner's tags
-     */
-    public function idsOwnedBy(Owner $owner, array $ids): array
-    {
-        $tagIds = [];
-        foreach ($this->ownedBy($owner, $ids) as $tag) {
-            $tagIds[] = $tag->id;
+        $found = $this->db->fetchOne(
+            'SELECT count(*) FROM tag WHERE user_id = :owner AND id IN (:ids)',
+            ['owner' => $ownerId->toRfc4122(), 'ids' => array_map(static fn (TagId $id) => $id->toRfc4122(), $ids)],
+            ['ids' => ArrayParameterType::STRING],
+        );
+        if (count($ids) !== (is_int($found) || is_string($found) ? (int) $found : -1)) {
+            throw new TagNotFound();
         }
 
-        return $tagIds;
+        return $ids;
     }
 }

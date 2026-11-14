@@ -4,32 +4,35 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Application;
 
-use App\Shared\Doctrine\OwnerReferences;
-use App\Taxonomy\CategoryRepository;
+use App\Shared\EventSourcing\ConcurrentModification;
+use App\Taxonomy\TagRepository;
 use DateTimeZone;
-use Doctrine\ORM\Exception\ORMException;
+use Doctrine\DBAL\Exception;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class ArchiveTagHandler
 {
     public function __construct(
-        private CategoryRepository $categories,
-        private OwnerReferences $owners,
+        private TagRepository $tags,
         private ClockInterface $clock,
     ) {
     }
 
     /**
-     * @throws ORMException
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
      * @throws TagNotFound
      */
     public function __invoke(ArchiveTag $command): void
     {
-        $tag = $this->categories->findTagByIdForOwner($command->tagId, $this->owners->get($command->ownerId))
+        $tag = $this->tags->findForOwner($command->tagId, $command->ownerId)
             ?? throw new TagNotFound();
 
         $tag->archive($this->clock->now()->setTimezone(new DateTimeZone('UTC')));
+        $this->tags->save($tag);
     }
 }

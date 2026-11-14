@@ -6,7 +6,7 @@ namespace App\Tests\Functional\Company;
 
 use App\Company\Query\CompanyNames;
 use App\Identity\User;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Tests\Functional\CreatesRecords;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -17,7 +17,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class CompanyNamesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
     private CompanyNames $names;
     private User $me;

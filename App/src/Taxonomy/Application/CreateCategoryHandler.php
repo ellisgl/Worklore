@@ -4,43 +4,43 @@ declare(strict_types=1);
 
 namespace App\Taxonomy\Application;
 
-use App\Shared\Doctrine\OwnerReferences;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
-use App\Taxonomy\CategoryEntity;
+use App\Taxonomy\Category;
 use App\Taxonomy\CategoryRepository;
-use Doctrine\ORM\Exception\ORMException;
+use App\Taxonomy\Query\TaxonomyNames;
+use DateTimeZone;
+use Doctrine\DBAL\Exception;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 /**
- * Runs inside command.bus's transaction: the new category is flushed and
- * committed when this returns. Names are unique per owner, ignoring case.
+ * Names are unique per owner, ignoring case.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class CreateCategoryHandler
 {
     public function __construct(
         private CategoryRepository $categories,
-        private OwnerReferences $owners,
+        private TaxonomyNames $names,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
      * @throws CategoryNameTaken
-     * @throws InvalidValueException if the name is blank or too long
-     * @throws ORMException
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the name is blank or too long
      */
     public function __invoke(CreateCategory $command): void
     {
-        $owner = $this->owners->get($command->ownerId);
-        if ($this->categories->nameExistsForOwner($owner, $command->name)) {
+        if ($this->names->categoryNameTaken($command->ownerId, $command->name)) {
             throw new CategoryNameTaken($command->name);
         }
 
-        $this->categories->add(new CategoryEntity(
-            $owner,
-            $command->name,
-            $command->description,
-            id: $command->categoryId,
-        ));
+        $this->categories->save(Category::create($command->categoryId, $command->ownerId, $command->name, $command->description, $this->clock->now()->setTimezone(new DateTimeZone('UTC'))));
     }
 }

@@ -17,17 +17,22 @@ use App\Company\Project;
 use App\Company\ProjectId;
 use App\Company\ProjectRepository;
 use App\Identity\User;
+use App\Taxonomy\Category;
+use App\Taxonomy\CategoryId;
+use App\Taxonomy\CategoryRepository;
+use App\Taxonomy\Tag;
 use App\Taxonomy\TagId;
+use App\Taxonomy\TagRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Creates Company-module records for tests the way the app does: through
- * their aggregates and repositories, so the events are stored and projected.
+ * Creates records for tests the way the app does: through their aggregates
+ * and repositories, so the events are stored and projected.
  * Needs a booted kernel.
  */
-trait CreatesCompanyRecords
+trait CreatesRecords
 {
     /**
      * Saves a user, so records can belong to them.
@@ -115,15 +120,41 @@ trait CreatesCompanyRecords
     }
 
     /**
+     * @throws DateMalformedStringException
+     */
+    protected function category(User $owner, string $name = 'Skill', ?string $description = null, string $at = 'now', bool $archived = false): Category
+    {
+        $category = Category::create(CategoryId::generate(), $owner->id, $name, $description, new DateTimeImmutable($at));
+        if ($archived) {
+            $category->archive(new DateTimeImmutable());
+        }
+
+        return $this->saved($category);
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     */
+    protected function tag(Category $category, string $name = 'php', string $at = 'now', bool $archived = false): Tag
+    {
+        $tag = Tag::create(TagId::generate(), $category->id(), $category->ownerId(), $name, new DateTimeImmutable($at));
+        if ($archived) {
+            $tag->archive(new DateTimeImmutable());
+        }
+
+        return $this->saved($tag);
+    }
+
+    /**
      * Saves the record's new events, e.g. after archive() in a test.
      *
-     * @template T of Company|Product|Project|Position
+     * @template T of Company|Product|Project|Position|Category|Tag
      *
      * @param T $record
      *
      * @return T
      */
-    protected function saved(Company|Product|Project|Position $record): Company|Product|Project|Position
+    protected function saved(Company|Product|Project|Position|Category|Tag $record): Company|Product|Project|Position|Category|Tag
     {
         $container = self::getContainer();
         match (true) {
@@ -131,6 +162,8 @@ trait CreatesCompanyRecords
             $record instanceof Product => $container->get(ProductRepository::class)->save($record),
             $record instanceof Project => $container->get(ProjectRepository::class)->save($record),
             $record instanceof Position => $container->get(PositionRepository::class)->save($record),
+            $record instanceof Category => $container->get(CategoryRepository::class)->save($record),
+            $record instanceof Tag => $container->get(TagRepository::class)->save($record),
         };
 
         return $record;

@@ -16,14 +16,12 @@ use App\Journal\Query\JournalEntrySummary;
 use App\Journal\Query\JournalFilter;
 use App\Shared\InvalidValueException;
 use App\Shared\Query\Page;
-use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\Query\TagRef;
-use App\Taxonomy\TagEntity;
-use App\Tests\Functional\CreatesCompanyRecords;
+use App\Taxonomy\Tag;
+use App\Tests\Functional\CreatesRecords;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -34,9 +32,8 @@ use const DATE_RFC3339;
 
 final class JournalEntryQueriesTest extends KernelTestCase
 {
-    use CreatesCompanyRecords;
+    use CreatesRecords;
 
-    private EntityManagerInterface $em;
     private JournalEntryQueries $queries;
     private User $owner;
     private Company $acme;
@@ -45,7 +42,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->queries = self::getContainer()->get(JournalEntryQueries::class);
         $this->owner = $this->owner();
     }
@@ -62,7 +58,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $this->entry($launch, 'Third', '2024-03-01 09:00');
         $this->entry($launch, 'Second', '2024-02-01 09:00');
         $this->entry($beta, 'Elsewhere', '2024-04-01 09:00');
-        $this->em->flush();
 
         self::assertSame(['Third', 'Second', 'First'], $this->titles($this->queries->listForProject($this->owner->id, $launch->id())->items));
     }
@@ -76,7 +71,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $project = $this->launch();
         $this->entry($project, 'Kickoff');
         $this->entry($project, 'Archived', archived: true);
-        $this->em->flush();
 
         self::assertSame(['Kickoff'], $this->titles($this->queries->listForProject($this->owner->id, $project->id())->items));
 
@@ -97,16 +91,13 @@ final class JournalEntryQueriesTest extends KernelTestCase
     public function testReadModelFieldsAndTags(): void
     {
         $project = $this->launch();
-        $skill = new CategoryEntity($this->owner, 'Skill');
-        $area = new CategoryEntity($this->owner, 'Area');
-        $this->em->persist($skill);
-        $this->em->persist($area);
-        $php = $skill->addTag('php');
-        $backend = $area->addTag('backend');
-        $old = $area->addTag('api')->archive(new DateTimeImmutable());
+        $skill = $this->category($this->owner, 'Skill');
+        $area = $this->category($this->owner, 'Area');
+        $php = $this->tag($skill, 'php');
+        $backend = $this->tag($area, 'backend');
+        $old = $this->tag($area, 'api', archived: true);
         $entry = $this->entry($project, 'Kickoff', '2024-01-02 03:04:05', tags: [$php, $backend, $old]);
         $this->entry($project, 'Untagged');
-        $this->em->flush();
 
         $summary = $this->queries->findForOwner($this->owner->id, $entry->id());
 
@@ -119,8 +110,8 @@ final class JournalEntryQueriesTest extends KernelTestCase
         self::assertSame('2024-01-02T03:04:05+00:00', $summary->createdAt->format(DATE_RFC3339));
         self::assertNull($summary->archivedAt);
         self::assertSame(['Area/api', 'Area/backend', 'Skill/php'], $this->tagLabels($summary), 'By category, then name; archived tags too');
-        self::assertSame((string) $php->id, $summary->tags[2]->id);
-        self::assertSame((string) $skill->id, $summary->tags[2]->categoryId);
+        self::assertSame((string) $php->id(), $summary->tags[2]->id);
+        self::assertSame((string) $skill->id(), $summary->tags[2]->categoryId);
 
         $listed = $this->queries->listForProject($this->owner->id, $project->id())->items;
         self::assertSame([[], ['Area/api', 'Area/backend', 'Skill/php']], array_map($this->tagLabels(...), $listed), 'Each entry gets its own tags');
@@ -137,7 +128,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $this->entry($project, 'First', '2024-01-01');
         $this->entry($project, 'Second', '2024-02-01');
         $this->entry($project, 'Third', '2024-03-01');
-        $this->em->flush();
 
         $page = $this->queries->listForProject($this->owner->id, $project->id(), page: new Page(2, 2));
 
@@ -153,7 +143,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
     {
         $other = $this->owner('other@example.com');
         $theirProject = $this->project($this->product($this->company($other, 'Theirs'), 'Theirs'), 'Theirs');
-        $this->em->flush();
         $theirs = JournalEntry::write(JournalEntryId::generate(), $theirProject->id(), $other->id, 'Theirs', 'Body', [], new DateTimeImmutable());
         self::getContainer()->get(JournalEntryRepository::class)->save($theirs);
 
@@ -176,7 +165,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $this->entry($old, 'In archived project', '2024-03-01');
         $old->archive(new DateTimeImmutable());
         $this->saved($old);
-        $this->em->flush();
 
         $feed = $this->queries->listForOwner($this->owner->id)->items;
 
@@ -192,19 +180,17 @@ final class JournalEntryQueriesTest extends KernelTestCase
     public function testFilterByTag(): void
     {
         $project = $this->launch();
-        $area = new CategoryEntity($this->owner, 'Area');
-        $this->em->persist($area);
-        [$backend, $frontend] = [$area->addTag('backend'), $area->addTag('frontend')];
+        $area = $this->category($this->owner, 'Area');
+        [$backend, $frontend] = [$this->tag($area, 'backend'), $this->tag($area, 'frontend')];
         $this->entry($project, 'Both', '2024-01-01', tags: [$backend, $frontend]);
         $this->entry($project, 'Backend', '2024-02-01', tags: [$backend]);
         $this->entry($project, 'Untagged', '2024-03-01');
-        $this->em->flush();
 
-        $byBackend = new JournalFilter(tagId: $backend->id);
+        $byBackend = new JournalFilter(tagId: $backend->id());
 
         self::assertSame(['Backend', 'Both'], $this->titles($this->queries->listForProject($this->owner->id, $project->id(), filter: $byBackend)->items));
         self::assertSame(2, $this->queries->listForOwner($this->owner->id, filter: $byBackend)->total);
-        $both = $this->queries->listForOwner($this->owner->id, filter: new JournalFilter(tagId: $frontend->id))->items;
+        $both = $this->queries->listForOwner($this->owner->id, filter: new JournalFilter(tagId: $frontend->id()))->items;
         self::assertSame(['backend', 'frontend'], array_map(static fn (TagRef $t) => $t->name, $both[0]->tags), 'All its tags still listed');
     }
 
@@ -239,7 +225,6 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $this->entry($project, 'Migration', '2024-02-01', 'Moved the database to the new cluster.');
         $this->entry($project, 'Release', '2024-03-01', 'Deployed version 2 to staging.');
         $this->entry($project, 'Rollback', '2024-04-01', 'Deploys failed in production; rolled back.');
-        $this->em->flush();
 
         $found = $this->queries->listForProject($this->owner->id, $project->id(), filter: new JournalFilter(search: $search));
 
@@ -264,21 +249,19 @@ final class JournalEntryQueriesTest extends KernelTestCase
      * @throws DateMalformedStringException
      */
     /**
-     * Writes an entry through its aggregate, after saving the ORM-side
-     * tags it refers to.
+     * Writes an entry through its aggregate.
      *
-     * @param list<TagEntity> $tags
+     * @param list<Tag> $tags
      */
     private function entry(Project $project, string $title, string $at = 'now', string $text = 'Agreed on the scope.', array $tags = [], bool $archived = false): JournalEntry
     {
-        $this->em->flush();
         $entry = JournalEntry::write(
             JournalEntryId::generate(),
             $project->id(),
             $this->owner->id,
             $title,
             $text,
-            array_map(static fn (TagEntity $t) => $t->id, $tags),
+            array_map(static fn (Tag $t) => $t->id(), $tags),
             new DateTimeImmutable($at),
         );
         if ($archived) {
