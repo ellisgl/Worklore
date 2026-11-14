@@ -29,7 +29,8 @@ use const JSON_THROW_ON_ERROR;
 
 /**
  * The single source of truth: an append-only log of every domain event,
- * one stream per aggregate (table event_store).
+ * one stream per aggregate (table event_store). A row it can't read is
+ * corrupt data and raises UnexpectedValueException.
  *
  * @phpstan-type EventRow array{sequence: int|string, stream_type: string, stream_id: string, stream_version: int|string, user_id: string, event_type: string, payload: string, recorded_at: string}
  */
@@ -53,7 +54,6 @@ final readonly class EventStore
      *
      * @throws ConcurrentModification if the stream moved past $expectedVersion
      * @throws Exception
-     * @throws JsonException
      */
     public function append(string $streamType, EntityId $streamId, UserId $ownerId, int $expectedVersion, array $events): array
     {
@@ -73,7 +73,7 @@ final readonly class EventStore
                         'version' => $version,
                         'owner' => $ownerId->toRfc4122(),
                         'type' => $type,
-                        'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+                        'payload' => self::json($payload),
                         'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
                     ],
                 );
@@ -92,9 +92,7 @@ final readonly class EventStore
      *
      * @return list<StoredEvent>
      *
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      */
     public function stream(string $streamType, EntityId $streamId): array
     {
@@ -117,9 +115,7 @@ final readonly class EventStore
      *
      * @return Generator<StoredEvent>
      *
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      */
     public function all(int $batchSize = 500): Generator
     {
@@ -140,13 +136,15 @@ final readonly class EventStore
 
     /**
      * @param EventRow $row
-     *
-     * @throws DateMalformedStringException
-     * @throws JsonException
      */
     private function stored(array $row): StoredEvent
     {
-        $decoded = json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+        try {
+            $decoded = json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+            $recordedAt = new DateTimeImmutable($row['recorded_at'], new DateTimeZone('UTC'));
+        } catch (JsonException|DateMalformedStringException $e) {
+            throw new UnexpectedValueException('Unreadable event '.$row['sequence'].' in the event store.', previous: $e);
+        }
         if (!is_array($decoded)) {
             throw new UnexpectedValueException('Stored payload is not a JSON object.');
         }
@@ -161,9 +159,21 @@ final readonly class EventStore
             ownerId: UserId::fromString($row['user_id']),
             type: $row['event_type'],
             payload: $payload,
-            recordedAt: new DateTimeImmutable($row['recorded_at'], new DateTimeZone('UTC')),
+            recordedAt: $recordedAt,
             event: $this->serializer->event($row['event_type'], $payload),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private static function json(array $payload): string
+    {
+        try {
+            return json_encode($payload, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new UnexpectedValueException('An event payload is not JSON-encodable.', previous: $e);
+        }
     }
 
     private static function int(mixed $value): int

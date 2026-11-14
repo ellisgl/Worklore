@@ -90,8 +90,7 @@ final readonly class EventSerializer
     /**
      * @param array<array-key, mixed> $payload
      *
-     * @throws DateMalformedStringException
-     * @throws UnexpectedValueException     if the type is unknown or the payload doesn't fit the event
+     * @throws UnexpectedValueException if the type is unknown or the payload doesn't fit the event
      */
     public function event(string $type, array $payload): DomainEvent
     {
@@ -150,9 +149,6 @@ final readonly class EventSerializer
         throw new LogicException(sprintf('Parameter $%s of an event has a type EventSerializer can\'t store.', $parameter->getName()));
     }
 
-    /**
-     * @throws DateMalformedStringException
-     */
     private static function decode(mixed $value, ReflectionParameter $parameter): mixed
     {
         $type = $parameter->getType();
@@ -181,19 +177,25 @@ final readonly class EventSerializer
         return self::decodeAs($name, $value, $parameter);
     }
 
-    /**
-     * @throws DateMalformedStringException
-     */
     private static function decodeAs(string $type, mixed $value, ReflectionParameter $parameter): mixed
     {
         return match (true) {
             is_a($type, EntityId::class, true) && is_string($value) => $type::fromString($value),
-            DateTimeImmutable::class === $type && is_string($value) => new DateTimeImmutable($value)->setTimezone(new DateTimeZone('UTC')),
+            DateTimeImmutable::class === $type && is_string($value) => self::time($value, $parameter),
             'string' === $type && is_string($value),
             'int' === $type && is_int($value),
             'bool' === $type && is_bool($value),
             'float' === $type && (is_float($value) || is_int($value)) => $value,
             default => throw new UnexpectedValueException(sprintf('"%s" doesn\'t hold a %s.', $parameter->getName(), $type)),
         };
+    }
+
+    private static function time(string $value, ReflectionParameter $parameter): DateTimeImmutable
+    {
+        try {
+            return new DateTimeImmutable($value)->setTimezone(new DateTimeZone('UTC'));
+        } catch (DateMalformedStringException $e) {
+            throw new UnexpectedValueException(sprintf('"%s" is not a time.', $parameter->getName()), previous: $e);
+        }
     }
 }

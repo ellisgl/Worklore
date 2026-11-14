@@ -6,19 +6,22 @@ namespace App\Journal\Application;
 
 use App\Company\Application\ProjectNotFound;
 use App\Company\CompanyRepository;
-use App\Journal\JournalEntryEntity;
+use App\Journal\JournalEntry;
 use App\Journal\JournalEntryRepository;
 use App\Shared\Doctrine\OwnerReferences;
+use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\InvalidValueException;
-use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\Application\TagLookup;
 use App\Taxonomy\Application\TagNotFound;
+use DateTimeZone;
+use Doctrine\DBAL\Exception;
 use Doctrine\ORM\Exception\ORMException;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 /**
- * Runs inside command.bus's transaction: the entry and its tags are saved
- * together, or not at all.
+ * Writes the entry once its project and tags are known to be the owner's.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final readonly class CreateJournalEntryHandler
@@ -28,13 +31,16 @@ final readonly class CreateJournalEntryHandler
         private CompanyRepository $companies,
         private TagLookup $tags,
         private OwnerReferences $owners,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
-     * @throws InvalidValueException      if the title or entry is blank, or the title is too long
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
+     * @throws InvalidValueException  if the title or entry is blank, or the title is too long
      * @throws ORMException
-     * @throws OwnershipMismatchException never: the project and tags are looked up for the same owner
      * @throws ProjectNotFound
      * @throws TagNotFound
      */
@@ -43,9 +49,15 @@ final readonly class CreateJournalEntryHandler
         $owner = $this->owners->get($command->ownerId);
         $project = $this->companies->findProjectByIdForOwner($command->projectId, $owner)
             ?? throw new ProjectNotFound();
-        $tags = $this->tags->ownedBy($owner, $command->tagIds);
 
-        $entry = new JournalEntryEntity($project, $owner, $command->title, $command->entry, id: $command->entryId);
-        $this->entries->add($entry->setTags(...$tags));
+        $this->entries->save(JournalEntry::write(
+            $command->entryId,
+            $project->id,
+            $command->ownerId,
+            $command->title,
+            $command->entry,
+            $this->tags->idsOwnedBy($owner, $command->tagIds),
+            $this->clock->now()->setTimezone(new DateTimeZone('UTC')),
+        ));
     }
 }

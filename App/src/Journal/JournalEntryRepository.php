@@ -4,35 +4,46 @@ declare(strict_types=1);
 
 namespace App\Journal;
 
-use App\Shared\Owner;
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Persistence\ManagerRegistry;
+use App\Shared\EventSourcing\AggregateStore;
+use App\Shared\EventSourcing\ConcurrentModification;
+use App\Shared\UserId;
+use Doctrine\DBAL\Exception;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 /**
- * @extends ServiceEntityRepository<JournalEntryEntity>
+ * Journal entries, loaded from and saved to their event streams.
  */
-class JournalEntryRepository extends ServiceEntityRepository
+final readonly class JournalEntryRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(private AggregateStore $store)
     {
-        parent::__construct($registry, JournalEntryEntity::class);
     }
 
     /**
-     * Saves a new journal entry on the next flush.
+     * The entry, if it exists and belongs to the owner; null otherwise, so
+     * an endpoint answers 404 instead of revealing someone else's record.
+     * Archived entries are returned too.
+     *
+     * @throws Exception
      */
-    public function add(JournalEntryEntity $entry): void
+    public function findForOwner(JournalEntryId $id, UserId $ownerId): ?JournalEntry
     {
-        $this->getEntityManager()->persist($entry);
+        $history = $this->store->history(JournalEvents::STREAM, $id);
+        if ([] === $history) {
+            return null;
+        }
+        $entry = JournalEntry::fromHistory($history);
+
+        return $entry->ownerId()->equals($ownerId) ? $entry : null;
     }
 
     /**
-     * The journal entry with this id, if it belongs to the user; null
-     * otherwise, so an endpoint answers 404 instead of revealing someone
-     * else's record. Archived ones are returned too (e.g. to unarchive them).
+     * @throws ConcurrentModification
+     * @throws Exception
+     * @throws ExceptionInterface
      */
-    public function findOneByIdForOwner(JournalEntryId $id, Owner $owner): ?JournalEntryEntity
+    public function save(JournalEntry $entry): void
     {
-        return $this->findOneBy(['id' => $id, 'owner' => $owner]);
+        $this->store->save(JournalEvents::STREAM, $entry);
     }
 }

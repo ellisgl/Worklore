@@ -11,14 +11,13 @@ doctrine:
         # Tables Doctrine's schema tools leave alone: they have no ORM mapping
         # and are managed by migrations only. event_store is the event log;
         # the projections an event-sourced module writes join it here.
-        schema_filter: '~^(?!(event_store)($|_))~'
+        schema_filter: '~^(?!(event_store|journal_entry|journal_entry_tag)($|_))~'
 
         # Typed entity ids (App\Shared\EntityId subclasses), stored as native UUIDs
         types:
             api_token_id: App\Identity\Doctrine\ApiTokenIdType
             category_id: App\Taxonomy\Doctrine\CategoryIdType
             company_id: App\Company\Doctrine\CompanyIdType
-            journal_entry_id: App\Journal\Doctrine\JournalEntryIdType
             position_id: App\Company\Doctrine\PositionIdType
             product_id: App\Company\Doctrine\ProductIdType
             project_id: App\Company\Doctrine\ProjectIdType
@@ -51,12 +50,6 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Identity/Config'
                 prefix: 'App\Identity'
                 alias: Identity
-            Journal:
-                type: xml
-                is_bundle: false
-                dir: '%kernel.project_dir%/src/Journal/Config'
-                prefix: 'App\Journal'
-                alias: Journal
             Taxonomy:
                 type: xml
                 is_bundle: false

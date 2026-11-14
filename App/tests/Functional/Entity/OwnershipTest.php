@@ -9,16 +9,12 @@ use App\Company\PositionEntity;
 use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
-use App\Journal\JournalEntryEntity;
 use App\Shared\OwnershipMismatchException;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
 use Closure;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -64,26 +60,17 @@ final class OwnershipTest extends KernelTestCase
         self::assertSame($this->me, $create($this->me)->owner);
     }
 
-    public function testCannotWriteAJournalEntryInAnotherUsersProject(): void
-    {
-        $theirProject = self::product($this->other)->addProject('Launch');
-
-        $this->expectException(OwnershipMismatchException::class);
-        new JournalEntryEntity($theirProject, $this->me, 'Title', 'Body');
-    }
-
     /**
-     * @return iterable<string, array{Closure(User): (ProductEntity|ProjectEntity|JournalEntryEntity)}>
+     * @return iterable<string, array{Closure(User): (ProductEntity|ProjectEntity)}>
      */
     public static function taggableProvider(): iterable
     {
         yield 'product' => [static fn (User $me) => self::product($me)];
         yield 'project' => [static fn (User $me) => self::product($me)->addProject('Launch')];
-        yield 'journal entry' => [static fn (User $me) => new JournalEntryEntity(self::product($me)->addProject('Launch'), $me, 'Title', 'Body')];
     }
 
     /**
-     * @param Closure(User): (ProductEntity|ProjectEntity|JournalEntryEntity) $create
+     * @param Closure(User): (ProductEntity|ProjectEntity) $create
      */
     #[DataProvider('taggableProvider')]
     public function testCannotAddAnotherUsersTag(Closure $create): void
@@ -95,7 +82,7 @@ final class OwnershipTest extends KernelTestCase
     }
 
     /**
-     * @param Closure(User): (ProductEntity|ProjectEntity|JournalEntryEntity) $create
+     * @param Closure(User): (ProductEntity|ProjectEntity) $create
      */
     #[DataProvider('taggableProvider')]
     public function testCanAddOwnTag(Closure $create): void
@@ -127,30 +114,6 @@ final class OwnershipTest extends KernelTestCase
 
         self::assertSame($area, $tag->category);
         self::assertTrue($area->getTags()->contains($tag));
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function testSameUserLoadedSeparatelyStillMatches(): void
-    {
-        // The check compares ids, so a lazy reference to the same user passes
-        // even though it isn't the same object as the loaded project's user.
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $project = self::product($this->me)->addProject('Launch');
-        $em->persist($this->me);
-        $em->persist($project->product->company);
-        $em->flush();
-        $em->clear();
-
-        $project = self::findOrFail($em, $project::class, $project->id);
-        $sameUser = $em->getReference(User::class, $this->me->id);
-        self::assertNotNull($sameUser);
-
-        $entry = new JournalEntryEntity($project, $sameUser, 'Kickoff', 'Body');
-
-        self::assertSame($project, $entry->project);
     }
 
     private static function product(User $owner): ProductEntity

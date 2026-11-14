@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\EventSourcing;
 
-use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
-use JsonException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -27,9 +25,7 @@ final readonly class RebuildProjectionsCommand
     }
 
     /**
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      * @throws Throwable
      */
     public function __invoke(SymfonyStyle $io): int

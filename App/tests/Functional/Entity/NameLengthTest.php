@@ -9,7 +9,6 @@ use App\Company\PositionEntity;
 use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
-use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
@@ -42,7 +41,7 @@ final class NameLengthTest extends KernelTestCase
      * Each closure builds the record with the given name/title and returns
      * every entity that needs persisting, the named record last.
      *
-     * @return iterable<string, array{Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity>}>
+     * @return iterable<string, array{Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|PositionEntity|CategoryEntity|TagEntity>}>
      */
     public static function namedProvider(): iterable
     {
@@ -63,13 +62,6 @@ final class NameLengthTest extends KernelTestCase
 
             return [$c, $c->addPosition($n, new DateTimeImmutable('2024-01-01'))];
         }];
-        yield 'journal entry title' => [static function (User $u, string $n) {
-            $c = new CompanyEntity($u, 'Acme');
-            $p = $c->addProduct('Widget');
-            $pj = $p->addProject('Launch');
-
-            return [$c, $p, $pj, new JournalEntryEntity($pj, $u, $n, 'Body')];
-        }];
         yield 'category' => [static fn (User $u, string $n) => [new CategoryEntity($u, $n)]];
         yield 'tag' => [static function (User $u, string $n) {
             $c = new CategoryEntity($u, 'Area');
@@ -79,7 +71,7 @@ final class NameLengthTest extends KernelTestCase
     }
 
     /**
-     * @param Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity> $build
+     * @param Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|PositionEntity|CategoryEntity|TagEntity> $build
      *
      * @throws OptimisticLockException
      * @throws ORMException
@@ -101,12 +93,12 @@ final class NameLengthTest extends KernelTestCase
         $record = $entities[array_key_last($entities)];
         $this->em->clear();
         $loaded = self::findOrFail($this->em, $record::class, $record->id);
-        $saved = $loaded instanceof PositionEntity || $loaded instanceof JournalEntryEntity ? $loaded->title : $loaded->name;
+        $saved = $loaded instanceof PositionEntity ? $loaded->title : $loaded->name;
         self::assertSame($name, $saved->value);
     }
 
     /**
-     * @param Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity> $build
+     * @param Closure(User, string): non-empty-list<CompanyEntity|ProductEntity|ProjectEntity|PositionEntity|CategoryEntity|TagEntity> $build
      */
     #[DataProvider('namedProvider')]
     public function testOneOverMaxLengthIsRejected(Closure $build): void

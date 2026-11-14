@@ -11,7 +11,6 @@ use App\Tests\Fixtures\EventSourcing\NoteEdited;
 use App\Tests\Fixtures\EventSourcing\NoteEvents;
 use App\Tests\Fixtures\EventSourcing\NoteId;
 use App\Tests\Fixtures\EventSourcing\NoteWritten;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
@@ -20,9 +19,6 @@ use UnexpectedValueException;
 
 final class EventSerializerTest extends TestCase
 {
-    /**
-     * @throws DateMalformedStringException
-     */
     public function testRoundTripsAnEvent(): void
     {
         $serializer = new EventSerializer([new NoteEvents()]);
@@ -50,9 +46,6 @@ final class EventSerializerTest extends TestCase
         self::assertSame(2, $back->priority);
     }
 
-    /**
-     * @throws DateMalformedStringException
-     */
     public function testMissingKeysTakeTheParametersDefaults(): void
     {
         $serializer = new EventSerializer([new NoteEvents()]);
@@ -65,9 +58,6 @@ final class EventSerializerTest extends TestCase
         self::assertSame(0, $event->priority);
     }
 
-    /**
-     * @throws DateMalformedStringException
-     */
     public function testRejectsUnknownTypesAndBadPayloads(): void
     {
         $serializer = new EventSerializer([new NoteEvents()]);

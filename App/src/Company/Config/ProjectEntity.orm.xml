@@ -42,7 +42,6 @@
             </options>
         </field>
 
-        <one-to-many field="journalEntries" target-entity="App\Journal\JournalEntryEntity" mapped-by="project"/>
 
         <many-to-one field="product" target-entity="App\Company\ProductEntity" inversed-by="projects">
             <join-column name="product_id" nullable="false" on-delete="CASCADE"/>

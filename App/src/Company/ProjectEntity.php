@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Company;
 
-use App\Journal\JournalEntryEntity;
 use App\Shared\Name;
 use App\Shared\Owner;
 use App\Shared\OwnershipMismatchException;
@@ -14,7 +13,6 @@ use DateTimeZone;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
-use LogicException;
 use Symfony\Component\Clock\Clock;
 
 use function in_array;
@@ -42,8 +40,6 @@ final class ProjectEntity
     /** @var Collection<int, TagEntity> */
     private Collection $tags;
 
-    /** @var Collection<int, JournalEntryEntity> */
-    private Collection $journalEntries;
     private(set) DateTimeImmutable $createdAt;
 
     /**
@@ -63,7 +59,6 @@ final class ProjectEntity
         $this->setName($name);
         $this->overview = self::normalizeOverview($overview);
         $this->tags = new ArrayCollection();
-        $this->journalEntries = new ArrayCollection();
     }
 
     /**
@@ -77,31 +72,6 @@ final class ProjectEntity
     public function hasTag(TagEntity $tag): bool
     {
         return $this->tags->contains($tag);
-    }
-
-    /**
-     * @return ReadableCollection<int, JournalEntryEntity>
-     */
-    public function getJournalEntries(): ReadableCollection
-    {
-        return $this->journalEntries;
-    }
-
-    /**
-     * Keeps the inverse side in sync. Called by JournalEntryEntity's constructor;
-     * create journal entry with `new JournalEntryEntity($project, ...)`, not this.
-     *
-     * @internal
-     */
-    public function addJournalEntry(JournalEntryEntity $entry): void
-    {
-        if ($entry->project !== $this) {
-            throw new LogicException('Journal entry belongs to a different project');
-        }
-
-        if (!$this->journalEntries->contains($entry)) {
-            $this->journalEntries->add($entry);
-        }
     }
 
     /**

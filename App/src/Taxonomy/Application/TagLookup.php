@@ -35,4 +35,23 @@ final readonly class TagLookup
 
         return array_values($tags);
     }
+
+    /**
+     * The same check, for aggregates that hold tag ids rather than tags.
+     *
+     * @param list<TagId> $ids
+     *
+     * @return list<TagId> in the order given, duplicates dropped
+     *
+     * @throws TagNotFound if any id isn't one of the owner's tags
+     */
+    public function idsOwnedBy(Owner $owner, array $ids): array
+    {
+        $tagIds = [];
+        foreach ($this->ownedBy($owner, $ids) as $tag) {
+            $tagIds[] = $tag->id;
+        }
+
+        return $tagIds;
+    }
 }

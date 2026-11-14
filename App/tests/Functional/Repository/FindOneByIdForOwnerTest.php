@@ -10,8 +10,6 @@ use App\Company\PositionEntity;
 use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
-use App\Journal\JournalEntryEntity;
-use App\Journal\JournalEntryRepository;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\CategoryRepository;
 use App\Taxonomy\TagEntity;
@@ -50,7 +48,6 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
         yield 'position' => [CompanyRepository::class, 'findPositionByIdForOwner', 'position'];
         yield 'category' => [CategoryRepository::class, 'findOneByIdForOwner', 'category'];
         yield 'tag' => [CategoryRepository::class, 'findTagByIdForOwner', 'tag'];
-        yield 'journal entry' => [JournalEntryRepository::class, 'findOneByIdForOwner', 'journal'];
     }
 
     /**
@@ -103,7 +100,7 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
     /**
      * One of every entity, all owned by a new user.
      *
-     * @return array{user: User, company: CompanyEntity, product: ProductEntity, project: ProjectEntity, position: PositionEntity, category: CategoryEntity, tag: TagEntity, journal: JournalEntryEntity}
+     * @return array{user: User, company: CompanyEntity, product: ProductEntity, project: ProjectEntity, position: PositionEntity, category: CategoryEntity, tag: TagEntity}
      */
     private function graphFor(string $email): array
     {
@@ -120,7 +117,6 @@ final class FindOneByIdForOwnerTest extends KernelTestCase
             'position' => $company->addPosition('Developer', new DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => $category->addTag('backend'),
-            'journal' => new JournalEntryEntity($project, $user, 'Kickoff', 'Agreed on the scope.'),
         ];
         foreach ($graph as $entity) {
             $this->em->persist($entity);

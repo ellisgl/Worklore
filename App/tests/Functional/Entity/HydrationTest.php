@@ -9,7 +9,6 @@ use App\Company\PositionEntity;
 use App\Company\ProductEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
-use App\Journal\JournalEntryEntity;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\TagEntity;
 use App\Tests\Functional\FindsEntities;
@@ -32,7 +31,7 @@ final class HydrationTest extends KernelTestCase
 
     private EntityManagerInterface $em;
 
-    /** @var array<string, CompanyEntity|ProductEntity|ProjectEntity|JournalEntryEntity|PositionEntity|CategoryEntity|TagEntity> */
+    /** @var array<string, CompanyEntity|ProductEntity|ProjectEntity|PositionEntity|CategoryEntity|TagEntity> */
     private array $graph;
 
     protected function setUp(): void
@@ -49,7 +48,6 @@ final class HydrationTest extends KernelTestCase
             'company' => $company,
             'product' => $product,
             'project' => $project,
-            'journal' => new JournalEntryEntity($project, $user, 'Kickoff', 'Agreed on the scope.'),
             'position' => $company->addPosition('Developer', new DateTimeImmutable('2024-01-15')),
             'category' => $category,
             'tag' => $category->addTag('backend'),
@@ -68,7 +66,7 @@ final class HydrationTest extends KernelTestCase
      */
     public static function entityProvider(): iterable
     {
-        foreach (['company', 'product', 'project', 'journal', 'position', 'category', 'tag'] as $key) {
+        foreach (['company', 'product', 'project', 'position', 'category', 'tag'] as $key) {
             yield $key => [$key];
         }
     }

@@ -12,11 +12,9 @@ use App\Tests\Fixtures\EventSourcing\Note;
 use App\Tests\Fixtures\EventSourcing\NoteEdited;
 use App\Tests\Fixtures\EventSourcing\NoteEvents;
 use App\Tests\Fixtures\EventSourcing\NoteId;
-use DateMalformedStringException;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
-use JsonException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -40,9 +38,7 @@ final class EventStoreTest extends KernelTestCase
 
     /**
      * @throws ConcurrentModification
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      */
     public function testAppendsAndReadsAStream(): void
     {
@@ -63,9 +59,7 @@ final class EventStoreTest extends KernelTestCase
 
     /**
      * @throws ConcurrentModification
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      */
     public function testRefusesToAppendOnAStaleVersion(): void
     {
@@ -82,9 +76,7 @@ final class EventStoreTest extends KernelTestCase
 
     /**
      * @throws ConcurrentModification
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      */
     public function testReadsEverythingInOrderInBatches(): void
     {
@@ -104,7 +96,6 @@ final class EventStoreTest extends KernelTestCase
     /**
      * @throws ConcurrentModification
      * @throws Exception
-     * @throws JsonException
      */
     public function testDeletingTheOwnerDeletesTheirEvents(): void
     {

@@ -7,8 +7,9 @@ namespace App\Tests\Functional\Journal;
 use App\Company\CompanyEntity;
 use App\Company\ProjectEntity;
 use App\Identity\User;
-use App\Journal\JournalEntryEntity;
+use App\Journal\JournalEntry;
 use App\Journal\JournalEntryId;
+use App\Journal\JournalEntryRepository;
 use App\Journal\Query\JournalEntryQueries;
 use App\Journal\Query\JournalEntrySummary;
 use App\Journal\Query\JournalFilter;
@@ -16,6 +17,7 @@ use App\Shared\InvalidValueException;
 use App\Shared\Query\Page;
 use App\Taxonomy\CategoryEntity;
 use App\Taxonomy\Query\TagRef;
+use App\Taxonomy\TagEntity;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception;
@@ -68,7 +70,7 @@ final class JournalEntryQueriesTest extends KernelTestCase
     {
         $project = $this->project();
         $this->entry($project, 'Kickoff');
-        $this->entry($project, 'Archived')->archive(new DateTimeImmutable());
+        $this->entry($project, 'Archived', archived: true);
         $this->em->flush();
 
         self::assertSame(['Kickoff'], $this->titles($this->queries->listForProject($this->owner->id, $project->id)->items));
@@ -97,14 +99,14 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $php = $skill->addTag('php');
         $backend = $area->addTag('backend');
         $old = $area->addTag('api')->archive(new DateTimeImmutable());
-        $entry = $this->entry($project, 'Kickoff', '2024-01-02 03:04:05')->setTags($php, $backend, $old);
+        $entry = $this->entry($project, 'Kickoff', '2024-01-02 03:04:05', tags: [$php, $backend, $old]);
         $this->entry($project, 'Untagged');
         $this->em->flush();
 
-        $summary = $this->queries->findForOwner($this->owner->id, $entry->id);
+        $summary = $this->queries->findForOwner($this->owner->id, $entry->id());
 
         self::assertNotNull($summary);
-        self::assertSame((string) $entry->id, $summary->id);
+        self::assertSame((string) $entry->id(), $summary->id);
         self::assertSame((string) $project->id, $summary->projectId);
         self::assertSame('Kickoff', $summary->title);
         self::assertSame('Launch', $summary->projectName);
@@ -148,12 +150,12 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $this->em->persist($other);
         $theirProject = new CompanyEntity($other, 'Theirs')->addProduct('Theirs')->addProject('Theirs');
         $this->em->persist($theirProject->product->company);
-        $theirs = new JournalEntryEntity($theirProject, $other, 'Theirs', 'Body');
-        $this->em->persist($theirs);
         $this->em->flush();
+        $theirs = JournalEntry::write(JournalEntryId::generate(), $theirProject->id, $other->id, 'Theirs', 'Body', [], new DateTimeImmutable());
+        self::getContainer()->get(JournalEntryRepository::class)->save($theirs);
 
         self::assertSame([], $this->queries->listForProject($this->owner->id, $theirProject->id)->items);
-        self::assertNull($this->queries->findForOwner($this->owner->id, $theirs->id));
+        self::assertNull($this->queries->findForOwner($this->owner->id, $theirs->id()));
         self::assertNull($this->queries->findForOwner($this->owner->id, JournalEntryId::generate()));
     }
 
@@ -189,8 +191,8 @@ final class JournalEntryQueriesTest extends KernelTestCase
         $area = new CategoryEntity($this->owner, 'Area');
         $this->em->persist($area);
         [$backend, $frontend] = [$area->addTag('backend'), $area->addTag('frontend')];
-        $this->entry($project, 'Both', '2024-01-01')->setTags($backend, $frontend);
-        $this->entry($project, 'Backend', '2024-02-01')->setTags($backend);
+        $this->entry($project, 'Both', '2024-01-01', tags: [$backend, $frontend]);
+        $this->entry($project, 'Backend', '2024-02-01', tags: [$backend]);
         $this->entry($project, 'Untagged', '2024-03-01');
         $this->em->flush();
 
@@ -252,10 +254,28 @@ final class JournalEntryQueriesTest extends KernelTestCase
     /**
      * @throws DateMalformedStringException
      */
-    private function entry(ProjectEntity $project, string $title, string $at = 'now', string $text = 'Agreed on the scope.'): JournalEntryEntity
+    /**
+     * Writes an entry through its aggregate, after saving the ORM-side
+     * records (projects, tags) it refers to.
+     *
+     * @param list<TagEntity> $tags
+     */
+    private function entry(ProjectEntity $project, string $title, string $at = 'now', string $text = 'Agreed on the scope.', array $tags = [], bool $archived = false): JournalEntry
     {
-        $entry = new JournalEntryEntity($project, $this->owner, $title, $text, new DateTimeImmutable($at));
-        $this->em->persist($entry);
+        $this->em->flush();
+        $entry = JournalEntry::write(
+            JournalEntryId::generate(),
+            $project->id,
+            $this->owner->id,
+            $title,
+            $text,
+            array_map(static fn (TagEntity $t) => $t->id, $tags),
+            new DateTimeImmutable($at),
+        );
+        if ($archived) {
+            $entry->archive(new DateTimeImmutable());
+        }
+        self::getContainer()->get(JournalEntryRepository::class)->save($entry);
 
         return $entry;
     }

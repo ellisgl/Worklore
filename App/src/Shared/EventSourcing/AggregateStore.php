@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\EventSourcing;
 
 use App\Shared\EntityId;
-use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
-use JsonException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
@@ -31,9 +29,7 @@ final readonly class AggregateStore
     /**
      * @return list<DomainEvent> oldest first; empty if there is no such stream
      *
-     * @throws DateMalformedStringException
      * @throws Exception
-     * @throws JsonException
      */
     public function history(string $streamType, EntityId $id): array
     {
@@ -49,7 +45,6 @@ final readonly class AggregateStore
      * @throws ConcurrentModification
      * @throws Exception
      * @throws ExceptionInterface
-     * @throws JsonException
      */
     public function save(string $streamType, AggregateRoot $aggregate): void
     {

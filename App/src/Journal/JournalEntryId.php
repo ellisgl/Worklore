@@ -7,7 +7,7 @@ namespace App\Journal;
 use App\Shared\EntityId;
 
 /**
- * Identifies a journal entry (JournalEntryEntity).
+ * Identifies a journal entry (the JournalEntry aggregate and its stream).
  */
 final readonly class JournalEntryId extends EntityId
 {
