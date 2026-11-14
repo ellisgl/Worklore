@@ -12,6 +12,7 @@ use App\Journal\Event\JournalEntryRetitled;
 use App\Journal\Event\JournalEntryRewritten;
 use App\Journal\Event\JournalEntryUnarchived;
 use App\Journal\Event\JournalEntryWritten;
+use App\Journal\JournalEvents;
 use App\Shared\EventSourcing\Projector;
 use App\Shared\EventSourcing\StoredEvent;
 use App\Shared\EventSourcing\WritesRows;
@@ -34,6 +35,15 @@ final readonly class JournalEntryProjector implements Projector
     public function tables(): array
     {
         return ['journal_media', 'journal_entry_tag', 'journal_entry'];
+    }
+
+    public function forget(string $streamType, array $ids): void
+    {
+        if (JournalEvents::STREAM === $streamType) {
+            self::deleteIn($this->db, 'journal_media', 'journal_entry_id', $ids);
+            self::deleteIn($this->db, 'journal_entry_tag', 'journal_entry_id', $ids);
+            self::deleteIn($this->db, 'journal_entry', 'id', $ids);
+        }
     }
 
     public function project(StoredEvent $event): void

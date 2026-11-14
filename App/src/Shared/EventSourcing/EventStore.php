@@ -10,6 +10,7 @@ use App\Shared\UserId;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -110,6 +111,28 @@ final readonly class EventStore
         }
 
         return new StoredEvent(self::int($sequence), $streamType, $streamId, $version, $ownerId, $type, $payload, $recordedAt, $event, $impersonatorId);
+    }
+
+    /**
+     * Erases these streams of the owner's, every event (true deletion).
+     *
+     * @param list<string> $streamIds
+     *
+     * @return int events erased
+     *
+     * @throws Exception
+     */
+    public function erase(UserId $ownerId, array $streamIds): int
+    {
+        if ([] === $streamIds) {
+            return 0;
+        }
+
+        return (int) $this->db->executeStatement(
+            'DELETE FROM event_store WHERE user_id = :owner AND stream_id IN (:ids)',
+            ['owner' => $ownerId->toRfc4122(), 'ids' => $streamIds],
+            ['ids' => ArrayParameterType::STRING],
+        );
     }
 
     /**

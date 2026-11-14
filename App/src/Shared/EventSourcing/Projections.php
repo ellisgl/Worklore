@@ -30,6 +30,21 @@ final readonly class Projections
     }
 
     /**
+     * @param list<string> $ids
+     *
+     * @throws Exception
+     */
+    public function forget(string $streamType, array $ids): void
+    {
+        if ([] === $ids) {
+            return;
+        }
+        foreach ($this->projectors as $projector) {
+            $projector->forget($streamType, $ids);
+        }
+    }
+
+    /**
      * @return list<string> every projection table
      */
     public function tables(): array

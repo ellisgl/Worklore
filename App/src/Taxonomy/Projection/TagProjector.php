@@ -13,6 +13,7 @@ use App\Taxonomy\Event\TagCreated;
 use App\Taxonomy\Event\TagMoved;
 use App\Taxonomy\Event\TagRenamed;
 use App\Taxonomy\Event\TagUnarchived;
+use App\Taxonomy\TaxonomyEvents;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 
@@ -30,6 +31,13 @@ final readonly class TagProjector implements Projector
     public function tables(): array
     {
         return ['tag'];
+    }
+
+    public function forget(string $streamType, array $ids): void
+    {
+        if (TaxonomyEvents::TAG === $streamType) {
+            self::deleteIn($this->db, 'tag', 'id', $ids);
+        }
     }
 
     public function project(StoredEvent $event): void

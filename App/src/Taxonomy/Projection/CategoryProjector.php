@@ -13,6 +13,7 @@ use App\Taxonomy\Event\CategoryCreated;
 use App\Taxonomy\Event\CategoryDescriptionChanged;
 use App\Taxonomy\Event\CategoryRenamed;
 use App\Taxonomy\Event\CategoryUnarchived;
+use App\Taxonomy\TaxonomyEvents;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 
@@ -30,6 +31,13 @@ final readonly class CategoryProjector implements Projector
     public function tables(): array
     {
         return ['category'];
+    }
+
+    public function forget(string $streamType, array $ids): void
+    {
+        if (TaxonomyEvents::CATEGORY === $streamType) {
+            self::deleteIn($this->db, 'category', 'id', $ids);
+        }
     }
 
     public function project(StoredEvent $event): void

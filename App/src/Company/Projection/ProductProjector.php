@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company\Projection;
 
+use App\Company\CompanyEvents;
 use App\Company\Event\ProductArchived;
 use App\Company\Event\ProductCreated;
 use App\Company\Event\ProductOverviewChanged;
@@ -30,6 +31,13 @@ final readonly class ProductProjector implements Projector
     public function tables(): array
     {
         return ['product'];
+    }
+
+    public function forget(string $streamType, array $ids): void
+    {
+        if (CompanyEvents::PRODUCT === $streamType) {
+            self::deleteIn($this->db, 'product', 'id', $ids);
+        }
     }
 
     public function project(StoredEvent $event): void

@@ -26,4 +26,14 @@ interface Projector
      * @return list<string>
      */
     public function tables(): array;
+
+    /**
+     * Deletes the rows for these records of $streamType, whose events were
+     * just purged (true deletion). Other stream types are not its business.
+     *
+     * @param list<string> $ids
+     *
+     * @throws Exception
+     */
+    public function forget(string $streamType, array $ids): void;
 }

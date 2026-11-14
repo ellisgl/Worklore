@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Company\Projection;
 
+use App\Company\CompanyEvents;
 use App\Company\Event\PositionArchived;
 use App\Company\Event\PositionCreated;
 use App\Company\Event\PositionEnded;
@@ -32,6 +33,13 @@ final readonly class PositionProjector implements Projector
     public function tables(): array
     {
         return ['"position"'];
+    }
+
+    public function forget(string $streamType, array $ids): void
+    {
+        if (CompanyEvents::POSITION === $streamType) {
+            self::deleteIn($this->db, '"position"', 'id', $ids);
+        }
     }
 
     public function project(StoredEvent $event): void
