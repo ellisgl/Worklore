@@ -15,6 +15,7 @@ use Doctrine\DBAL\Exception;
 use Psr\Clock\ClockInterface;
 
 use function array_column;
+use function is_numeric;
 use function is_string;
 
 /**
@@ -55,8 +56,33 @@ final readonly class DataExporter
             categories: $this->rows('SELECT id, name, description, created_at, archived_at FROM category WHERE user_id = :owner ORDER BY created_at, id', $owner),
             tags: $this->rows('SELECT id, category_id, name, created_at, archived_at FROM tag WHERE user_id = :owner ORDER BY created_at, id', $owner),
             journalEntries: $this->withTagIds($entries, 'journal_entry_tag', 'journal_entry_id'),
+            media: $this->media($owner),
             events: $this->events($ownerId),
         );
+    }
+
+    /**
+     * Files attached to journal entries; their bytes are in the archive
+     * export (GET /api/me/export/archive) under media/{id}.
+     *
+     * @param array<string, string> $owner
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
+    private function media(array $owner): array
+    {
+        $rows = [];
+        foreach ($this->rows('SELECT id, journal_entry_id, filename, media_type, size, sha256, created_at FROM journal_media WHERE user_id = :owner ORDER BY created_at, id', $owner) as $row) {
+            unset($row['archived_at']);
+            $size = $row['size'] ?? null;
+            $row['size'] = is_numeric($size) ? (int) $size : 0;
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 
     /**

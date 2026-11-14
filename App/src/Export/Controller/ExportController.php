@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Export\Controller;
 
+use App\Export\ArchiveExporter;
 use App\Export\DataExport;
 use App\Export\DataExporter;
 use App\Shared\Http\OpenApi\Item;
@@ -12,11 +13,16 @@ use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use OpenApi\Attributes as OA;
 use Psr\Clock\ClockInterface;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+
+use function fclose;
+use function fopen;
 
 use const JSON_PRETTY_PRINT;
 use const JSON_UNESCAPED_SLASHES;
@@ -27,6 +33,7 @@ final class ExportController extends AbstractController
 {
     public function __construct(
         private readonly DataExporter $exporter,
+        private readonly ArchiveExporter $archives,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -51,6 +58,43 @@ final class ExportController extends AbstractController
             HeaderUtils::DISPOSITION_ATTACHMENT,
             'worklore-export-'.$this->clock->now()->format('Y-m-d').'.json',
         ));
+
+        return $response;
+    }
+
+    /**
+     * Download all your data, files included.
+     *
+     * GET /api/me/export/archive: a zip (worklore-export-YYYY-MM-DD.zip)
+     * holding export.json (the same document as GET /api/me/export) and
+     * media/{id}, the bytes of each file attached to a journal entry. This
+     * is the export to keep as a backup: POST /api/me/import restores it.
+     *
+     * @throws DateMalformedStringException
+     * @throws Exception
+     */
+    #[OA\Response(response: 200, description: 'The archive, as a file download', content: new OA\MediaType(mediaType: 'application/zip', schema: new OA\Schema(type: 'string', format: 'binary')))]
+    #[Route('/api/me/export/archive', name: 'api_me_export_archive', methods: ['GET'])]
+    public function archive(#[CurrentUser] Owner $owner): StreamedResponse
+    {
+        // Read before streaming starts, so a database error is still a clean 500
+        $export = $this->exporter->export($owner->ownerId());
+        $ownerId = $owner->ownerId();
+
+        $response = new StreamedResponse(function () use ($export, $ownerId): void {
+            $output = fopen('php://output', 'wb');
+            if (false === $output) {
+                throw new RuntimeException('Cannot write the response.');
+            }
+            $this->archives->write($export, $ownerId, $output);
+            fclose($output);
+        });
+        $response->headers->set('Content-Type', 'application/zip');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            'worklore-export-'.$this->clock->now()->format('Y-m-d').'.zip',
+        ));
+        $response->setPrivate();
 
         return $response;
     }

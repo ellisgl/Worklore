@@ -12,10 +12,14 @@ use function sprintf;
 
 final class StorageQuotaExceeded extends ConflictException
 {
-    public function __construct(int $size, int $used, int $limit)
+    /**
+     * @param string $what what needs the space, e.g. "the file is"
+     */
+    public function __construct(int $size, int $used, int $limit, string $what = 'the file is')
     {
         parent::__construct(sprintf(
-            'Not enough storage left: the file is %s, and you have %s of your %s left.',
+            'Not enough storage left: %s %s, and you have %s of your %s left.',
+            $what,
             ByteSize::format($size),
             ByteSize::format(max(0, $limit - $used)),
             ByteSize::format($limit),

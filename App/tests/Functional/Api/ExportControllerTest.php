@@ -43,7 +43,7 @@ final class ExportControllerTest extends ApiTestCase
 
         $export = $this->decode($response);
         self::assertSame(
-            ['format', 'version', 'exported_at', 'account', 'companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries', 'events'],
+            ['format', 'version', 'exported_at', 'account', 'companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries', 'media', 'events'],
             array_keys($export),
         );
         self::assertSame('worklore-export', $export['format']);
@@ -106,7 +106,7 @@ final class ExportControllerTest extends ApiTestCase
 
         $export = $this->getJson('/api/me/export', $mine);
 
-        foreach (['companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries', 'events'] as $list) {
+        foreach (['companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries', 'media', 'events'] as $list) {
             self::assertSame([], self::list($export, $list), $list);
         }
         self::assertStringNotContainsString('other@example.com', json_encode($export, JSON_THROW_ON_ERROR));

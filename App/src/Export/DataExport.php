@@ -34,6 +34,7 @@ final readonly class DataExport
      * @param list<array<string, mixed>> $categories
      * @param list<array<string, mixed>> $tags
      * @param list<array<string, mixed>> $journalEntries with tag_ids
+     * @param list<array<string, mixed>> $media          files attached to journal entries (bytes only in the archive export)
      * @param list<array<string, mixed>> $events         oldest first: stream_type, stream_id, version, type, recorded_at, data
      */
     public function __construct(
@@ -54,6 +55,12 @@ final readonly class DataExport
         public array $tags,
         #[OA\Property(type: 'array', items: new OA\Items(type: 'object'))]
         public array $journalEntries,
+        #[OA\Property(
+            description: 'Files attached to journal entries. Their bytes are only in the archive export, as media/{id}.',
+            type: 'array',
+            items: new OA\Items(type: 'object'),
+        )]
+        public array $media,
         #[OA\Property(
             description: 'Every change to every record, oldest first. Each has the record (stream_type, stream_id), its position in that record\'s history (version, from 1), what happened (type), when (recorded_at) and the event as stored (data).',
             type: 'array',

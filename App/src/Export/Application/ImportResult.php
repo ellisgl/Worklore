@@ -16,6 +16,8 @@ final readonly class ImportResult
         public int $records,
         #[OA\Property(description: 'Events replayed: every change those records went through', example: 31)]
         public int $events,
+        #[OA\Property(description: 'Media files restored', example: 3)]
+        public int $files = 0,
     ) {
     }
 }

@@ -8,7 +8,8 @@ use App\Shared\UserId;
 
 /**
  * Restore an export into $ownerId's account by replaying its events. The
- * account must have no records yet.
+ * account must have no records yet. Media files come from $files (an
+ * archive export); without it, an export with media is refused.
  */
 final readonly class ImportData
 {
@@ -18,6 +19,7 @@ final readonly class ImportData
     public function __construct(
         public UserId $ownerId,
         public array $events,
+        public ?ImportedFiles $files = null,
     ) {
     }
 }

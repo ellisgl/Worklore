@@ -47,7 +47,7 @@ final class ImportControllerTest extends ApiTestCase
         $response = $this->import($export, $restored);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-        self::assertSame(['records' => 8, 'events' => 12], $this->decode($response));
+        self::assertSame(['records' => 8, 'events' => 12, 'files' => 0], $this->decode($response));
 
         $again = $this->getJson('/api/me/export', $restored);
         self::assertSame(self::withoutIds($export), self::withoutIds($again), 'Same records and history, apart from ids and the account');
