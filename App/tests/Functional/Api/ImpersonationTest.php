@@ -75,6 +75,7 @@ final class ImpersonationTest extends ApiTestCase
 
         foreach ([
             ['POST', '/api/me/password', ['current_password' => self::PASSWORD, 'new_password' => 'something-else-123']],
+            ['POST', '/api/me/password', ['new_password' => 'x']],
             ['POST', '/api/me/sessions/revoke', null],
             ['GET', '/api/me/export', null],
             ['GET', '/api/me/export/archive', null],

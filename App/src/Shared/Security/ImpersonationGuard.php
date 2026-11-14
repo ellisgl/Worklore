@@ -7,10 +7,12 @@ namespace App\Shared\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerArgumentsEvent;
+use Symfony\Component\HttpKernel\Event\ControllerEvent;
 
 /**
- * Enforces #[NotWhileImpersonating] and #[OnlyWhileImpersonating].
+ * Enforces #[NotWhileImpersonating] and #[OnlyWhileImpersonating]. Runs
+ * when the controller is chosen, before its arguments are resolved, so a
+ * refused request is a 403 even if its body is invalid too.
  */
 #[AsEventListener]
 final readonly class ImpersonationGuard
@@ -19,7 +21,7 @@ final readonly class ImpersonationGuard
     {
     }
 
-    public function __invoke(ControllerArgumentsEvent $event): void
+    public function __invoke(ControllerEvent $event): void
     {
         $attributes = $event->getAttributes();
         $impersonating = $this->impersonation->isActive();
