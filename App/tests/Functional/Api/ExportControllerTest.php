@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 use function array_column;
 use function array_keys;
+use function array_map;
 use function is_array;
 use function json_encode;
 
@@ -42,11 +43,11 @@ final class ExportControllerTest extends ApiTestCase
 
         $export = $this->decode($response);
         self::assertSame(
-            ['format', 'version', 'exported_at', 'account', 'companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries'],
+            ['format', 'version', 'exported_at', 'account', 'companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries', 'events'],
             array_keys($export),
         );
         self::assertSame('worklore-export', $export['format']);
-        self::assertSame(1, $export['version']);
+        self::assertSame(2, $export['version']);
         self::assertSame('2026-03-04T05:06:07+00:00', $export['exported_at']);
 
         $account = $export['account'] ?? null;
@@ -68,6 +69,29 @@ final class ExportControllerTest extends ApiTestCase
             [['id' => $entry, 'project_id' => $project, 'title' => 'Kickoff', 'entry' => 'Agreed on the scope.', 'created_at' => '2026-03-04T05:06:07+00:00', 'archived_at' => null, 'tag_ids' => [$tag]]],
             self::list($export, 'journal_entries'),
         );
+
+        $events = self::list($export, 'events');
+        self::assertSame(
+            [
+                ['company', $company, 1, 'company.created'],
+                ['product', $product, 1, 'product.created'],
+                ['project', $project, 1, 'project.created'],
+                ['position', $position, 1, 'position.created'],
+                ['position', $position, 2, 'position.ended'],
+                ['category', $category, 1, 'category.created'],
+                ['tag', $tag, 1, 'tag.created'],
+                ['journal_entry', $entry, 1, 'journal_entry.written'],
+                ['product', $product, 2, 'product.archived'],
+            ],
+            array_map(static fn (array $event): array => [$event['stream_type'], $event['stream_id'], $event['version'], $event['type']], $events),
+            'Every event, in the order it happened',
+        );
+        self::assertSame('2026-03-04T05:06:07+00:00', $events[0]['recorded_at']);
+        self::assertEquals(
+            ['company_id' => $company, 'owner_id' => $account['id'], 'name' => 'Acme', 'overview' => 'Ünïcode & "quotes"', 'created_at' => '2026-03-04T05:06:07+00:00'],
+            $events[0]['data'],
+            'The event as stored (jsonb may reorder its keys)',
+        );
     }
 
     /**
@@ -82,7 +106,7 @@ final class ExportControllerTest extends ApiTestCase
 
         $export = $this->getJson('/api/me/export', $mine);
 
-        foreach (['companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries'] as $list) {
+        foreach (['companies', 'products', 'projects', 'positions', 'categories', 'tags', 'journal_entries', 'events'] as $list) {
             self::assertSame([], self::list($export, $list), $list);
         }
         self::assertStringNotContainsString('other@example.com', json_encode($export, JSON_THROW_ON_ERROR));

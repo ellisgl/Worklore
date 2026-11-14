@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Export;
 
+use App\Shared\EventSourcing\EventStore;
 use App\Shared\Query\ReadsDatabaseTimes;
 use App\Shared\UserId;
 use DateMalformedStringException;
@@ -17,9 +18,10 @@ use function array_column;
 use function is_string;
 
 /**
- * Builds a user's DataExport straight from the tables, archived records
- * included, oldest first. Timestamps become ISO 8601 in UTC; dates stay
- * YYYY-MM-DD. Password hashes and tokens are never exported.
+ * Builds a user's DataExport: the records from the read tables, archived
+ * ones included, oldest first; and every event behind them from the event
+ * store, in the order they happened. Timestamps become ISO 8601 in UTC;
+ * dates stay YYYY-MM-DD. Password hashes and tokens are never exported.
  */
 final readonly class DataExporter
 {
@@ -27,6 +29,7 @@ final readonly class DataExporter
 
     public function __construct(
         private Connection $db,
+        private EventStore $events,
         private ClockInterface $clock,
     ) {
     }
@@ -52,7 +55,30 @@ final readonly class DataExporter
             categories: $this->rows('SELECT id, name, description, created_at, archived_at FROM category WHERE user_id = :owner ORDER BY created_at, id', $owner),
             tags: $this->rows('SELECT id, category_id, name, created_at, archived_at FROM tag WHERE user_id = :owner ORDER BY created_at, id', $owner),
             journalEntries: $this->withTagIds($entries, 'journal_entry_tag', 'journal_entry_id'),
+            events: $this->events($ownerId),
         );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     *
+     * @throws Exception
+     */
+    private function events(UserId $ownerId): array
+    {
+        $events = [];
+        foreach ($this->events->ownedBy($ownerId) as $event) {
+            $events[] = [
+                'stream_type' => $event->streamType,
+                'stream_id' => $event->streamId->toRfc4122(),
+                'version' => $event->version,
+                'type' => $event->type,
+                'recorded_at' => $event->recordedAt->format(DateTimeInterface::ATOM),
+                'data' => $event->payload,
+            ];
+        }
+
+        return $events;
     }
 
     /**

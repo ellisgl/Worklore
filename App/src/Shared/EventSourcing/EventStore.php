@@ -111,6 +111,26 @@ final readonly class EventStore
     }
 
     /**
+     * Every event one user owns, in the order it was recorded.
+     *
+     * @return list<StoredEvent>
+     *
+     * @throws Exception
+     */
+    public function ownedBy(UserId $ownerId): array
+    {
+        /** @var list<EventRow> $rows */
+        $rows = $this->db->fetchAllAssociative(self::SELECT.' WHERE user_id = :owner ORDER BY sequence', ['owner' => $ownerId->toRfc4122()]);
+
+        $events = [];
+        foreach ($rows as $row) {
+            $events[] = $this->stored($row);
+        }
+
+        return $events;
+    }
+
+    /**
      * Every event in the order it was recorded, read in batches.
      *
      * @return Generator<StoredEvent>
