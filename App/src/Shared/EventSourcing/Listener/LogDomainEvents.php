@@ -6,6 +6,7 @@ namespace App\Shared\EventSourcing\Listener;
 
 use App\Shared\EventSourcing\DomainEvent;
 use App\Shared\EventSourcing\EventSerializer;
+use App\Shared\Security\Impersonation;
 use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -24,6 +25,7 @@ final readonly class LogDomainEvents
     public function __construct(
         private EventSerializer $serializer,
         private LoggerInterface $logger,
+        private Impersonation $impersonation,
     ) {
     }
 
@@ -34,6 +36,11 @@ final readonly class LogDomainEvents
             if (str_ends_with($key, '_id')) {
                 $ids[$key] = $value;
             }
+        }
+
+        $impersonatorId = $this->impersonation->impersonatorId();
+        if (null !== $impersonatorId) {
+            $ids['impersonator_id'] = $impersonatorId->toRfc4122();
         }
 
         $type = $this->serializer->typeOf($event);

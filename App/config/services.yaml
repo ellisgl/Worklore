@@ -10,6 +10,7 @@ parameters:
     # Token lifetimes in seconds
     app.auth.access_token_ttl: 900        # 15 minutes
     app.auth.refresh_token_ttl: 2592000   # 30 days
+    app.auth.impersonation_ttl: 900       # 15 minutes, never refreshed
 
 services:
     # default configuration for services in *this* file

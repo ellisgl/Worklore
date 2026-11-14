@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Identity\Security;
 
+use App\Shared\Security\Impersonation;
 use SensitiveParameter;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\AccessToken\AccessTokenHandlerInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
@@ -14,8 +16,10 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
  */
 final readonly class AccessTokenHandler implements AccessTokenHandlerInterface
 {
-    public function __construct(private TokenManager $tokenManager)
-    {
+    public function __construct(
+        private TokenManager $tokenManager,
+        private RequestStack $requests,
+    ) {
     }
 
     public function getUserBadgeFrom(#[SensitiveParameter] string $accessToken): UserBadge
@@ -26,6 +30,10 @@ final readonly class AccessTokenHandler implements AccessTokenHandlerInterface
         }
 
         $user = $token->user;
+        if (null !== $token->impersonator) {
+            // Read through App\Shared\Security\Impersonation
+            $this->requests->getMainRequest()?->attributes->set(Impersonation::ATTRIBUTE, $token->impersonator->id);
+        }
 
         return new UserBadge($user->getUserIdentifier(), static fn () => $user);
     }

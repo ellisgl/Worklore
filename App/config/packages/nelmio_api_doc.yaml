@@ -41,6 +41,7 @@ nelmio_api_doc:
             - { name: Categories, description: 'Groups of tags, e.g. "Skill"' }
             - { name: Tags }
             - { name: History, description: 'Every change to a record, as the events that recorded it' }
+            - { name: Admin, description: 'For admins: find users and impersonate them; while impersonating, purge records for good' }
         components:
             schemas:
                 Error:

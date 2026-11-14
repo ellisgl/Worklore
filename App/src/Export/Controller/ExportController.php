@@ -9,6 +9,7 @@ use App\Export\DataExport;
 use App\Export\DataExporter;
 use App\Shared\Http\OpenApi\Item;
 use App\Shared\Owner;
+use App\Shared\Security\NotWhileImpersonating;
 use DateMalformedStringException;
 use Doctrine\DBAL\Exception;
 use OpenApi\Attributes as OA;
@@ -49,6 +50,7 @@ final class ExportController extends AbstractController
      * @throws Exception
      */
     #[Item(DataExport::class, 'The export, as a file download')]
+    #[NotWhileImpersonating]
     #[Route('/api/me/export', name: 'api_me_export', methods: ['GET'])]
     public function export(#[CurrentUser] Owner $owner): JsonResponse
     {
@@ -74,6 +76,7 @@ final class ExportController extends AbstractController
      * @throws Exception
      */
     #[OA\Response(response: 200, description: 'The archive, as a file download', content: new OA\MediaType(mediaType: 'application/zip', schema: new OA\Schema(type: 'string', format: 'binary')))]
+    #[NotWhileImpersonating]
     #[Route('/api/me/export/archive', name: 'api_me_export_archive', methods: ['GET'])]
     public function archive(#[CurrentUser] Owner $owner): StreamedResponse
     {

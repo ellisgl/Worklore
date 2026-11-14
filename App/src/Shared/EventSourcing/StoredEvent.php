@@ -29,6 +29,8 @@ final readonly class StoredEvent
         public array $payload,
         public DateTimeImmutable $recordedAt,
         public DomainEvent $event,
+        /** The admin who recorded it while impersonating the owner, if one did */
+        public ?UserId $impersonatorId = null,
     ) {
     }
 }

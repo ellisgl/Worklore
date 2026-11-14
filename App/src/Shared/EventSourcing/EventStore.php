@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\EventSourcing;
 
 use App\Shared\EntityId;
+use App\Shared\Security\Impersonation;
 use App\Shared\UserId;
 use DateMalformedStringException;
 use DateTimeImmutable;
@@ -32,16 +33,17 @@ use const JSON_THROW_ON_ERROR;
  * one stream per aggregate (table event_store). A row it can't read is
  * corrupt data and raises UnexpectedValueException.
  *
- * @phpstan-type EventRow array{sequence: int|string, stream_type: string, stream_id: string, stream_version: int|string, user_id: string, event_type: string, payload: string, recorded_at: string}
+ * @phpstan-type EventRow array{sequence: int|string, stream_type: string, stream_id: string, stream_version: int|string, user_id: string, impersonator_id: string|null, event_type: string, payload: string, recorded_at: string}
  */
 final readonly class EventStore
 {
-    private const string SELECT = 'SELECT sequence, stream_type, stream_id, stream_version, user_id, event_type, payload, recorded_at FROM event_store';
+    private const string SELECT = 'SELECT sequence, stream_type, stream_id, stream_version, user_id, impersonator_id, event_type, payload, recorded_at FROM event_store';
 
     public function __construct(
         private Connection $db,
         private EventSerializer $serializer,
         private ClockInterface $clock,
+        private Impersonation $impersonation,
     ) {
     }
 
@@ -87,15 +89,17 @@ final readonly class EventStore
         $recordedAt = $recordedAt->setTimezone(new DateTimeZone('UTC'));
         $type = $this->serializer->typeOf($event);
         $payload = $this->serializer->payload($event);
+        $impersonatorId = $this->impersonation->impersonatorId();
         try {
             $sequence = $this->db->fetchOne(
-                'INSERT INTO event_store (stream_type, stream_id, stream_version, user_id, event_type, payload, recorded_at)
-                 VALUES (:stream_type, :stream_id, :version, :owner, :type, :payload, :recorded_at) RETURNING sequence',
+                'INSERT INTO event_store (stream_type, stream_id, stream_version, user_id, impersonator_id, event_type, payload, recorded_at)
+                 VALUES (:stream_type, :stream_id, :version, :owner, :impersonator, :type, :payload, :recorded_at) RETURNING sequence',
                 [
                     'stream_type' => $streamType,
                     'stream_id' => $streamId->toRfc4122(),
                     'version' => $version,
                     'owner' => $ownerId->toRfc4122(),
+                    'impersonator' => $impersonatorId?->toRfc4122(),
                     'type' => $type,
                     'payload' => self::json($payload),
                     'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
@@ -105,7 +109,7 @@ final readonly class EventStore
             throw new ConcurrentModification();
         }
 
-        return new StoredEvent(self::int($sequence), $streamType, $streamId, $version, $ownerId, $type, $payload, $recordedAt, $event);
+        return new StoredEvent(self::int($sequence), $streamType, $streamId, $version, $ownerId, $type, $payload, $recordedAt, $event, $impersonatorId);
     }
 
     /**
@@ -202,6 +206,7 @@ final readonly class EventStore
             payload: $payload,
             recordedAt: $recordedAt,
             event: $this->serializer->event($row['event_type'], $payload),
+            impersonatorId: null === $row['impersonator_id'] ? null : UserId::fromString($row['impersonator_id']),
         );
     }
 

@@ -23,6 +23,8 @@ final readonly class HistoryEntry
         public DateTimeImmutable $recordedAt,
         #[OA\Property(type: 'object', additionalProperties: true)]
         public array $data,
+        #[OA\Property(description: 'The admin who made this change while impersonating you, if one did', format: 'uuid')]
+        public ?string $impersonatedBy = null,
     ) {
     }
 }

@@ -13,6 +13,7 @@ use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
 use App\Shared\InvalidValueException;
 use App\Shared\Owner;
+use App\Shared\Security\NotWhileImpersonating;
 use LogicException;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -56,6 +57,7 @@ final class ImportController extends AbstractController
     #[Item(ImportResult::class, 'Imported')]
     #[Invalid('the file is not an export this server can import, e.g. "Event 3 in the export refers to a record that is not in the export."')]
     #[Conflict('Your account already has records', 'Imports go into an account with no records. Sign up for a new account (or delete this one\'s records) first.')]
+    #[NotWhileImpersonating]
     #[Route('/api/me/import', name: 'api_me_import', methods: ['POST'])]
     public function import(#[CurrentUser] Owner $owner, Request $request): JsonResponse
     {

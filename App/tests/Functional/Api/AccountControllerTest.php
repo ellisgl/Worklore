@@ -26,10 +26,11 @@ final class AccountControllerTest extends ApiTestCase
 
         $account = $this->getJson('/api/me', $this->bearer($this->login('me@example.com')['access_token']));
 
-        self::assertSame(['id', 'email', 'created_at'], array_keys($account));
+        self::assertSame(['id', 'email', 'created_at', 'impersonated_by'], array_keys($account));
         self::assertSame($user->id->toRfc4122(), $account['id']);
         self::assertSame('me@example.com', $account['email']);
         self::assertSame('2026-03-04T05:06:07+00:00', $account['created_at']);
+        self::assertNull($account['impersonated_by']);
     }
 
     /**

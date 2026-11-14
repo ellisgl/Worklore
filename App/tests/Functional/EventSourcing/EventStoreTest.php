@@ -8,6 +8,7 @@ use App\Identity\User;
 use App\Shared\EventSourcing\ConcurrentModification;
 use App\Shared\EventSourcing\EventSerializer;
 use App\Shared\EventSourcing\EventStore;
+use App\Shared\Security\Impersonation;
 use App\Tests\Fixtures\EventSourcing\Note;
 use App\Tests\Fixtures\EventSourcing\NoteEdited;
 use App\Tests\Fixtures\EventSourcing\NoteEvents;
@@ -17,6 +18,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 use function array_map;
 use function iterator_to_array;
@@ -33,7 +35,7 @@ final class EventStoreTest extends KernelTestCase
         $this->owner = new User('me@example.com');
         $em->persist($this->owner);
         $em->flush();
-        $this->store = new EventStore(self::getContainer()->get(Connection::class), new EventSerializer([new NoteEvents()]), new MockClock('2026-03-04 05:06:07 UTC'));
+        $this->store = new EventStore(self::getContainer()->get(Connection::class), new EventSerializer([new NoteEvents()]), new MockClock('2026-03-04 05:06:07 UTC'), new Impersonation(new RequestStack()));
     }
 
     /**

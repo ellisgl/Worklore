@@ -37,6 +37,8 @@ final class ApiToken
         DateTimeImmutable $accessExpiresAt,
         string $refreshTokenHash,
         DateTimeImmutable $refreshExpiresAt,
+        /** The admin acting as $user, for an impersonation token; null for the user's own */
+        private(set) readonly ?User $impersonator = null,
     ) {
         $this->id = ApiTokenId::generate();
         $this->rotate($accessTokenHash, $accessExpiresAt, $refreshTokenHash, $refreshExpiresAt);
@@ -61,8 +63,11 @@ final class ApiToken
         return $this->accessExpiresAt > $now;
     }
 
+    /**
+     * Impersonation tokens can't be refreshed: they end when they expire.
+     */
     public function isRefreshTokenValid(DateTimeImmutable $now): bool
     {
-        return $this->refreshExpiresAt > $now;
+        return null === $this->impersonator && $this->refreshExpiresAt > $now;
     }
 }

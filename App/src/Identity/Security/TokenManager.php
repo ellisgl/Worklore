@@ -30,6 +30,8 @@ final readonly class TokenManager
         private int $accessTtl,
         #[Autowire('%app.auth.refresh_token_ttl%')]
         private int $refreshTtl,
+        #[Autowire('%app.auth.impersonation_ttl%')]
+        private int $impersonationTtl,
     ) {
     }
 
@@ -52,6 +54,25 @@ final readonly class TokenManager
         $this->em->flush();
 
         return $pair;
+    }
+
+    /**
+     * An access token for $admin to act as $user. It expires after the
+     * impersonation TTL and has no usable refresh token.
+     *
+     * @throws RandomException
+     */
+    public function impersonate(User $admin, User $user): ImpersonationToken
+    {
+        [$pair, $hashes] = $this->generate();
+        $now = $this->clock->now();
+        $expires = self::after($now, $this->impersonationTtl);
+
+        // The refresh hash is required and unique; this one is never handed out
+        $this->em->persist(new ApiToken($user, $now, $hashes['access'], $expires, $hashes['refresh'], $expires, $admin));
+        $this->em->flush();
+
+        return new ImpersonationToken($pair->accessToken, $this->impersonationTtl, $user->id->toRfc4122(), $user->email);
     }
 
     public function findValidByAccessToken(string $accessToken): ?ApiToken

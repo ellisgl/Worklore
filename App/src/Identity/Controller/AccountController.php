@@ -13,6 +13,8 @@ use App\Shared\Http\OpenApi\Invalid;
 use App\Shared\Http\OpenApi\Item;
 use App\Shared\Http\OpenApi\NoContent;
 use App\Shared\Secret;
+use App\Shared\Security\Impersonation;
+use App\Shared\Security\NotWhileImpersonating;
 use OpenApi\Attributes as OA;
 use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,6 +38,7 @@ final class AccountController extends AbstractController
         // Named autowiring: $commandBus is the command.bus service.
         private readonly MessageBusInterface $commandBus,
         private readonly TokenManager $tokens,
+        private readonly Impersonation $impersonation,
     ) {
     }
 
@@ -48,7 +51,7 @@ final class AccountController extends AbstractController
     #[Route('', name: 'show', methods: ['GET'])]
     public function show(#[CurrentUser] User $user): JsonResponse
     {
-        return $this->json(AccountSummary::of($user));
+        return $this->json(AccountSummary::of($user, $this->impersonation->impersonatorId()));
     }
 
     /**
@@ -60,6 +63,7 @@ final class AccountController extends AbstractController
      * @throws ExceptionInterface
      */
     #[NoContent('Every session ended')]
+    #[NotWhileImpersonating]
     #[Route('/sessions/revoke', name: 'revoke_sessions', methods: ['POST'])]
     public function revokeSessions(#[CurrentUser] User $user): Response
     {
@@ -80,6 +84,7 @@ final class AccountController extends AbstractController
      */
     #[Item(TokenPair::class, 'Changed; use these tokens from now on')]
     #[Invalid('the current password is incorrect')]
+    #[NotWhileImpersonating]
     #[Route('/password', name: 'change_password', methods: ['POST'])]
     public function changePassword(
         #[CurrentUser] User $user,

@@ -25,7 +25,7 @@ use const JSON_THROW_ON_ERROR;
  * Read side for histories: a record's events straight from the event store,
  * oldest first.
  *
- * @phpstan-type HistoryRow array{stream_version: int|string, event_type: string, recorded_at: string, payload: string}
+ * @phpstan-type HistoryRow array{stream_version: int|string, event_type: string, recorded_at: string, payload: string, impersonator_id: string|null}
  */
 final readonly class HistoryQueries
 {
@@ -54,7 +54,7 @@ final readonly class HistoryQueries
         }
 
         /** @var list<HistoryRow> $rows */
-        $rows = $this->db->fetchAllAssociative('SELECT stream_version, event_type, recorded_at, payload'.$where.' ORDER BY stream_version'.PagedSql::limit($page), $params);
+        $rows = $this->db->fetchAllAssociative('SELECT stream_version, event_type, recorded_at, payload, impersonator_id'.$where.' ORDER BY stream_version'.PagedSql::limit($page), $params);
 
         $entries = [];
         foreach ($rows as $row) {
@@ -81,6 +81,6 @@ final readonly class HistoryQueries
         /** @var array<string, mixed> $payload */
         $payload = $data;
 
-        return new HistoryEntry((int) $row['stream_version'], $row['event_type'], $recordedAt, $payload);
+        return new HistoryEntry((int) $row['stream_version'], $row['event_type'], $recordedAt, $payload, $row['impersonator_id']);
     }
 }
